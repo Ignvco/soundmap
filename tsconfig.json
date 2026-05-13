@@ -2,9 +2,25 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "baseUrl": ".",
     "paths": {
       "@/*": [
-        "./*"
+        "src/*"
+      ],
+      "@audio/*": [
+        "src/lib/audio/*"
+      ],
+      "@db/*": [
+        "src/db/*"
+      ],
+      "@components/*": [
+        "src/components/*"
       ]
     }
   },
@@ -13,5 +29,8 @@
     "**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
+  ],
+  "exclude": [
+    "node_modules"
   ]
 }
