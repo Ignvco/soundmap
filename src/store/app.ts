@@ -35,7 +35,7 @@ function toGearItem(item: (typeof GEAR_DATABASE)[0], tipo: GearItem['tipo']): Ge
     activo: item.activo,
     potenciaW: item.potenciaW,
     maxSpl: item.maxSpl,
-    specs: {},
+    specs: '',
   }
 }
 

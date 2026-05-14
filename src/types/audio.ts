@@ -6,7 +6,7 @@ export interface GearItem {
   activo: boolean
   potenciaW: number
   maxSpl: number
-  specs: Record<string, string | number>
+  specs: string
 }
 
 export interface GearSystem {

@@ -1,192 +1,127 @@
-import React from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { CHANNELS_DATA } from '@/constants/channels-data';
+import React, { useState } from 'react';
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
-const CHANNELS = [
-  { num: "CH 1", name: "Predicador", src: "SM48", phantom: false, type: "voz" },
-  {
-    num: "CH 2",
-    name: "Líder vocal",
-    src: "Beta 58A",
-    phantom: false,
-    type: "voz",
-  },
-  {
-    num: "CH 3–5",
-    name: "Coristas × 3",
-    src: "SM58",
-    phantom: false,
-    type: "voz",
-  },
-  {
-    num: "CH 6",
-    name: "Corista AT",
-    src: "AT Condensador",
-    phantom: true,
-    type: "voz",
-  },
-  {
-    num: "CH 7–8",
-    name: "Guitarras × 2",
-    src: "DI Box",
-    phantom: false,
-    type: "inst",
-  },
-  { num: "CH 9", name: "Bajo", src: "DI Box", phantom: false, type: "inst" },
-  {
-    num: "CH 10–11",
-    name: "Pianos × 2",
-    src: "DI Box",
-    phantom: false,
-    type: "inst",
-  },
-  {
-    num: "CH 12",
-    name: "Secuencia",
-    src: "PC / Interfaz",
-    phantom: false,
-    type: "inst",
-  },
-  {
-    num: "CH 13",
-    name: "Click",
-    src: "PC / Interfaz",
-    phantom: false,
-    type: "fx",
-  },
-];
-
-const TYPE_COLORS: Record<string, string> = {
-  voz: "#1a4fa0",
-  inst: "#1a7a3c",
-  fx: "#7a5800",
-};
+const AC = '#C00020'
+const TYPE_COLOR = { voz: '#1a4fa0', inst: '#1a7a3c', fx: '#7a5800' }
 
 export default function ChannelsScreen() {
-  const [selected, setSelected] = React.useState<number | null>(null);
+  const [selected, setSelected] = useState<number | null>(null)
+  const ch = selected !== null ? CHANNELS_DATA[selected] : null
 
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: "#ffffff" }}
+      style={{ flex: 1, backgroundColor: '#fff' }}
       contentContainerStyle={{ padding: 16, paddingTop: 60 }}
     >
-      <Text
-        style={{
-          fontSize: 22,
-          fontWeight: "800",
-          color: "#111110",
-          marginBottom: 4,
-        }}
-      >
-        Canal por Canal
-      </Text>
-      <Text style={{ fontSize: 13, color: "#9b9b98", marginBottom: 24 }}>
-        Mixer SL2442FX · 13 canales activos
+      <Text style={{ fontSize: 22, fontWeight: '800', marginBottom: 4 }}>Canal por Canal</Text>
+      <Text style={{ fontSize: 13, color: '#9b9b98', marginBottom: 20 }}>
+        Mixer SL2442FX · {CHANNELS_DATA.length} canales · Tocar para ver EQ
       </Text>
 
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-        {CHANNELS.map((ch, i) => (
-          <TouchableOpacity
-            key={i}
-            onPress={() => setSelected(selected === i ? null : i)}
-            style={{
-              width: "47%",
-              borderRadius: 10,
-              borderWidth: 0.5,
-              borderColor: selected === i ? "#C00020" : "#e8e8e4",
-              borderLeftWidth: 2,
-              borderLeftColor: TYPE_COLORS[ch.type] ?? "#e8e8e4",
-              padding: 12,
-              backgroundColor: selected === i ? "#fff0f0" : "#ffffff",
-            }}
-          >
-            <Text style={{ fontSize: 10, color: "#9b9b98", marginBottom: 3 }}>
-              {ch.num}
-            </Text>
-            <Text
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        {CHANNELS_DATA.map((item, i) => {
+          const isSel = selected === i
+          const borderColor = TYPE_COLOR[item.tipo]
+          return (
+            <TouchableOpacity
+              key={i}
+              onPress={() => setSelected(isSel ? null : i)}
               style={{
-                fontSize: 12,
-                fontWeight: "600",
-                color: "#111110",
-                marginBottom: 3,
+                width: '47%',
+                borderRadius: 10,
+                borderWidth: 0.5,
+                borderColor: isSel ? AC : '#e8e8e4',
+                borderLeftWidth: 2.5,
+                borderLeftColor: borderColor,
+                padding: 12,
+                backgroundColor: isSel ? '#fff0f0' : '#fff',
               }}
             >
-              {ch.name}
-            </Text>
-            <Text style={{ fontSize: 10, color: "#6b6b68" }}>{ch.src}</Text>
-            {ch.phantom && (
-              <View
+              <Text style={{ fontSize: 10, color: '#9b9b98', marginBottom: 3 }}>{item.num}</Text>
+              <Text
                 style={{
-                  marginTop: 6,
-                  backgroundColor: "#fff0f0",
-                  borderRadius: 10,
-                  paddingHorizontal: 6,
-                  paddingVertical: 1,
-                  alignSelf: "flex-start",
+                  fontSize: 12,
+                  fontWeight: '600',
+                  marginBottom: 2,
+                  color: isSel ? AC : '#111110',
                 }}
               >
-                <Text
-                  style={{ fontSize: 9, fontWeight: "700", color: "#C00020" }}
+                {item.nombre}
+              </Text>
+              <Text style={{ fontSize: 10, color: '#6b6b68' }}>{item.src}</Text>
+              {item.phantom && (
+                <View
+                  style={{
+                    marginTop: 5,
+                    backgroundColor: '#fff0f0',
+                    borderRadius: 10,
+                    paddingHorizontal: 6,
+                    paddingVertical: 1,
+                    alignSelf: 'flex-start',
+                    borderWidth: 0.5,
+                    borderColor: '#f0b0b0',
+                  }}
                 >
-                  48V
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        ))}
+                  <Text style={{ fontSize: 9, fontWeight: '700', color: AC }}>48V</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          )
+        })}
       </View>
 
-      {selected !== null && CHANNELS[selected] && (
+      {ch !== null && ch !== undefined && (
         <View
           style={{
             marginTop: 16,
-            backgroundColor: "#fff0f0",
+            backgroundColor: '#fff0f0',
             borderRadius: 12,
             borderWidth: 0.5,
-            borderColor: "#f0b0b0",
+            borderColor: '#f0b0b0',
             padding: 14,
           }}
         >
-          <Text
-            style={{
-              fontSize: 13,
-              fontWeight: "700",
-              color: "#C00020",
-              marginBottom: 10,
-            }}
-          >
-            {CHANNELS[selected]!.num} — {CHANNELS[selected]!.name}
+          <Text style={{ fontSize: 14, fontWeight: '700', color: AC, marginBottom: 10 }}>
+            {ch.num} — {ch.nombre}
           </Text>
           {[
-            { k: "Fuente", v: CHANNELS[selected]!.src },
-            {
-              k: "Phantom 48V",
-              v: CHANNELS[selected]!.phantom ? "SÍ — obligatorio" : "No",
-            },
-            { k: "LOW 80Hz", v: "−3 dB" },
-            { k: "LOW-MID", v: "300Hz: −3 dB" },
-            { k: "HIGH-MID", v: "2kHz: +1 dB" },
-            { k: "HIGH 12kHz", v: "0 dB" },
+            { k: 'Fuente', v: ch.src },
+            { k: 'Phantom 48V', v: ch.phantom ? 'SÍ — obligatorio' : 'No' },
+            { k: 'Pan', v: ch.pan },
+            { k: 'Fader ref.', v: ch.fader },
+            { k: 'LOW 80Hz', v: ch.eq.low },
+            { k: 'LOW-MID', v: ch.eq.lowMid },
+            { k: 'HIGH-MID', v: ch.eq.highMid },
+            { k: 'HIGH 12kHz', v: ch.eq.high },
           ].map((row) => (
             <View
               key={row.k}
               style={{
-                flexDirection: "row",
-                justifyContent: "space-between",
+                flexDirection: 'row',
+                justifyContent: 'space-between',
                 paddingVertical: 4,
                 borderBottomWidth: 0.5,
-                borderBottomColor: "#f0b0b0",
+                borderBottomColor: '#f0b0b0',
               }}
             >
-              <Text style={{ fontSize: 12, color: "#6b6b68" }}>{row.k}</Text>
-              <Text
-                style={{ fontSize: 12, fontWeight: "500", color: "#111110" }}
-              >
-                {row.v}
-              </Text>
+              <Text style={{ fontSize: 12, color: '#6b6b68' }}>{row.k}</Text>
+              <Text style={{ fontSize: 12, fontWeight: '500', color: '#111110' }}>{row.v}</Text>
             </View>
           ))}
+          <Text
+            style={{
+              fontSize: 11,
+              color: '#6b6b68',
+              marginTop: 8,
+              fontStyle: 'italic',
+              lineHeight: 18,
+            }}
+          >
+            {ch.nota}
+          </Text>
         </View>
       )}
     </ScrollView>
-  );
+  )
 }
