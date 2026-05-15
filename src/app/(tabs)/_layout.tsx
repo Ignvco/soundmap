@@ -1,28 +1,30 @@
-import { TabIcon } from '@components/ui/TabIcon'
-import { Tabs } from 'expo-router'
-import { useColorScheme } from 'react-native'
+import { TabIcon } from '@components/ui/TabIcon';
+import { Tabs } from 'expo-router';
+
+const AC = '#1aff6e'
+const DIM = '#44445a'
+const BG = '#06060a'
+const BR = 'rgba(255,255,255,0.07)'
 
 export default function TabLayout() {
-  const scheme = useColorScheme()
-  const accent = '#C00020'
-  const inactive = scheme === 'dark' ? '#555550' : '#9b9b98'
-  const bg = scheme === 'dark' ? '#111110' : '#ffffff'
-  const border = scheme === 'dark' ? '#2a2a28' : '#e8e8e4'
-
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: accent,
-        tabBarInactiveTintColor: inactive,
+        tabBarActiveTintColor: AC,
+        tabBarInactiveTintColor: DIM,
         tabBarStyle: {
-          backgroundColor: bg,
-          borderTopColor: border,
+          backgroundColor: BG,
+          borderTopColor: BR,
           borderTopWidth: 0.5,
+          height: 60,
+          paddingBottom: 8,
         },
         tabBarLabelStyle: {
           fontSize: 9,
-          fontWeight: '500',
+          fontWeight: '700',
+          letterSpacing: 0.4,
+          textTransform: 'uppercase',
         },
       }}
     >
@@ -37,28 +39,28 @@ export default function TabLayout() {
         name="stage-map"
         options={{
           title: 'Mapa',
-          tabBarIcon: ({ color }) => <TabIcon name="map-2" color={color} />,
+          tabBarIcon: ({ color }) => <TabIcon name="map" color={color} />,
         }}
       />
       <Tabs.Screen
         name="config"
         options={{
           title: 'Config',
-          tabBarIcon: ({ color }) => <TabIcon name="adjustments" color={color} />,
+          tabBarIcon: ({ color }) => <TabIcon name="settings" color={color} />,
         }}
       />
       <Tabs.Screen
         name="channels"
         options={{
           title: 'Canales',
-          tabBarIcon: ({ color }) => <TabIcon name="playlist" color={color} />,
+          tabBarIcon: ({ color }) => <TabIcon name="list" color={color} />,
         }}
       />
       <Tabs.Screen
         name="export"
         options={{
           title: 'Manual',
-          tabBarIcon: ({ color }) => <TabIcon name="file-text" color={color} />,
+          tabBarIcon: ({ color }) => <TabIcon name="file" color={color} />,
         }}
       />
     </Tabs>

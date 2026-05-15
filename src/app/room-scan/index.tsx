@@ -6,8 +6,8 @@ import React, { useState } from 'react';
 import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 const STEPS = ['Dimensiones', 'Materiales', 'Diagnóstico']
-const AC = '#C00020'
-const BORDER = '#e8e8e4'
+const AC = '#1aff6e'
+const BORDER = 'rgba(255,255,255,0.07)'
 
 export default function RoomScanScreen() {
   const router = useRouter()
@@ -40,7 +40,7 @@ export default function RoomScanScreen() {
 
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: '#fff' }}
+      style={{ flex: 1, backgroundColor: '#080808' }}
       contentContainerStyle={{ padding: 16 }}
     >
       {/* Step indicator */}
@@ -61,7 +61,7 @@ export default function RoomScanScreen() {
       <Text
         style={{
           fontSize: 11,
-          color: '#9b9b98',
+          color: '#444444',
           textTransform: 'uppercase',
           letterSpacing: 0.8,
           marginBottom: 4,
@@ -81,7 +81,7 @@ export default function RoomScanScreen() {
               ] as const
             ).map((f) => (
               <View key={f.key} style={{ flex: 1 }}>
-                <Text style={{ fontSize: 12, color: '#6b6b68', marginBottom: 4 }}>{f.label}</Text>
+                <Text style={{ fontSize: 12, color: '#888888', marginBottom: 4 }}>{f.label}</Text>
                 <TextInput
                   keyboardType="numeric"
                   value={String(room[f.key] ?? '')}
@@ -105,7 +105,7 @@ export default function RoomScanScreen() {
               ] as const
             ).map((f) => (
               <View key={f.key} style={{ flex: 1 }}>
-                <Text style={{ fontSize: 12, color: '#6b6b68', marginBottom: 4 }}>{f.label}</Text>
+                <Text style={{ fontSize: 12, color: '#888888', marginBottom: 4 }}>{f.label}</Text>
                 <TextInput
                   keyboardType="numeric"
                   value={String(room[f.key] ?? '')}
@@ -128,7 +128,7 @@ export default function RoomScanScreen() {
       {step === 1 && (
         <View style={{ gap: 16, marginTop: 8 }}>
           <View>
-            <Text style={{ fontSize: 12, fontWeight: '600', color: '#6b6b68', marginBottom: 8 }}>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: '#888888', marginBottom: 8 }}>
               Paredes
             </Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
@@ -144,14 +144,14 @@ export default function RoomScanScreen() {
                       borderRadius: 8,
                       borderWidth: sel ? 1.5 : 0.5,
                       borderColor: sel ? AC : BORDER,
-                      backgroundColor: sel ? '#fff0f0' : '#fff',
+                      backgroundColor: sel ? 'rgba(26,255,110,0.06)' : '#06060a',
                     }}
                   >
                     <Text
                       style={{
                         fontSize: 13,
                         fontWeight: '500',
-                        color: sel ? AC : '#3a3a38',
+                        color: sel ? AC : '#f0f0f0',
                         textTransform: 'capitalize',
                       }}
                     >
@@ -164,7 +164,7 @@ export default function RoomScanScreen() {
           </View>
 
           <View>
-            <Text style={{ fontSize: 12, fontWeight: '600', color: '#6b6b68', marginBottom: 8 }}>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: '#888888', marginBottom: 8 }}>
               Piso
             </Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
@@ -180,14 +180,14 @@ export default function RoomScanScreen() {
                       borderRadius: 8,
                       borderWidth: sel ? 1.5 : 0.5,
                       borderColor: sel ? AC : BORDER,
-                      backgroundColor: sel ? '#fff0f0' : '#fff',
+                      backgroundColor: sel ? 'rgba(26,255,110,0.06)' : '#06060a',
                     }}
                   >
                     <Text
                       style={{
                         fontSize: 13,
                         fontWeight: '500',
-                        color: sel ? AC : '#3a3a38',
+                        color: sel ? AC : '#f0f0f0',
                         textTransform: 'capitalize',
                       }}
                     >
@@ -207,7 +207,7 @@ export default function RoomScanScreen() {
           {[
             { label: 'RT60 sin público', val: `${diag.rt60Empty.toFixed(1)} seg`, color: AC },
             { label: 'RT60 con público', val: `${diag.rt60Full.toFixed(1)} seg`, color: '#7a5800' },
-            { label: 'Reflexión', val: diag.reflexion.replace('_', ' '), color: '#111110' },
+            { label: 'Reflexión', val: diag.reflexion.replace('_', ' '), color: '#f0f0f0' },
             { label: 'Eco pared', val: `${diag.ecoMs}ms`, color: diag.ecoMs > 60 ? AC : '#1a7a3c' },
           ].map((row) => (
             <View
@@ -221,7 +221,7 @@ export default function RoomScanScreen() {
                 borderColor: BORDER,
               }}
             >
-              <Text style={{ fontSize: 13, color: '#6b6b68' }}>{row.label}</Text>
+              <Text style={{ fontSize: 13, color: '#888888' }}>{row.label}</Text>
               <Text style={{ fontSize: 13, fontWeight: '600', color: row.color }}>{row.val}</Text>
             </View>
           ))}
@@ -237,17 +237,17 @@ export default function RoomScanScreen() {
             <Text style={{ fontSize: 11, fontWeight: '700', color: '#1a7a3c', marginBottom: 4 }}>
               RECOMENDACIÓN
             </Text>
-            <Text style={{ fontSize: 13, color: '#3a3a38', lineHeight: 20 }}>
+            <Text style={{ fontSize: 13, color: '#f0f0f0', lineHeight: 20 }}>
               {diag.recomendacion}
             </Text>
           </View>
-          <Text style={{ fontSize: 12, fontWeight: '600', color: '#9b9b98', marginTop: 4 }}>
+          <Text style={{ fontSize: 12, fontWeight: '600', color: '#444444', marginTop: 4 }}>
             Problemas identificados:
           </Text>
           {diag.problemas.map((p, i) => (
             <View key={i} style={{ flexDirection: 'row', gap: 8, alignItems: 'flex-start' }}>
               <Text style={{ color: AC }}>⚠</Text>
-              <Text style={{ fontSize: 13, color: '#3a3a38', flex: 1 }}>{p}</Text>
+              <Text style={{ fontSize: 13, color: '#f0f0f0', flex: 1 }}>{p}</Text>
             </View>
           ))}
         </View>
@@ -280,7 +280,7 @@ export default function RoomScanScreen() {
             alignItems: 'center',
           }}
         >
-          <Text style={{ fontSize: 14, fontWeight: '600', color: '#fff' }}>
+          <Text style={{ fontSize: 14, fontWeight: '600', color: '#06060a' }}>
             {step < 2 ? 'Siguiente' : 'Guardar recinto'}
           </Text>
         </TouchableOpacity>

@@ -5,6 +5,13 @@ import { diagnosRoom } from '@audio/acoustics';
 import React, { useState } from 'react';
 import { ActivityIndicator, Linking, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
+const AC = '#1aff6e',
+  BG = '#06060a',
+  SF = '#111118'
+const BR = 'rgba(255,255,255,0.07)',
+  TX = '#f0f0f0',
+  T2 = '#8888a0'
+
 const SECTIONS = [
   'Diagnóstico acústico completo',
   'Stage Map frontal + planta',
@@ -29,27 +36,18 @@ export default function ExportScreen() {
     setLoading(true)
     setError(null)
     try {
-      // Diagnóstico y texto generados localmente — sin IA
       const diag = diagnosRoom(room)
       const content = generateManualText(room, gear, diag, allPresets)
-
-      // Subir a Supabase Storage via Edge Function
       const {
         data: { session },
       } = await supabase.auth.getSession()
       const { data, error: fnError } = await supabase.functions.invoke('generate-pdf', {
-        body: {
-          room,
-          gear,
-          presets: allPresets,
-          content,
-          userId: session?.user.id ?? 'anonymous',
-        },
+        body: { room, gear, presets: allPresets, content, userId: session?.user.id ?? 'anonymous' },
       })
       if (fnError) throw fnError
       setManualUrl((data as { url: string }).url)
     } catch {
-      setError('Error al generar el manual. Verificá la conexión a internet.')
+      setError('Error al generar. Verificá la conexión.')
     } finally {
       setLoading(false)
     }
@@ -57,81 +55,72 @@ export default function ExportScreen() {
 
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: '#fff' }}
+      style={{ flex: 1, backgroundColor: BG }}
       contentContainerStyle={{ padding: 16, paddingTop: 60 }}
     >
-      <Text style={{ fontSize: 22, fontWeight: '800', marginBottom: 4 }}>Manual Export</Text>
-      <Text style={{ fontSize: 13, color: '#9b9b98', marginBottom: 24 }}>
+      <Text
+        style={{ fontSize: 22, fontWeight: '800', color: TX, marginBottom: 4, letterSpacing: -0.5 }}
+      >
+        Manual Export
+      </Text>
+      <Text style={{ fontSize: 11, color: T2, marginBottom: 20 }}>
         Manual completo de tu sistema · Gratuito
       </Text>
 
       <View
         style={{
-          backgroundColor: '#f7f7f5',
-          borderRadius: 12,
+          backgroundColor: SF,
+          borderRadius: 16,
           borderWidth: 0.5,
-          borderColor: '#e8e8e4',
+          borderColor: BR,
           padding: 16,
-          marginBottom: 16,
+          marginBottom: 14,
         }}
       >
-        <Text style={{ fontSize: 15, fontWeight: '600', marginBottom: 4 }}>
-          Manual de Audio — {room?.nombre ?? 'Tu iglesia'}
+        <Text style={{ fontSize: 14, fontWeight: '700', color: TX, marginBottom: 4 }}>
+          Manual de Audio — SoundMap
         </Text>
-        <Text style={{ fontSize: 11, color: '#9b9b98', marginBottom: 12 }}>
-          SoundMap by LevelPro
-        </Text>
+        <Text style={{ fontSize: 10, color: T2, marginBottom: 12 }}>by LevelPro Audio</Text>
         {SECTIONS.map((s) => (
           <View
             key={s}
             style={{
               flexDirection: 'row',
-              gap: 8,
+              gap: 7,
               paddingVertical: 4,
               borderBottomWidth: 0.5,
-              borderBottomColor: '#e8e8e4',
+              borderBottomColor: BR,
             }}
           >
-            <Text style={{ color: '#1a7a3c', fontSize: 13 }}>✓</Text>
-            <Text style={{ fontSize: 12, color: '#6b6b68' }}>{s}</Text>
+            <Text style={{ color: AC, fontSize: 12 }}>✓</Text>
+            <Text style={{ fontSize: 11, color: T2 }}>{s}</Text>
           </View>
         ))}
       </View>
 
-      {error && <Text style={{ color: '#C00020', fontSize: 13, marginBottom: 12 }}>{error}</Text>}
+      {error && <Text style={{ color: '#ff4d4d', fontSize: 12, marginBottom: 10 }}>{error}</Text>}
 
       {manualUrl ? (
-        <View style={{ gap: 10 }}>
+        <View style={{ gap: 8 }}>
           <View
             style={{
-              backgroundColor: '#f0faf4',
-              borderRadius: 10,
+              backgroundColor: 'rgba(26,255,110,0.06)',
+              borderRadius: 12,
               borderWidth: 0.5,
-              borderColor: '#b8e8c8',
-              padding: 14,
+              borderColor: 'rgba(26,255,110,0.2)',
+              padding: 12,
             }}
           >
-            <Text style={{ fontSize: 13, fontWeight: '600', color: '#1a7a3c', marginBottom: 4 }}>
-              ✓ Manual generado correctamente
+            <Text style={{ fontSize: 12, fontWeight: '700', color: AC, marginBottom: 4 }}>
+              ✓ Manual generado
             </Text>
-            <Text style={{ fontSize: 11, color: '#6b6b68', lineHeight: 18 }}>{manualUrl}</Text>
+            <Text style={{ fontSize: 10, color: T2 }}>{manualUrl}</Text>
           </View>
           <TouchableOpacity
             onPress={() => Linking.openURL(manualUrl)}
-            style={{
-              backgroundColor: '#1a7a3c',
-              borderRadius: 10,
-              padding: 14,
-              alignItems: 'center',
-            }}
+            style={{ backgroundColor: AC, borderRadius: 12, padding: 14, alignItems: 'center' }}
           >
-            <Text style={{ color: '#fff', fontWeight: '600', fontSize: 15 }}>Abrir manual ↗</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setManualUrl(null)}
-            style={{ alignItems: 'center', padding: 10 }}
-          >
-            <Text style={{ fontSize: 13, color: '#9b9b98' }}>Regenerar</Text>
+            <Text style={{ color: '#000', fontWeight: '700', fontSize: 14 }}>Abrir manual ↗</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -139,20 +128,20 @@ export default function ExportScreen() {
           onPress={handleGenerate}
           disabled={loading}
           style={{
-            backgroundColor: '#C00020',
+            backgroundColor: AC,
             borderRadius: 12,
-            padding: 16,
+            padding: 15,
             alignItems: 'center',
             opacity: loading ? 0.7 : 1,
           }}
         >
           {loading ? (
             <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-              <ActivityIndicator color="#fff" />
-              <Text style={{ color: '#fff', fontWeight: '600' }}>Generando...</Text>
+              <ActivityIndicator color="#000" />
+              <Text style={{ color: '#000', fontWeight: '700' }}>Generando...</Text>
             </View>
           ) : (
-            <Text style={{ fontSize: 15, fontWeight: '700', color: '#fff' }}>Generar manual ↗</Text>
+            <Text style={{ fontSize: 14, fontWeight: '700', color: '#000' }}>Generar manual ↗</Text>
           )}
         </TouchableOpacity>
       )}

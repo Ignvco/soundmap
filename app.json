@@ -1,41 +1,40 @@
 {
   "expo": {
-    "name": "soundmap",
+    "name": "SoundMap",
     "slug": "soundmap",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/soundmap-logo.png",
     "scheme": "soundmap",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/splash-icon.png",
+      "image": "./assets/soundmap-logo.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#06060a"
     },
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.soundmap"
+      "supportsTablet": false,
+      "bundleIdentifier": "com.levelpro.soundmap"
     },
     "android": {
+      "package": "com.levelpro.soundmap",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/soundmap-logo.png",
+        "backgroundColor": "#06060a"
       },
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.soundmap"
+      "edgeToEdgeEnabled": true
     },
     "web": {
       "bundler": "metro",
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "output": "static"
     },
-    "plugins": [
-      "expo-router"
-    ],
     "experiments": {
       "typedRoutes": true
+    },
+    "plugins": ["expo-router", "expo-font"],
+    "extra": {
+      "eas": { "projectId": "TU_EAS_PROJECT_ID" }
     }
   }
 }

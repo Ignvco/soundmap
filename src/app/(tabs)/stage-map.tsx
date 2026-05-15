@@ -1,389 +1,330 @@
 import { useAppStore } from '@/store/app';
 import React, { useState } from 'react';
-import { ScrollView, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
-import Svg, { Ellipse, Line, Polygon, Rect, Text as SvgText } from 'react-native-svg';
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import Svg, { Circle, Line, Polygon, Rect, Text as SvgText } from 'react-native-svg';
 
-type MapView = 'frontal' | 'planta'
-type TOPPos = 'sobre_subs' | 'tripodes'
-type Escenario = '15mt' | '10mt'
+const AC = '#1aff6e',
+  BG = '#06060a',
+  SF = '#111118'
+const BR = 'rgba(255,255,255,0.07)',
+  TX = '#f0f0f0',
+  T2 = '#8888a0',
+  T3 = '#44445a'
+const AM = '#fbbf24'
 
-const AC = '#C00020'
-const SUB_COLOR = '#C88000'
+type Esc = '15mt' | '10mt'
+type Pos = 'sobre' | 'tripodes'
 
-export default function StageMapScreen() {
-  const room = useAppStore((s) => s.room)
-  const gear = useAppStore((s) => s.gear)
-  const scheme = useColorScheme()
-  const isDark = scheme === 'dark'
-
-  const [view, setView] = useState<MapView>('frontal')
-  const [pos, setPos] = useState<TOPPos>('sobre_subs')
-  const [esc, setEsc] = useState<Escenario>('15mt')
-
-  const tilt = esc === '15mt' ? '10°–15°' : '8°–12°'
-  const delay = pos === 'sobre_subs' ? '~0 ms' : 'Medir con cinta'
-  const topName = gear?.top.nombre.split(' ').slice(0, 3).join(' ') ?? 'TOP'
-  const subName = gear?.sub.nombre.split(' ').slice(0, 2).join(' ') ?? 'SUB'
-
-  const bg = isDark ? '#1a1a1a' : '#f7f7f5'
-  const sala = isDark ? '#222' : '#fff'
-  const stg = isDark ? '#2a1f0a' : '#fdf5e6'
-  const wall = isDark ? '#2a2010' : '#f0e8d0'
-  const win = isDark ? '#0a1a2a' : '#e8f4ff'
-  const brd = isDark ? '#333' : '#e0e0d8'
-  const lbl = isDark ? '#666' : '#999'
-
+function MapSVG({ esc, pos }: { esc: Esc; pos: Pos }) {
   const W = 340,
-    H = 200
+    H = 210
   const isLong = esc === '15mt'
-  const sw = isLong ? 280 : 190
-  const sh = isLong ? 150 : 190
+  const sw = isLong ? 285 : 195,
+    sh = isLong ? 158 : 192
   const sx = (W - sw) / 2,
-    sy = 18
+    sy = 14
   const tipX = sx + sw / 2
-  const tIzqX = sx + 36,
-    tDerX = sx + sw - 36
-  const topY = isLong ? 78 : 82
+  const tIzqX = sx + 38,
+    tDerX = sx + sw - 38
+  const topY = isLong ? 74 : 80
   const subY = sy + sh - 28
 
   return (
+    <Svg width={W} height={H}>
+      <Rect width={W} height={H} fill="#06060a" />
+      <Rect
+        x={sx}
+        y={sy}
+        width={sw}
+        height={sh}
+        fill="#111118"
+        stroke="rgba(255,255,255,0.08)"
+        strokeWidth={0.5}
+        rx={6}
+      />
+      <Rect
+        x={sx}
+        y={sy}
+        width={sw}
+        height={sh * 0.2}
+        fill="rgba(26,255,110,0.03)"
+        stroke="rgba(26,255,110,0.07)"
+        strokeWidth={0.5}
+      />
+      <SvgText
+        x={tipX}
+        y={sy + sh * 0.12}
+        textAnchor="middle"
+        fill={T3}
+        fontSize={8}
+        fontFamily="Inter"
+      >
+        ESCENARIO · {isLong ? '15' : '10'}mt
+      </SvgText>
+      <SvgText
+        x={tipX}
+        y={sy + sh * 0.65}
+        textAnchor="middle"
+        fill="rgba(255,255,255,0.07)"
+        fontSize={10}
+        fontFamily="Inter"
+      >
+        PÚBLICO
+      </SvgText>
+      <Polygon
+        points={`${tIzqX},${topY + 10} ${sx + 14},${subY + 16} ${tipX - 5},${subY + 16}`}
+        fill="rgba(26,255,110,0.05)"
+      />
+      <Polygon
+        points={`${tDerX},${topY + 10} ${sx + sw - 14},${subY + 16} ${tipX + 5},${subY + 16}`}
+        fill="rgba(26,255,110,0.05)"
+      />
+      <Rect
+        x={tipX - 22}
+        y={subY - 7}
+        width={44}
+        height={22}
+        rx={5}
+        fill="#0e0e1a"
+        stroke={AM}
+        strokeWidth={1.2}
+      />
+      <SvgText
+        x={tipX}
+        y={subY + 7}
+        textAnchor="middle"
+        fill={AM}
+        fontSize={7}
+        fontWeight="600"
+        fontFamily="Inter"
+      >
+        AIR18×2
+      </SvgText>
+      {pos === 'sobre' ? (
+        <>
+          <Rect
+            x={tIzqX - 13}
+            y={topY - 4}
+            width={26}
+            height={18}
+            rx={4}
+            fill="#0e0e1a"
+            stroke={AC}
+            strokeWidth={1.5}
+          />
+          <Circle cx={tIzqX} cy={topY + 5} r={4} fill="none" stroke={AC} strokeWidth={1} />
+          <Rect
+            x={tDerX - 13}
+            y={topY - 4}
+            width={26}
+            height={18}
+            rx={4}
+            fill="#0e0e1a"
+            stroke={AC}
+            strokeWidth={1.5}
+          />
+          <Circle cx={tDerX} cy={topY + 5} r={4} fill="none" stroke={AC} strokeWidth={1} />
+        </>
+      ) : (
+        <>
+          <Line
+            x1={tIzqX}
+            y1={sy + 50}
+            x2={tIzqX}
+            y2={sy + 70}
+            stroke="rgba(255,255,255,0.15)"
+            strokeWidth={1.5}
+          />
+          <Rect
+            x={tIzqX - 13}
+            y={topY - 10}
+            width={26}
+            height={16}
+            rx={4}
+            fill="#0e0e1a"
+            stroke={AC}
+            strokeWidth={1.5}
+          />
+          <Line
+            x1={tDerX}
+            y1={sy + 50}
+            x2={tDerX}
+            y2={sy + 70}
+            stroke="rgba(255,255,255,0.15)"
+            strokeWidth={1.5}
+          />
+          <Rect
+            x={tDerX - 13}
+            y={topY - 10}
+            width={26}
+            height={16}
+            rx={4}
+            fill="#0e0e1a"
+            stroke={AC}
+            strokeWidth={1.5}
+          />
+        </>
+      )}
+      <SvgText
+        x={tIzqX}
+        y={topY - 17}
+        textAnchor="middle"
+        fill={AC}
+        fontSize={7}
+        fontWeight="700"
+        fontFamily="Inter"
+      >
+        RCF
+      </SvgText>
+      <SvgText
+        x={tDerX}
+        y={topY - 17}
+        textAnchor="middle"
+        fill={AC}
+        fontSize={7}
+        fontWeight="700"
+        fontFamily="Inter"
+      >
+        RCF
+      </SvgText>
+    </Svg>
+  )
+}
+
+export default function StageMapScreen() {
+  const [esc, setEsc] = useState<Esc>('15mt')
+  const [pos, setPos] = useState<Pos>('sobre')
+  const { activePreset } = useAppStore()
+
+  return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: isDark ? '#111' : '#fff' }}
+      style={{ flex: 1, backgroundColor: BG }}
       contentContainerStyle={{ padding: 16, paddingTop: 60 }}
     >
       <Text
         style={{
           fontSize: 22,
           fontWeight: '800',
-          color: isDark ? '#e8e8e0' : '#111110',
+          color: TX,
           marginBottom: 16,
+          letterSpacing: -0.5,
         }}
       >
         Stage Map
       </Text>
 
-      {/* Selectores */}
-      <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
-        {(['15mt', '10mt'] as Escenario[]).map((e) => (
-          <TouchableOpacity
-            key={e}
-            onPress={() => setEsc(e)}
-            style={{
-              flex: 1,
-              padding: 8,
-              borderRadius: 8,
-              alignItems: 'center',
-              borderWidth: esc === e ? 1.5 : 0.5,
-              borderColor: esc === e ? AC : '#e8e8e4',
-              backgroundColor: esc === e ? '#fff0f0' : '#fff',
-            }}
-          >
-            <Text style={{ fontSize: 12, fontWeight: '600', color: esc === e ? AC : '#6b6b68' }}>
-              Esc. {e}
-            </Text>
-          </TouchableOpacity>
-        ))}
-        {(['sobre_subs', 'tripodes'] as TOPPos[]).map((p) => (
-          <TouchableOpacity
-            key={p}
-            onPress={() => setPos(p)}
-            style={{
-              flex: 1,
-              padding: 8,
-              borderRadius: 8,
-              alignItems: 'center',
-              borderWidth: pos === p ? 1.5 : 0.5,
-              borderColor: pos === p ? AC : '#e8e8e4',
-              backgroundColor: pos === p ? '#fff0f0' : '#fff',
-            }}
-          >
-            <Text style={{ fontSize: 11, fontWeight: '600', color: pos === p ? AC : '#6b6b68' }}>
-              {p === 'sobre_subs' ? 'Sobre subs' : 'Trípodes'}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Tab vista */}
       <View
         style={{
-          flexDirection: 'row',
-          borderRadius: 8,
-          overflow: 'hidden',
+          backgroundColor: SF,
+          borderRadius: 16,
           borderWidth: 0.5,
-          borderColor: '#e8e8e4',
+          borderColor: BR,
+          overflow: 'hidden',
           marginBottom: 10,
         }}
       >
-        {(['frontal', 'planta'] as MapView[]).map((v) => (
-          <TouchableOpacity
-            key={v}
-            onPress={() => setView(v)}
-            style={{
-              flex: 1,
-              padding: 8,
-              alignItems: 'center',
-              backgroundColor: view === v ? '#fff0f0' : '#fff',
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 12,
-                fontWeight: '600',
-                color: view === v ? AC : '#6b6b68',
-                textTransform: 'capitalize',
-              }}
-            >
-              Vista {v}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* SVG MAP */}
-      <View
-        style={{
-          borderRadius: 12,
-          overflow: 'hidden',
-          borderWidth: 0.5,
-          borderColor: '#e8e8e4',
-          marginBottom: 12,
-        }}
-      >
-        <Svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
-          <Rect width={W} height={H} fill={bg} />
-          <Rect
-            x={sx}
-            y={sy}
-            width={sw}
-            height={sh}
-            fill={sala}
-            stroke={brd}
-            strokeWidth={1}
-            rx={3}
-          />
-          <Rect
-            x={sx}
-            y={sy}
-            width={sw}
-            height={isLong ? 36 : 28}
-            fill={stg}
-            stroke={brd}
-            strokeWidth={0.5}
-            rx={3}
-          />
-          <SvgText
-            x={tipX}
-            y={sy + (isLong ? 22 : 18)}
-            textAnchor="middle"
-            fill={lbl}
-            fontSize={8}
-            fontWeight="500"
-          >
-            ESCENARIO
-          </SvgText>
-          {/* Paredes laterales */}
-          <Rect
-            x={sx}
-            y={sy}
-            width={22}
-            height={sh * 0.5}
-            fill={wall}
-            stroke={brd}
-            strokeWidth={0.5}
-            opacity={0.8}
-          />
-          <Rect
-            x={sx}
-            y={sy + sh * 0.5}
-            width={22}
-            height={sh * 0.5}
-            fill={win}
-            stroke={brd}
-            strokeWidth={0.5}
-            opacity={0.8}
-          />
-          <Rect
-            x={sx + sw - 22}
-            y={sy}
-            width={22}
-            height={sh * 0.5}
-            fill={wall}
-            stroke={brd}
-            strokeWidth={0.5}
-            opacity={0.8}
-          />
-          <Rect
-            x={sx + sw - 22}
-            y={sy + sh * 0.5}
-            width={22}
-            height={sh * 0.5}
-            fill={win}
-            stroke={brd}
-            strokeWidth={0.5}
-            opacity={0.8}
-          />
-          {/* Público */}
-          <SvgText
-            x={tipX}
-            y={sy + sh * 0.62}
-            textAnchor="middle"
-            fill={lbl}
-            fontSize={9}
-            fontWeight="500"
-          >
-            PÚBLICO
-          </SvgText>
-          {/* Subs */}
-          <Rect
-            x={tipX - 20}
-            y={subY - 8}
-            width={40}
-            height={24}
-            rx={3}
-            fill={sala}
-            stroke={SUB_COLOR}
-            strokeWidth={1.5}
-          />
-          <SvgText
-            x={tipX}
-            y={subY + 8}
-            textAnchor="middle"
-            fill={SUB_COLOR}
-            fontSize={7}
-            fontWeight="500"
-          >
-            {subName}
-          </SvgText>
-          {/* TOPs */}
-          {pos === 'sobre_subs' ? (
-            <>
-              <Rect
-                x={tIzqX - 14}
-                y={topY - 4}
-                width={28}
-                height={20}
-                rx={3}
-                fill={sala}
-                stroke={AC}
-                strokeWidth={2}
-              />
-              <Rect
-                x={tDerX - 14}
-                y={topY - 4}
-                width={28}
-                height={20}
-                rx={3}
-                fill={sala}
-                stroke={AC}
-                strokeWidth={2}
-              />
-            </>
-          ) : (
-            <>
-              <Line
-                x1={tIzqX}
-                y1={sy + 60}
-                x2={tIzqX}
-                y2={sy + 80}
-                stroke="#888"
-                strokeWidth={1.5}
-              />
-              <Rect
-                x={tIzqX - 14}
-                y={topY - 10}
-                width={28}
-                height={18}
-                rx={3}
-                fill={sala}
-                stroke={AC}
-                strokeWidth={2}
-              />
-              <Line
-                x1={tDerX}
-                y1={sy + 60}
-                x2={tDerX}
-                y2={sy + 80}
-                stroke="#888"
-                strokeWidth={1.5}
-              />
-              <Rect
-                x={tDerX - 14}
-                y={topY - 10}
-                width={28}
-                height={18}
-                rx={3}
-                fill={sala}
-                stroke={AC}
-                strokeWidth={2}
-              />
-            </>
-          )}
-          <SvgText
-            x={tIzqX}
-            y={topY - 8}
-            textAnchor="middle"
-            fill={AC}
-            fontSize={6}
-            fontWeight="600"
-          >
-            {topName}
-          </SvgText>
-          <SvgText
-            x={tDerX}
-            y={topY - 8}
-            textAnchor="middle"
-            fill={AC}
-            fontSize={6}
-            fontWeight="600"
-          >
-            {topName}
-          </SvgText>
-          {/* Coberturas */}
-          <Polygon
-            points={`${tIzqX},${topY + 8} ${sx + 8},${sy + sh - 10} ${tipX - 5},${sy + sh - 10}`}
-            fill={AC}
-            fillOpacity={0.08}
-          />
-          <Polygon
-            points={`${tDerX},${topY + 8} ${sx + sw - 8},${sy + sh - 10} ${tipX + 5},${sy + sh - 10}`}
-            fill={AC}
-            fillOpacity={0.08}
-          />
-          <Ellipse
-            cx={tipX}
-            cy={sy + sh * 0.72}
-            rx={sw * 0.38}
-            ry={sh * 0.2}
-            fill={SUB_COLOR}
-            fillOpacity={0.07}
-          />
-        </Svg>
-      </View>
-
-      {/* Info cards */}
-      {[
-        { k: 'Altura tweeter', v: '2.0 – 2.2 mt', c: '#1a7a3c' },
-        { k: 'Inclinación (tilt)', v: tilt, c: AC },
-        { k: 'SUBs posición', v: 'Centro · en piso', c: '#111110' },
-        { k: 'Delay TOPs–SUBs', v: delay, c: '#1a4fa0' },
-      ].map((r) => (
+        <MapSVG esc={esc} pos={pos} />
         <View
-          key={r.k}
           style={{
+            padding: 10,
             flexDirection: 'row',
-            justifyContent: 'space-between',
-            padding: 11,
-            borderRadius: 8,
-            borderWidth: 0.5,
-            borderColor: '#e8e8e4',
-            marginBottom: 6,
+            gap: 6,
+            flexWrap: 'wrap',
+            borderTopWidth: 0.5,
+            borderTopColor: BR,
           }}
         >
-          <Text style={{ fontSize: 12, color: '#6b6b68' }}>{r.k}</Text>
-          <Text style={{ fontSize: 12, fontWeight: '600', color: r.c }}>{r.v}</Text>
+          {(['15mt', '10mt'] as Esc[]).map((e) => (
+            <TouchableOpacity
+              key={e}
+              onPress={() => setEsc(e)}
+              style={{
+                paddingHorizontal: 10,
+                paddingVertical: 5,
+                borderRadius: 20,
+                borderWidth: 0.5,
+                borderColor: esc === e ? 'rgba(26,255,110,0.3)' : BR,
+                backgroundColor: esc === e ? 'rgba(26,255,110,0.08)' : 'transparent',
+              }}
+            >
+              <Text style={{ fontSize: 11, fontWeight: '600', color: esc === e ? AC : T2 }}>
+                Esc. {e}
+              </Text>
+            </TouchableOpacity>
+          ))}
+          {(['sobre', 'tripodes'] as Pos[]).map((p) => (
+            <TouchableOpacity
+              key={p}
+              onPress={() => setPos(p)}
+              style={{
+                paddingHorizontal: 10,
+                paddingVertical: 5,
+                borderRadius: 20,
+                borderWidth: 0.5,
+                borderColor: pos === p ? 'rgba(26,255,110,0.3)' : BR,
+                backgroundColor: pos === p ? 'rgba(26,255,110,0.08)' : 'transparent',
+              }}
+            >
+              <Text style={{ fontSize: 11, fontWeight: '600', color: pos === p ? AC : T2 }}>
+                {p === 'sobre' ? 'Sobre subs' : 'Trípodes'}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
-      ))}
+      </View>
+
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: SF,
+            borderRadius: 12,
+            borderWidth: 0.5,
+            borderColor: BR,
+            padding: 12,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 9,
+              color: T3,
+              letterSpacing: 1,
+              textTransform: 'uppercase',
+              marginBottom: 4,
+            }}
+          >
+            Tilt TOPs
+          </Text>
+          <Text style={{ fontSize: 15, fontWeight: '700', color: AC }}>
+            {esc === '15mt' ? '10°–15°' : '8°–12°'}
+          </Text>
+        </View>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: SF,
+            borderRadius: 12,
+            borderWidth: 0.5,
+            borderColor: BR,
+            padding: 12,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 9,
+              color: T3,
+              letterSpacing: 1,
+              textTransform: 'uppercase',
+              marginBottom: 4,
+            }}
+          >
+            Crossover
+          </Text>
+          <Text style={{ fontSize: 15, fontWeight: '700', color: AC }}>
+            {activePreset?.crossoverHz ?? 80} Hz LR24
+          </Text>
+        </View>
+      </View>
     </ScrollView>
   )
 }

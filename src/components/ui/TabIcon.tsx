@@ -1,19 +1,22 @@
-import React from "react";
-import { Text } from "react-native";
+import { Ionicons } from '@expo/vector-icons';
+import React from 'react';
 
-interface TabIconProps {
-  name: string;
-  color: string;
+type IconName = 'home' | 'map' | 'settings' | 'list' | 'file'
+
+const ICON_MAP: Record<IconName, string> = {
+  home: 'home-outline',
+  map: 'map-outline',
+  settings: 'settings-outline',
+  list: 'list-outline',
+  file: 'document-text-outline',
 }
 
-const ICONS: Record<string, string> = {
-  home: "⌂",
-  "map-2": "⊞",
-  adjustments: "⚙",
-  playlist: "≡",
-  "file-text": "📄",
-};
+interface Props {
+  name: IconName
+  color: string
+  size?: number
+}
 
-export function TabIcon({ name, color }: TabIconProps) {
-  return <Text style={{ fontSize: 20, color }}>{ICONS[name] ?? "●"}</Text>;
+export function TabIcon({ name, color, size = 22 }: Props) {
+  return <Ionicons name={ICON_MAP[name] as any} size={size} color={color} />
 }

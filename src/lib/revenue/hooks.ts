@@ -1,17 +1,4 @@
-import { useEffect, useState } from 'react';
-import { checkProAccess } from './index';
-
+// Hook que siempre retorna true — acceso libre a todo
 export function useProAccess(): boolean {
-  const [isPro, setIsPro] = useState(false)
-
-  useEffect(() => {
-    checkProAccess().then(setIsPro)
-  }, [])
-
-  return isPro
-}
-
-// Para desarrollo: siempre retorna true
-export function useProAccessDev(): boolean {
   return true
 }

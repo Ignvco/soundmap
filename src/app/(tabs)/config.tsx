@@ -1,11 +1,15 @@
-// Sin imports de RevenueCat — acceso directo a todo
 import { useAppStore } from '@/store/app';
 import { EQVisual } from '@components/config/EQVisual';
 import React, { useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
-const AC = '#C00020'
-const BORDER = '#e8e8e4'
+const AC = '#1aff6e'
+const BG = '#06060a'
+const SF = '#111118'
+const BR = 'rgba(255,255,255,0.07)'
+const TX = '#f0f0f0'
+const T2 = '#8888a0'
+const T3 = '#44445a'
 
 const BACKUP_STEPS = [
   'Bajar master del mixer a cero',
@@ -36,45 +40,54 @@ export default function ConfigScreen() {
   const [section, setSection] = useState<Section>('presets')
   const topName = gear?.top.nombre.split(' ').slice(0, 3).join(' ') ?? 'TOP'
 
+  const TABS: { key: Section; label: string }[] = [
+    { key: 'presets', label: 'Presets' },
+    { key: 'eq', label: 'EQ' },
+    { key: 'backup', label: 'Backup' },
+    { key: 'arranque', label: 'Arranque' },
+  ]
+
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: '#fff' }}
+      style={{ flex: 1, backgroundColor: BG }}
       contentContainerStyle={{ padding: 16, paddingTop: 60 }}
     >
-      {/* Header */}
-      <Text style={{ fontSize: 22, fontWeight: '800', color: '#111110', marginBottom: 4 }}>
+      <Text
+        style={{ fontSize: 22, fontWeight: '800', color: TX, marginBottom: 4, letterSpacing: -0.5 }}
+      >
         Config Engine
       </Text>
       {activePreset && (
-        <Text style={{ fontSize: 11, color: AC, fontWeight: '600', marginBottom: 16 }}>
-          {activePreset.nombre}
+        <Text
+          style={{
+            fontSize: 10,
+            color: AC,
+            fontWeight: '700',
+            marginBottom: 16,
+            letterSpacing: 0.5,
+          }}
+        >
+          ● {activePreset.nombre}
         </Text>
       )}
 
-      {/* Section tabs */}
+      {/* Tabs */}
       <View style={{ flexDirection: 'row', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
-        {(['presets', 'eq', 'backup', 'arranque'] as Section[]).map((s) => (
+        {TABS.map((t) => (
           <TouchableOpacity
-            key={s}
-            onPress={() => setSection(s)}
+            key={t.key}
+            onPress={() => setSection(t.key)}
             style={{
               paddingHorizontal: 12,
               paddingVertical: 6,
               borderRadius: 20,
-              borderWidth: section === s ? 1.5 : 0.5,
-              borderColor: section === s ? AC : BORDER,
-              backgroundColor: section === s ? '#fff0f0' : '#fff',
+              borderWidth: section === t.key ? 1 : 0.5,
+              borderColor: section === t.key ? AC : BR,
+              backgroundColor: section === t.key ? 'rgba(26,255,110,0.08)' : 'transparent',
             }}
           >
-            <Text
-              style={{
-                fontSize: 12,
-                fontWeight: '600',
-                textTransform: 'capitalize',
-                color: section === s ? AC : '#6b6b68',
-              }}
-            >
-              {s}
+            <Text style={{ fontSize: 11, fontWeight: '700', color: section === t.key ? AC : T2 }}>
+              {t.label}
             </Text>
           </TouchableOpacity>
         ))}
@@ -87,15 +100,15 @@ export default function ConfigScreen() {
             <View
               style={{
                 padding: 20,
-                alignItems: 'center',
-                backgroundColor: '#f7f7f5',
+                backgroundColor: SF,
                 borderRadius: 12,
                 borderWidth: 0.5,
-                borderColor: BORDER,
+                borderColor: BR,
+                alignItems: 'center',
               }}
             >
-              <Text style={{ fontSize: 13, color: '#9b9b98', textAlign: 'center' }}>
-                Completá el Room Scan primero para generar los presets
+              <Text style={{ fontSize: 12, color: T2 }}>
+                Completá el Room Scan para generar presets
               </Text>
             </View>
           )}
@@ -106,18 +119,20 @@ export default function ConfigScreen() {
                 key={preset.id}
                 onPress={() => setActivePreset(preset)}
                 style={{
-                  backgroundColor: isActive ? '#fff0f0' : '#fff',
-                  borderRadius: 12,
-                  borderWidth: isActive ? 1.5 : 0.5,
-                  borderColor: isActive ? AC : BORDER,
+                  backgroundColor: isActive ? 'rgba(26,255,110,0.06)' : SF,
+                  borderRadius: 14,
+                  borderWidth: isActive ? 1 : 0.5,
+                  borderColor: isActive ? 'rgba(26,255,110,0.35)' : BR,
+                  borderLeftWidth: isActive ? 2.5 : 0.5,
+                  borderLeftColor: isActive ? AC : BR,
                   padding: 14,
                 }}
               >
                 <Text
                   style={{
-                    fontSize: 14,
+                    fontSize: 13,
                     fontWeight: '700',
-                    color: isActive ? AC : '#111110',
+                    color: isActive ? AC : TX,
                     marginBottom: 8,
                   }}
                 >
@@ -136,11 +151,11 @@ export default function ConfigScreen() {
                       justifyContent: 'space-between',
                       paddingVertical: 3,
                       borderBottomWidth: 0.5,
-                      borderBottomColor: isActive ? '#f0b0b0' : BORDER,
+                      borderBottomColor: isActive ? 'rgba(26,255,110,0.12)' : BR,
                     }}
                   >
-                    <Text style={{ fontSize: 12, color: '#6b6b68' }}>{row.k}</Text>
-                    <Text style={{ fontSize: 12, fontWeight: '500', color: '#111110' }}>
+                    <Text style={{ fontSize: 11, color: T2 }}>{row.k}</Text>
+                    <Text style={{ fontSize: 11, fontWeight: '600', color: isActive ? AC : TX }}>
                       {row.v}
                     </Text>
                   </View>
@@ -154,8 +169,8 @@ export default function ConfigScreen() {
       {/* EQ */}
       {section === 'eq' && activePreset && <EQVisual preset={activePreset} topName={topName} />}
       {section === 'eq' && !activePreset && (
-        <Text style={{ color: '#9b9b98', fontSize: 13, marginTop: 12 }}>
-          Seleccioná un preset en la pestaña Presets primero.
+        <Text style={{ fontSize: 12, color: T2, marginTop: 12 }}>
+          Seleccioná un preset primero.
         </Text>
       )}
 
@@ -164,15 +179,15 @@ export default function ConfigScreen() {
         <View>
           <View
             style={{
-              backgroundColor: '#fff7f0',
-              borderRadius: 12,
+              backgroundColor: 'rgba(251,191,36,0.07)',
+              borderRadius: 10,
               borderWidth: 0.5,
-              borderColor: '#f0c8a0',
-              padding: 14,
-              marginBottom: 16,
+              borderColor: 'rgba(251,191,36,0.2)',
+              padding: 12,
+              marginBottom: 14,
             }}
           >
-            <Text style={{ fontSize: 13, fontWeight: '700', color: '#c45000' }}>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: '#fbbf24' }}>
               ⚠ Protocolo de emergencia
             </Text>
           </View>
@@ -181,63 +196,62 @@ export default function ConfigScreen() {
               key={i}
               style={{
                 flexDirection: 'row',
-                gap: 12,
-                paddingVertical: 10,
+                gap: 10,
+                paddingVertical: 9,
                 borderBottomWidth: 0.5,
-                borderBottomColor: BORDER,
+                borderBottomColor: BR,
               }}
             >
               <View
                 style={{
-                  width: 22,
-                  height: 22,
-                  borderRadius: 11,
-                  backgroundColor: '#f0f0ec',
+                  width: 20,
+                  height: 20,
+                  borderRadius: 10,
+                  backgroundColor: SF,
+                  borderWidth: 0.5,
+                  borderColor: BR,
                   alignItems: 'center',
                   justifyContent: 'center',
                   flexShrink: 0,
                 }}
               >
-                <Text style={{ fontSize: 11, fontWeight: '700', color: '#9b9b98' }}>{i + 1}</Text>
+                <Text style={{ fontSize: 9, fontWeight: '700', color: T2 }}>{i + 1}</Text>
               </View>
-              <Text style={{ fontSize: 13, color: '#3a3a38', flex: 1 }}>{s}</Text>
+              <Text style={{ fontSize: 12, color: T2, flex: 1 }}>{s}</Text>
             </View>
           ))}
         </View>
       )}
 
       {/* ARRANQUE */}
-      {section === 'arranque' && (
-        <View>
-          {ARRANQUE_STEPS.map((s, i) => (
+      {section === 'arranque' &&
+        ARRANQUE_STEPS.map((s, i) => (
+          <View
+            key={i}
+            style={{
+              flexDirection: 'row',
+              gap: 10,
+              paddingVertical: 9,
+              borderBottomWidth: 0.5,
+              borderBottomColor: BR,
+            }}
+          >
             <View
-              key={i}
               style={{
-                flexDirection: 'row',
-                gap: 12,
-                paddingVertical: 10,
-                borderBottomWidth: 0.5,
-                borderBottomColor: BORDER,
+                width: 20,
+                height: 20,
+                borderRadius: 10,
+                backgroundColor: AC,
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
               }}
             >
-              <View
-                style={{
-                  width: 22,
-                  height: 22,
-                  borderRadius: 11,
-                  backgroundColor: AC,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                <Text style={{ fontSize: 11, fontWeight: '700', color: '#fff' }}>{i + 1}</Text>
-              </View>
-              <Text style={{ fontSize: 13, color: '#3a3a38', flex: 1 }}>{s}</Text>
+              <Text style={{ fontSize: 9, fontWeight: '800', color: '#000' }}>{i + 1}</Text>
             </View>
-          ))}
-        </View>
-      )}
+            <Text style={{ fontSize: 12, color: T2, flex: 1 }}>{s}</Text>
+          </View>
+        ))}
     </ScrollView>
   )
 }

@@ -51,7 +51,7 @@ export function Paywall({ onClose, feature }: PaywallProps) {
 
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: '#fff' }}
+      style={{ flex: 1, backgroundColor: '#080808' }}
       contentContainerStyle={{ padding: 24, paddingTop: 60 }}
     >
       <View
@@ -71,14 +71,14 @@ export function Paywall({ onClose, feature }: PaywallProps) {
         style={{
           fontSize: 26,
           fontWeight: '900',
-          color: '#111110',
+          color: '#f0f0f0',
           letterSpacing: -0.5,
           marginBottom: 8,
         }}
       >
         Desbloqueá {feature}
       </Text>
-      <Text style={{ fontSize: 15, color: '#6b6b68', marginBottom: 32, lineHeight: 22 }}>
+      <Text style={{ fontSize: 15, color: '#888888', marginBottom: 32, lineHeight: 22 }}>
         Configuración profesional completa para tu sistema de audio.
       </Text>
 
@@ -102,13 +102,13 @@ export function Paywall({ onClose, feature }: PaywallProps) {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 14, fontWeight: '600', marginBottom: 2 }}>{f.name}</Text>
-            <Text style={{ fontSize: 12, color: '#9b9b98', lineHeight: 18 }}>{f.desc}</Text>
+            <Text style={{ fontSize: 12, color: '#444444', lineHeight: 18 }}>{f.desc}</Text>
           </View>
         </View>
       ))}
 
       {error && (
-        <Text style={{ color: '#C00020', fontSize: 13, marginBottom: 12, textAlign: 'center' }}>
+        <Text style={{ color: '#1aff6e', fontSize: 13, marginBottom: 12, textAlign: 'center' }}>
           {error}
         </Text>
       )}
@@ -128,7 +128,7 @@ export function Paywall({ onClose, feature }: PaywallProps) {
         {loading ? (
           <ActivityIndicator color="#fff" />
         ) : (
-          <Text style={{ fontSize: 16, fontWeight: '700', color: '#fff' }}>
+          <Text style={{ fontSize: 16, fontWeight: '700', color: '#06060a' }}>
             SoundMap Pro — $4.99/mes
           </Text>
         )}
@@ -139,10 +139,10 @@ export function Paywall({ onClose, feature }: PaywallProps) {
         disabled={loading}
         style={{ alignItems: 'center', padding: 12 }}
       >
-        <Text style={{ fontSize: 13, color: '#9b9b98' }}>Restaurar compra anterior</Text>
+        <Text style={{ fontSize: 13, color: '#444444' }}>Restaurar compra anterior</Text>
       </TouchableOpacity>
 
-      <Text style={{ fontSize: 11, color: '#9b9b98', textAlign: 'center', marginTop: 8 }}>
+      <Text style={{ fontSize: 11, color: '#444444', textAlign: 'center', marginTop: 8 }}>
         Se renueva automáticamente. Cancelá cuando quieras desde Ajustes.
       </Text>
     </ScrollView>

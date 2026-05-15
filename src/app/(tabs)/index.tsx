@@ -1,172 +1,222 @@
-import { useRouter } from "expo-router";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { useAppStore } from '@/store/app';
+import { useRouter } from 'expo-router';
+import React from 'react';
+import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+
+const AC = '#1aff6e'
+const BG = '#06060a'
+const SF = '#111118'
+const BR = 'rgba(255,255,255,0.07)'
+const TX = '#f0f0f0'
+const T2 = '#8888a0'
+const T3 = '#44445a'
+const PU = '#a78bfa'
+const BL = '#60a5fa'
+const AM = '#fbbf24'
 
 const MODULES = [
-  {
-    id: "room-scan",
-    name: "Room Scan",
-    desc: "Diagnóstico acústico · RT60 · Problemas",
-    badge: "Free",
-    color: "#C00020",
-  },
-  {
-    id: "stage-map",
-    name: "Stage Map",
-    desc: "Vista frontal + planta · Coberturas",
-    badge: "Free",
-    color: "#1a4fa0",
-  },
-  {
-    id: "config",
-    name: "Config Engine",
-    desc: "DCX2496 · EQ · Delay · Presets · Backup",
-    badge: "Pro",
-    color: "#7a5800",
-  },
-  {
-    id: "channels",
-    name: "Canal por Canal",
-    desc: "Mapa de mixer · EQ por instrumento",
-    badge: "Pro",
-    color: "#6030a0",
-  },
-  {
-    id: "export",
-    name: "Manual Export",
-    desc: "PDF · Link compartible · Checklist",
-    badge: "Pro",
-    color: "#6030a0",
-  },
-];
+  { id: 'room-scan', name: 'Room Scan', desc: 'Diagnóstico · RT60 · SPL', color: AC },
+  { id: 'stage-map', name: 'Stage Map', desc: 'Frontal · Planta · Cobertura', color: BL },
+  { id: 'config', name: 'Config Engine', desc: 'EQ · Presets · Delay', color: PU },
+  { id: 'channels', name: 'Canal por Canal', desc: '13 canales configurables', color: AC },
+  { id: 'export', name: 'Manual Export', desc: 'Link compartible · HTML', color: AM },
+]
 
 export default function HomeScreen() {
-  const router = useRouter();
+  const router = useRouter()
+  const { room, activePreset } = useAppStore()
 
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: "#ffffff" }}
-      contentContainerStyle={{ padding: 16, paddingTop: 60 }}
+      style={{ flex: 1, backgroundColor: BG }}
+      contentContainerStyle={{ padding: 18, paddingTop: 60 }}
     >
-      <View style={{ marginBottom: 24 }}>
+      {/* Logo LevelPro */}
+      <View style={{ marginBottom: 28 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 4 }}>
+          <View
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: 4,
+              backgroundColor: AC,
+              shadowColor: AC,
+              shadowOpacity: 0.8,
+              shadowRadius: 8,
+            }}
+          />
+          <Image
+            source={require('../../../assets/soundmap-logo.png')}
+            style={{ height: 24, width: 120, tintColor: '#f0f0f0' }}
+            resizeMode="contain"
+          />
+        </View>
         <Text
           style={{
-            fontSize: 28,
-            fontWeight: "800",
-            letterSpacing: -0.5,
-            color: "#111110",
+            fontSize: 9,
+            color: T3,
+            letterSpacing: 1.8,
+            textTransform: 'uppercase',
+            marginLeft: 17,
           }}
         >
-          Sound<Text style={{ color: "#C00020" }}>Map</Text>
-        </Text>
-        <Text
-          style={{
-            fontSize: 10,
-            color: "#9b9b98",
-            letterSpacing: 0.8,
-            textTransform: "uppercase",
-            marginTop: 2,
-          }}
-        >
-          by LevelPro
+          by LevelPro Audio
         </Text>
       </View>
 
-      <View style={{ marginBottom: 16 }}>
+      {/* Estado activo */}
+      {activePreset && (
         <View
           style={{
-            height: 3,
-            backgroundColor: "#f0f0ec",
-            borderRadius: 2,
-            marginBottom: 6,
+            backgroundColor: 'rgba(26,255,110,0.06)',
+            borderRadius: 12,
+            borderWidth: 0.5,
+            borderColor: 'rgba(26,255,110,0.2)',
+            padding: 11,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
+            marginBottom: 14,
           }}
         >
-          <View
-            style={{
-              width: "60%",
-              height: 3,
-              backgroundColor: "#C00020",
-              borderRadius: 2,
-            }}
-          />
+          <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: AC }} />
+          <Text style={{ fontSize: 11, color: AC, fontWeight: '700', flex: 1 }}>
+            {activePreset.nombre}
+          </Text>
+          <Text style={{ fontSize: 10, color: T2 }}>Activo</Text>
         </View>
-        <Text style={{ fontSize: 11, color: "#9b9b98" }}>
-          Configuración al 60%
-        </Text>
-      </View>
+      )}
+
+      {/* Módulos — Bento Grid */}
+      <Text
+        style={{
+          fontSize: 9,
+          color: T3,
+          fontWeight: '700',
+          letterSpacing: 1.2,
+          textTransform: 'uppercase',
+          marginBottom: 10,
+        }}
+      >
+        Módulos
+      </Text>
 
       {MODULES.map((m) => (
         <TouchableOpacity
           key={m.id}
           onPress={() => router.push(`/${m.id}` as any)}
           style={{
-            backgroundColor: "#ffffff",
-            borderRadius: 12,
+            backgroundColor: SF,
+            borderRadius: 16,
             borderWidth: 0.5,
-            borderColor: "#e8e8e4",
+            borderColor: BR,
+            borderLeftWidth: 2.5,
+            borderLeftColor: m.color,
             padding: 14,
             marginBottom: 8,
-            flexDirection: "row",
-            alignItems: "center",
+            flexDirection: 'row',
+            alignItems: 'center',
             gap: 12,
           }}
         >
           <View
             style={{
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              backgroundColor: m.color + "15",
-              alignItems: "center",
-              justifyContent: "center",
+              width: 38,
+              height: 38,
+              borderRadius: 10,
+              backgroundColor: `${m.color}18`,
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
-            <Text style={{ fontSize: 16 }}>
-              {m.id === "room-scan"
-                ? "🔍"
-                : m.id === "stage-map"
-                  ? "🗺"
-                  : m.id === "config"
-                    ? "⚙️"
-                    : m.id === "channels"
-                      ? "🎚️"
-                      : "📄"}
-            </Text>
+            <View
+              style={{
+                width: 16,
+                height: 2,
+                backgroundColor: m.color,
+                marginBottom: 3,
+                opacity: 0.8,
+              }}
+            />
+            <View style={{ width: 10, height: 2, backgroundColor: m.color, opacity: 0.5 }} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text
-              style={{
-                fontSize: 13,
-                fontWeight: "600",
-                color: "#111110",
-                marginBottom: 2,
-              }}
-            >
+            <Text style={{ fontSize: 13, fontWeight: '700', color: TX, marginBottom: 2 }}>
               {m.name}
             </Text>
-            <Text style={{ fontSize: 11, color: "#9b9b98" }}>{m.desc}</Text>
+            <Text style={{ fontSize: 10, color: T2 }}>{m.desc}</Text>
           </View>
-          <View
-            style={{
-              paddingHorizontal: 8,
-              paddingVertical: 2,
-              borderRadius: 20,
-              backgroundColor: m.badge === "Free" ? "#f0faf4" : "#fffbf0",
-              borderWidth: 0.5,
-              borderColor: m.badge === "Free" ? "#b8e8c8" : "#f0e0a0",
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 10,
-                fontWeight: "600",
-                color: m.badge === "Free" ? "#1a7a3c" : "#7a5800",
-              }}
-            >
-              {m.badge}
-            </Text>
-          </View>
+          <Text style={{ color: T3, fontSize: 16 }}>›</Text>
         </TouchableOpacity>
       ))}
+
+      {/* Sistema activo */}
+      <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(26,255,110,0.05)',
+            borderRadius: 12,
+            borderWidth: 0.5,
+            borderColor: 'rgba(26,255,110,0.15)',
+            padding: 12,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 9,
+              color: T3,
+              letterSpacing: 1,
+              textTransform: 'uppercase',
+              marginBottom: 4,
+            }}
+          >
+            Preset
+          </Text>
+          <Text style={{ fontSize: 12, fontWeight: '700', color: AC }}>
+            {activePreset?.nombre ?? 'Sin preset'}
+          </Text>
+        </View>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: SF,
+            borderRadius: 12,
+            borderWidth: 0.5,
+            borderColor: BR,
+            padding: 12,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 9,
+              color: T3,
+              letterSpacing: 1,
+              textTransform: 'uppercase',
+              marginBottom: 4,
+            }}
+          >
+            Recinto
+          </Text>
+          <Text style={{ fontSize: 12, fontWeight: '700', color: TX }}>
+            {room?.nombre ?? 'Sin Room Scan'}
+          </Text>
+        </View>
+      </View>
+
+      <View
+        style={{
+          marginTop: 24,
+          paddingTop: 16,
+          borderTopWidth: 0.5,
+          borderTopColor: BR,
+          alignItems: 'center',
+        }}
+      >
+        <Text style={{ fontSize: 9, color: T3, letterSpacing: 1.5, textTransform: 'uppercase' }}>
+          levelproaudio.com
+        </Text>
+      </View>
     </ScrollView>
-  );
+  )
 }
