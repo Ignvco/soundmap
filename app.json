@@ -1,24 +1,24 @@
 {
   "expo": {
-    "name":              "SoundMap",
-    "slug":              "soundmap",
-    "version":           "2.0.0",
-    "orientation":       "portrait",
-    "icon":              "./assets/soundmap-logo.png",
-    "scheme":            "soundmap",
-    "userInterfaceStyle":"dark",
-    "newArchEnabled":    true,
+    "name": "SoundMap",
+    "slug": "soundmap",
+    "version": "2.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/soundmap-logo.png",
+    "scheme": "soundmap",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
     "splash": {
-      "image":           "./assets/soundmap-logo.png",
-      "resizeMode":      "contain",
+      "image": "./assets/soundmap-logo.png",
+      "resizeMode": "contain",
       "backgroundColor": "#06060a"
     },
     "ios": {
-      "supportsTablet":   false,
+      "supportsTablet": false,
       "bundleIdentifier": "com.levelpro.soundmap"
     },
     "android": {
-      "package":         "com.levelpro.soundmap",
+      "package": "com.levelpro.soundmap",
       "adaptiveIcon": {
         "foregroundImage": "./assets/soundmap-logo.png",
         "backgroundColor": "#06060a"
@@ -27,17 +27,20 @@
     },
     "web": {
       "bundler": "metro",
-      "output":  "static"
+      "output": "static"
     },
     "plugins": [
       "expo-router",
-      "expo-font"
+      "expo-font",
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true
     },
     "extra": {
-      "eas": { "projectId": "TU_EAS_PROJECT_ID" }
+      "eas": {
+        "projectId": "TU_EAS_PROJECT_ID"
+      }
     }
   }
 }
