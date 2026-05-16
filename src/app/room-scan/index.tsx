@@ -1,4 +1,5 @@
 import { C } from '@/constants/theme';
+import { diagnosRoom, type DiagItem, type TratamientoSugerido } from '@/lib/audio/acoustics';
 import { useAppStore, type RoomData } from '@/store/app';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -7,7 +8,6 @@ import Svg, { Circle, Polygon, Rect, Text as SvgText } from 'react-native-svg';
 
 const AC = C.ac,
   BG = C.bg,
-  SF = C.bg2,
   BR = C.br2
 const TX = C.tx,
   T2 = C.t2,
@@ -17,12 +17,11 @@ const AM = C.am,
   BL = C.bl,
   PU = C.pu
 
-// ── Materiales ─────────────────────────────────────────
 const MAT_TECHO = [
   { label: 'Triangular / A', alpha: 0.06, desc: 'Cumbrera — riesgo eco' },
   { label: 'Plano', alpha: 0.05, desc: 'Estándar' },
   { label: 'Curvo / Bóveda', alpha: 0.08, desc: 'Focalización de sonido' },
-  { label: 'Irregular', alpha: 0.15, desc: 'Absorción variable' },
+  { label: 'Irregular / mixto', alpha: 0.15, desc: 'Absorción variable' },
 ]
 const MAT_PAREDES = [
   { label: 'Ladrillo visto', alpha: 0.03, desc: 'α=0.03 · Alta reflexión' },
@@ -34,220 +33,160 @@ const MAT_PAREDES = [
 ]
 const MAT_PISO = [
   { label: 'Cemento liso', alpha: 0.02, desc: 'α=0.02 · Muy reflectivo' },
-  { label: 'Madera flotante', alpha: 0.05, desc: 'α=0.05 · Reflexión media' },
+  { label: 'Madera flotante', alpha: 0.05, desc: 'α=0.05 · Media reflexión' },
   { label: 'Alfombra gruesa', alpha: 0.35, desc: 'α=0.35 · Muy absorbente' },
   { label: 'Cerámico', alpha: 0.02, desc: 'α=0.02 · Alta reflexión' },
 ]
-const MAT_VENTANALES = [
+const MAT_VENT = [
   { label: 'Sin ventanales', alpha: 0 },
   { label: 'Parciales', alpha: 0.08 },
   { label: 'Toda la pared', alpha: 0.2 },
 ]
 
-// ── Cálculo RT60 (Sabine) ──────────────────────────────
-function calcRT60(
-  L: number,
-  A: number,
-  H: number,
-  Cap: number,
-  alpTecho: number,
-  alpParedes: number,
-  alpPiso: number,
-  alpVent: number
-) {
-  const vol = L * A * H
-  const sPared = 2 * (L * H + A * H)
-  const sPiso = L * A
-  const sTecho = L * A
-  const sTotal = sPared + sPiso + sTecho
-  const abs = sPared * alpParedes + sPiso * alpPiso + sTecho * alpTecho + sTotal * alpVent
-  const rt60e = (0.161 * vol) / abs
-  const rt60f = (0.161 * vol) / (abs + Cap * 0.42)
-  const eco = Math.round(((Math.max(L, A) * 2) / 343) * 1000)
-  return { vol, rt60e, rt60f, eco }
-}
-
-// ── SPL Map SVG ────────────────────────────────────────
 function SPLMap({ L, A }: { L: number; A: number }) {
   const W = 300,
-    H = 100,
-    pad = 16
+    H = 108,
+    pad = 14
   const sw = W - pad * 2,
     sh = H - 20
   const tipX = pad + sw / 2
-  const tIzqX = pad + 36,
-    tDerX = pad + sw - 36
+  const tIzqX = pad + 34,
+    tDerX = pad + sw - 34
   const topY = sh * 0.3,
-    subY = H - 24
-
-  const zones = Math.min(7, Math.round(Math.max(L, A)))
-  const colors = [
+    subY = H - 22
+  const zones = Math.min(7, Math.max(3, Math.round(Math.max(L, A))))
+  const gradColors = [
     'rgba(26,255,110,',
     'rgba(100,255,80,',
     'rgba(180,255,60,',
     'rgba(251,191,36,',
     'rgba(255,140,0,',
-    'rgba(255,80,0,',
     'rgba(255,77,77,',
+    'rgba(200,40,40,',
   ]
-
   return (
-    <View style={{ marginBottom: 8 }}>
-      <Text
-        style={{
-          fontSize: 9,
-          fontWeight: '700',
-          color: T3,
-          letterSpacing: 1.2,
-          textTransform: 'uppercase',
-          marginBottom: 10,
-        }}
-      >
-        Distribución de presión sonora
-      </Text>
-      <View
-        style={{
-          backgroundColor: '#080810',
-          borderRadius: 12,
-          borderWidth: 0.5,
-          borderColor: BR,
-          overflow: 'hidden',
-          padding: 8,
-        }}
-      >
-        <Svg width={W} height={H}>
-          {/* Sala */}
-          <Rect
-            x={pad}
-            y={12}
-            width={sw}
-            height={sh}
-            fill="#0a0a14"
-            stroke="rgba(255,255,255,0.08)"
-            strokeWidth={0.5}
-            rx={4}
-          />
-          {/* Escenario */}
-          <Rect
-            x={pad}
-            y={12}
-            width={sw}
-            height={sh * 0.2}
-            fill="rgba(26,255,110,0.04)"
-            stroke="rgba(26,255,110,0.08)"
-            strokeWidth={0.5}
-          />
-          <SvgText
-            x={tipX}
-            y={12 + sh * 0.14}
-            textAnchor="middle"
-            fill={T3}
-            fontSize={6}
-            fontFamily="Inter"
-          >
-            ESCENARIO
-          </SvgText>
-          {/* SPL zonas */}
-          {Array.from({ length: zones }, (_, i) => {
-            const zH = (sh * 0.8) / zones
-            const y = 12 + sh * 0.2 + i * zH
-            const alpha = 0.1 + i * 0.04
-            return (
-              <Rect
-                key={i}
-                x={pad}
-                y={y}
-                width={sw}
-                height={zH + 1}
-                fill={`${colors[Math.min(i, colors.length - 1)]}${alpha})`}
-              />
-            )
-          })}
-          {/* TOPs */}
-          <Rect
-            x={tIzqX - 11}
-            y={topY - 3}
-            width={22}
-            height={14}
-            rx={3}
-            fill="#0e0e1a"
-            stroke={AC}
-            strokeWidth={1.4}
-          />
-          <Circle cx={tIzqX} cy={topY + 4} r={4} fill="none" stroke={AC} strokeWidth={0.8} />
-          <Rect
-            x={tDerX - 11}
-            y={topY - 3}
-            width={22}
-            height={14}
-            rx={3}
-            fill="#0e0e1a"
-            stroke={AC}
-            strokeWidth={1.4}
-          />
-          <Circle cx={tDerX} cy={topY + 4} r={4} fill="none" stroke={AC} strokeWidth={0.8} />
-          <SvgText
-            x={tIzqX}
-            y={topY - 6}
-            textAnchor="middle"
-            fill={AC}
-            fontSize={6}
-            fontWeight="700"
-          >
-            RCF
-          </SvgText>
-          <SvgText
-            x={tDerX}
-            y={topY - 6}
-            textAnchor="middle"
-            fill={AC}
-            fontSize={6}
-            fontWeight="700"
-          >
-            RCF
-          </SvgText>
-          {/* SUBs */}
-          <Rect
-            x={tipX - 16}
-            y={subY - 5}
-            width={32}
-            height={14}
-            rx={3}
-            fill="#0e0e1a"
-            stroke={AM}
-            strokeWidth={1.2}
-          />
-          <SvgText
-            x={tipX}
-            y={subY + 5}
-            textAnchor="middle"
-            fill={AM}
-            fontSize={6}
-            fontWeight="600"
-          >
-            AIR18×2
-          </SvgText>
-          {/* Coverage */}
-          <Polygon
-            points={`${tIzqX},${topY + 11} ${pad + 4},${H - 6} ${tipX - 4},${H - 6}`}
-            fill="rgba(26,255,110,0.05)"
-          />
-          <Polygon
-            points={`${tDerX},${topY + 11} ${pad + sw - 4},${H - 6} ${tipX + 4},${H - 6}`}
-            fill="rgba(26,255,110,0.05)"
-          />
-        </Svg>
-      </View>
-      {/* Leyenda */}
-      <View style={{ flexDirection: 'row', gap: 10, marginTop: 6, flexWrap: 'wrap' }}>
+    <View
+      style={{
+        backgroundColor: '#060610',
+        borderRadius: 12,
+        borderWidth: 0.5,
+        borderColor: BR,
+        overflow: 'hidden',
+        padding: 8,
+        marginBottom: 8,
+      }}
+    >
+      <Svg width={W} height={H}>
+        <Rect
+          x={pad}
+          y={12}
+          width={sw}
+          height={sh}
+          fill="#0a0a16"
+          stroke="rgba(255,255,255,0.07)"
+          strokeWidth={0.5}
+          rx={4}
+        />
+        <Rect
+          x={pad}
+          y={12}
+          width={sw}
+          height={sh * 0.18}
+          fill="rgba(26,255,110,0.04)"
+          stroke="rgba(26,255,110,0.07)"
+          strokeWidth={0.5}
+        />
+        <SvgText
+          x={tipX}
+          y={12 + sh * 0.13}
+          textAnchor="middle"
+          fill={T3}
+          fontSize={6.5}
+          fontFamily="Inter"
+        >
+          ESCENARIO · {L}mt × {A}mt
+        </SvgText>
+        {Array.from({ length: zones }, (_, i) => {
+          const zH = (sh * 0.82) / zones
+          const y = 12 + sh * 0.18 + i * zH
+          return (
+            <Rect
+              key={i}
+              x={pad}
+              y={y}
+              width={sw}
+              height={zH + 1}
+              fill={`${gradColors[Math.min(i, gradColors.length - 1)]}${0.08 + i * 0.04})`}
+            />
+          )
+        })}
+        <Polygon
+          points={`${tIzqX},${topY + 12} ${pad + 6},${H - 7} ${tipX - 4},${H - 7}`}
+          fill="rgba(26,255,110,0.05)"
+        />
+        <Polygon
+          points={`${tDerX},${topY + 12} ${pad + sw - 6},${H - 7} ${tipX + 4},${H - 7}`}
+          fill="rgba(26,255,110,0.05)"
+        />
+        <Rect
+          x={tipX - 18}
+          y={subY - 5}
+          width={36}
+          height={15}
+          rx={3}
+          fill="#0e0e1a"
+          stroke={AM}
+          strokeWidth={1.2}
+        />
+        <SvgText
+          x={tipX}
+          y={subY + 5}
+          textAnchor="middle"
+          fill={AM}
+          fontSize={6.5}
+          fontWeight="600"
+          fontFamily="Inter"
+        >
+          AIR18×2
+        </SvgText>
+        <Rect
+          x={tIzqX - 11}
+          y={topY - 3}
+          width={22}
+          height={13}
+          rx={3}
+          fill="#0e0e1a"
+          stroke={AC}
+          strokeWidth={1.4}
+        />
+        <Circle cx={tIzqX} cy={topY + 4} r={3.5} fill="none" stroke={AC} strokeWidth={0.8} />
+        <Rect
+          x={tDerX - 11}
+          y={topY - 3}
+          width={22}
+          height={13}
+          rx={3}
+          fill="#0e0e1a"
+          stroke={AC}
+          strokeWidth={1.4}
+        />
+        <Circle cx={tDerX} cy={topY + 4} r={3.5} fill="none" stroke={AC} strokeWidth={0.8} />
+        <SvgText x={tIzqX} y={topY - 7} textAnchor="middle" fill={AC} fontSize={6} fontWeight="700">
+          RCF
+        </SvgText>
+        <SvgText x={tDerX} y={topY - 7} textAnchor="middle" fill={AC} fontSize={6} fontWeight="700">
+          RCF
+        </SvgText>
+      </Svg>
+      <View style={{ flexDirection: 'row', gap: 10, marginTop: 5, flexWrap: 'wrap' }}>
         {[
-          { color: AC, label: 'Alto >100dB' },
-          { color: AM, label: 'Medio 85-100dB' },
-          { color: PU, label: 'Bajo <85dB' },
+          { color: AC, label: '>100dB' },
+          { color: AM, label: '85–100dB' },
+          { color: RD, label: '<85dB' },
         ].map((l) => (
           <View key={l.label} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-            <View style={{ width: 10, height: 3, borderRadius: 2, backgroundColor: l.color }} />
-            <Text style={{ fontSize: 9, color: T2 }}>{l.label}</Text>
+            <View style={{ width: 9, height: 3, borderRadius: 2, backgroundColor: l.color }} />
+            <Text style={{ fontSize: 8, color: T2 }}>{l.label}</Text>
           </View>
         ))}
       </View>
@@ -255,45 +194,23 @@ function SPLMap({ L, A }: { L: number; A: number }) {
   )
 }
 
-// ── Prediagnóstico item ────────────────────────────────
-function PredItem({
-  status,
-  title,
-  porq,
-  paraq,
-  como,
-}: {
-  status: 'ok' | 'warn' | 'bad'
-  title: string
-  porq: string
-  paraq: string
-  como: string
-}) {
+function DiagCard({ item }: { item: DiagItem }) {
   const [open, setOpen] = useState(false)
-  const colors = { ok: AC, warn: AM, bad: RD }
-  const bgs = { ok: C.ac2, warn: C.am2, bad: C.rd2 }
-  const color = colors[status]
-  const bg = bgs[status]
-
+  const color = item.status === 'ok' ? AC : item.status === 'warn' ? AM : RD
   return (
     <View
       style={{
         backgroundColor: C.glass,
+        borderRadius: 12,
         borderWidth: 0.5,
         borderColor: BR,
-        borderRadius: 12,
         overflow: 'hidden',
-        marginBottom: 8,
+        marginBottom: 7,
       }}
     >
       <TouchableOpacity
         onPress={() => setOpen(!open)}
-        style={{
-          padding: 12,
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 8,
-        }}
+        style={{ padding: 12, flexDirection: 'row', alignItems: 'center', gap: 9 }}
         activeOpacity={0.8}
       >
         <View
@@ -307,14 +224,16 @@ function PredItem({
             shadowOpacity: 0.8,
           }}
         />
-        <Text style={{ fontSize: 13, fontWeight: '600', color, flex: 1 }}>{title}</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: 12, fontWeight: '600', color }}>{item.title}</Text>
+          <Text style={{ fontSize: 10, color: T3, marginTop: 1 }}>{item.valor}</Text>
+        </View>
         <Text
           style={{ color: T3, fontSize: 11, transform: [{ rotate: open ? '180deg' : '0deg' }] }}
         >
           ▾
         </Text>
       </TouchableOpacity>
-
       {open && (
         <View
           style={{
@@ -325,14 +244,14 @@ function PredItem({
           }}
         >
           {[
-            { label: '¿Por qué?', text: porq },
-            { label: '¿Para qué importa?', text: paraq },
-            { label: '¿Cómo resolverlo?', text: como },
+            { label: '¿Por qué?', text: item.porq },
+            { label: '¿Para qué importa?', text: item.paraq },
+            { label: '¿Cómo resolverlo?', text: item.como },
           ].map(({ label, text }) => (
             <View key={label}>
               <Text
                 style={{
-                  fontSize: 9,
+                  fontSize: 8,
                   fontWeight: '700',
                   color: T3,
                   letterSpacing: 0.8,
@@ -352,7 +271,100 @@ function PredItem({
   )
 }
 
-// ── MAIN SCREEN ────────────────────────────────────────
+function TratCard({ t }: { t: TratamientoSugerido }) {
+  const pcolor = { alta: RD, media: AM, baja: BL }[t.prioridad]
+  const pbg = { alta: C.rd2, media: C.am2, baja: C.bl2 }[t.prioridad]
+  return (
+    <View
+      style={{
+        backgroundColor: C.glass,
+        borderRadius: 12,
+        borderWidth: 0.5,
+        borderColor: BR,
+        borderLeftWidth: 3,
+        borderLeftColor: pcolor,
+        padding: 12,
+        marginBottom: 7,
+      }}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 6 }}>
+        <View
+          style={{
+            paddingHorizontal: 6,
+            paddingVertical: 2,
+            borderRadius: 20,
+            backgroundColor: pbg,
+            borderWidth: 0.5,
+            borderColor: `${pcolor}40`,
+          }}
+        >
+          <Text
+            style={{ fontSize: 8, fontWeight: '700', color: pcolor, textTransform: 'uppercase' }}
+          >
+            {t.prioridad}
+          </Text>
+        </View>
+        <Text style={{ fontSize: 11, fontWeight: '700', color: TX, flex: 1 }}>{t.zona}</Text>
+      </View>
+      <Text style={{ fontSize: 12, color: TX, marginBottom: 4 }}>{t.material}</Text>
+      <Text style={{ fontSize: 11, color: T2, marginBottom: 3 }}>↳ {t.efecto}</Text>
+      <Text style={{ fontSize: 10, color: T3 }}>💰 {t.costo}</Text>
+    </View>
+  )
+}
+
+function ScoreGauge({ score, label }: { score: number; label: string }) {
+  const color = score >= 80 ? AC : score >= 60 ? AM : score >= 40 ? '#ff8800' : RD
+  return (
+    <View
+      style={{
+        backgroundColor: `${color}0d`,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: `${color}25`,
+        padding: 16,
+        alignItems: 'center',
+        marginBottom: 12,
+      }}
+    >
+      <Text
+        style={{
+          fontSize: 9,
+          fontWeight: '700',
+          color: T3,
+          letterSpacing: 1.2,
+          textTransform: 'uppercase',
+          marginBottom: 6,
+        }}
+      >
+        Puntuación acústica global
+      </Text>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 6 }}>
+        <Text style={{ fontSize: 52, fontWeight: '900', color, lineHeight: 54, letterSpacing: -2 }}>
+          {score}
+        </Text>
+        <View style={{ paddingBottom: 8 }}>
+          <Text style={{ fontSize: 14, color: T2 }}>/100</Text>
+          <Text style={{ fontSize: 13, fontWeight: '700', color }}>{label}</Text>
+        </View>
+      </View>
+      <View
+        style={{
+          width: '100%',
+          height: 4,
+          backgroundColor: C.glass2,
+          borderRadius: 2,
+          marginTop: 10,
+        }}
+      >
+        <View
+          style={{ width: `${score}%` as any, height: 4, borderRadius: 2, backgroundColor: color }}
+        />
+      </View>
+    </View>
+  )
+}
+
 export default function RoomScanScreen() {
   const router = useRouter()
   const setRoom = useAppStore((s) => s.setRoom)
@@ -364,197 +376,69 @@ export default function RoomScanScreen() {
   const [ancho, setAncho] = useState('10')
   const [alto, setAlto] = useState('5')
   const [cap, setCap] = useState('100')
-
   const [selTecho, setSelTecho] = useState(0)
   const [selPared, setSelPared] = useState(0)
   const [selPiso, setSelPiso] = useState(0)
   const [selVent, setSelVent] = useState(1)
+  const [diagTab, setDiagTab] = useState<'diag' | 'frec' | 'trat'>('diag')
 
-  // ── Calculated diag ────────────────────────────────
   const L = parseFloat(largo) || 15
   const A = parseFloat(ancho) || 10
-  const H = parseFloat(alto) || 5
+  const H_ = parseFloat(alto) || 5
   const Cap = parseInt(cap, 10) || 100
 
-  const diag = calcRT60(
-    L,
-    A,
-    H,
-    Cap,
-    MAT_TECHO[selTecho]?.alpha ?? 0.06,
-    MAT_PAREDES[selPared]?.alpha ?? 0.03,
-    MAT_PISO[selPiso]?.alpha ?? 0.02,
-    MAT_VENTANALES[selVent]?.alpha ?? 0.08
-  )
-
-  const buildPredItems = () => {
-    const items: React.ComponentProps<typeof PredItem>[] = []
-    const { rt60f, eco, vol } = diag
-    const relacion = Math.max(L, A) / Math.min(L, A)
-    const volPP = vol / Cap
-
-    // RT60
-    if (rt60f < 0.5)
-      items.push({
-        status: 'warn',
-        title: 'RT60 muy bajo — sala sorda',
-        porq: `RT60 de ${rt60f.toFixed(1)}s indica que la sala absorbe demasiado.`,
-        paraq: 'La música sonará apagada sin presencia. Las voces perderán naturalidad.',
-        como: 'Reducir tratamiento acústico o agregar superficies reflectantes controladas.',
-      })
-    else if (rt60f < 0.9)
-      items.push({
-        status: 'ok',
-        title: 'RT60 óptimo para voz hablada',
-        porq: `RT60 de ${rt60f.toFixed(1)}s ideal para habla y predicación.`,
-        paraq: 'Excelente inteligibilidad. El público comprenderá con claridad.',
-        como: 'Mantener la configuración actual. Verificar tratamiento homogéneo.',
-      })
-    else if (rt60f < 1.3)
-      items.push({
-        status: 'warn',
-        title: 'RT60 moderado — ajuste necesario',
-        porq: `RT60 de ${rt60f.toFixed(1)}s genera reverberación audible.`,
-        paraq: 'Inteligibilidad reducida. La música sonará densa en medios.',
-        como: 'Cortar 200–400Hz en voces. Reducir volumen 3–4dB. Agregar alfombras o cortinas.',
-      })
-    else
-      items.push({
-        status: 'bad',
-        title: 'RT60 crítico — sala muy reverberante',
-        porq: `RT60 de ${rt60f.toFixed(1)}s excesivo para amplificación.`,
-        paraq: 'El sonido se acumulará. Pérdida total de inteligibilidad en volúmenes altos.',
-        como: 'Tratamiento acústico urgente: paneles, alfombra, cortinas. Reducir volumen del PA.',
-      })
-
-    // Eco
-    if (eco > 80)
-      items.push({
-        status: 'bad',
-        title: 'Eco de pared trasera audible',
-        porq: `Eco de ${eco}ms perceptible como repetición separada.`,
-        paraq: 'Destruye la inteligibilidad y la imagen estéreo.',
-        como: 'Panel absorbente en pared trasera. Reducir ganancia de TOPs. Considerar delay speakers.',
-      })
-    else if (eco > 50)
-      items.push({
-        status: 'warn',
-        title: 'Eco de pared trasera leve',
-        porq: `Eco de ${eco}ms en el umbral de percepción.`,
-        paraq: 'Con volumen alto puede volverse molesto.',
-        como: 'Material absorbente (cortina gruesa) en la pared trasera.',
-      })
-    else
-      items.push({
-        status: 'ok',
-        title: 'Eco de pared trasera controlado',
-        porq: `Eco de ${eco}ms — bajo el umbral de percepción (40ms).`,
-        paraq: 'El sonido reflejado llega dentro del tiempo de integración del oído.',
-        como: 'No se requiere tratamiento. Mantener configuración actual.',
-      })
-
-    // Proporciones
-    if (relacion > 2.5)
-      items.push({
-        status: 'bad',
-        title: 'Relación largo/ancho problemática',
-        porq: `Relación ${relacion.toFixed(1)}:1 genera modos axiales graves fuertes.`,
-        paraq: 'Acumulación de bajos en frecuencias de resonancia. Sonido irregular.',
-        como: 'Material absorbente de graves en paredes cortas. EQ correctivo en sub-graves.',
-      })
-    else if (relacion < 1.3)
-      items.push({
-        status: 'warn',
-        title: 'Sala casi cuadrada — modos complejos',
-        porq: `Proporción ${relacion.toFixed(1)}:1 — modos coincidentes que se amplifican.`,
-        paraq: 'Puntos de alta y baja presión sonora irregulares.',
-        como: 'Tratamiento asimétrico. Difusores en paredes paralelas.',
-      })
-    else
-      items.push({
-        status: 'ok',
-        title: 'Proporciones de sala adecuadas',
-        porq: `Relación ${relacion.toFixed(1)}:1 dentro del rango recomendado.`,
-        paraq: 'Los modos se distribuyen uniformemente. Buenas condiciones base.',
-        como: 'Optimizar con tratamiento puntual en zonas de reflexión temprana.',
-      })
-
-    // Volumen por persona
-    if (volPP < 3)
-      items.push({
-        status: 'warn',
-        title: 'Poco volumen por persona',
-        porq: `${volPP.toFixed(1)} m³ por persona — absorción con sala llena será alta.`,
-        paraq: 'Con sala llena el RT60 bajará considerablemente.',
-        como: 'Calibrar con sala llena. Prever +2 a +4dB en agudos cuando haya público.',
-      })
-    else
-      items.push({
-        status: 'ok',
-        title: 'Volumen acústico por persona correcto',
-        porq: `${volPP.toFixed(1)} m³ por persona — buena relación espacial.`,
-        paraq: 'La absorción del público no alterará drásticamente las condiciones.',
-        como: 'Hacer ajustes finos con sala llena.',
-      })
-
-    return items
+  const partial: RoomData = {
+    nombre: nombre || 'Recinto',
+    largo: L,
+    ancho: A,
+    alto: H_,
+    cap: Cap,
+    matTecho: MAT_TECHO[selTecho]?.alpha ?? 0.06,
+    matParedes: MAT_PAREDES[selPared]?.alpha ?? 0.03,
+    matPiso: MAT_PISO[selPiso]?.alpha ?? 0.02,
+    matVentanales: MAT_VENT[selVent]?.alpha ?? 0.08,
+    rt60Empty: 0,
+    rt60Full: 0,
+    eco: 0,
+    vol: 0,
   }
+  const diag = diagnosRoom(partial)
 
-  // ── Navigation ─────────────────────────────────────
   const goNext = () => {
-    if (step === 0) {
-      if (!nombre.trim()) {
-        Alert.alert('Nombre', 'Ingresá el nombre del recinto')
-        return
-      }
-      setStep(1)
-    } else if (step === 1) {
-      setStep(2)
-    } else {
-      // Save and go back
-      const roomData: RoomData = {
-        nombre: nombre || 'Recinto',
-        largo: L,
-        ancho: A,
-        alto: H,
-        cap: Cap,
-        matTecho: MAT_TECHO[selTecho]?.alpha ?? 0.06,
-        matParedes: MAT_PAREDES[selPared]?.alpha ?? 0.03,
-        matPiso: MAT_PISO[selPiso]?.alpha ?? 0.02,
-        matVentanales: MAT_VENTANALES[selVent]?.alpha ?? 0.08,
-        rt60Empty: diag.rt60e,
-        rt60Full: diag.rt60f,
-        eco: diag.eco,
-        vol: diag.vol,
-      }
-      setRoom(roomData)
-      saveScene(nombre)
-      router.back()
+    if (step === 0 && !nombre.trim()) {
+      Alert.alert('Nombre', 'Ingresá el nombre del recinto')
+      return
     }
+    if (step < 2) {
+      setStep(step + 1)
+      return
+    }
+    const final: RoomData = {
+      ...partial,
+      rt60Empty: diag.rt60Empty,
+      rt60Full: diag.rt60Full,
+      eco: diag.eco,
+      vol: diag.vol,
+    }
+    setRoom(final)
+    saveScene(nombre)
+    router.back()
   }
 
-  const goBack = () => {
-    if (step > 0) setStep(step - 1)
-    else router.back()
-  }
-
-  // ── Shared styles ──────────────────────────────────
-  const inputStyle = {
+  const iStyle = {
     backgroundColor: C.glass,
     borderWidth: 0.5,
     borderColor: BR,
-    borderRadius: 11,
-    padding: 11,
+    borderRadius: 10,
+    padding: 10,
     color: TX,
-    fontSize: 14,
-    fontFamily: 'System',
+    fontSize: 13,
   } as const
-
-  const selBtn = (active: boolean, color = AC) =>
+  const sb = (active: boolean) =>
     ({
-      backgroundColor: active ? `${color}18` : C.glass,
+      backgroundColor: active ? `${AC}14` : C.glass,
       borderWidth: active ? 1 : 0.5,
-      borderColor: active ? `${color}40` : BR,
+      borderColor: active ? `${AC}40` : BR,
       borderRadius: 10,
       padding: 11,
       marginBottom: 7,
@@ -563,28 +447,19 @@ export default function RoomScanScreen() {
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: BG }}
-      contentContainerStyle={{ padding: 18, paddingTop: 24, paddingBottom: 120 }}
+      contentContainerStyle={{ padding: 18, paddingTop: 20, paddingBottom: 120 }}
     >
-      {/* Header */}
       <Text
-        style={{
-          fontFamily: 'serif',
-          fontSize: 32,
-          fontWeight: '300',
-          color: TX,
-          letterSpacing: -1,
-          marginBottom: 4,
-          lineHeight: 34,
-        }}
+        style={{ fontSize: 30, fontWeight: '300', color: TX, letterSpacing: -1, marginBottom: 4 }}
       >
         Room{'\n'}
         <Text style={{ color: AC }}>Scan</Text>
       </Text>
-      <Text style={{ fontSize: 12, color: T2, marginBottom: 20 }}>
-        Diagnóstico acústico completo
+      <Text style={{ fontSize: 11, color: T2, marginBottom: 18 }}>
+        Diagnóstico acústico completo · 3 pasos
       </Text>
 
-      {/* Steps indicator */}
+      {/* Steps bar */}
       <View style={{ flexDirection: 'row', gap: 5, marginBottom: 22 }}>
         {[0, 1, 2].map((i) => (
           <View
@@ -593,33 +468,30 @@ export default function RoomScanScreen() {
               flex: 1,
               height: 2.5,
               borderRadius: 2,
-              backgroundColor: i < step ? AC : i === step ? AC : BR,
-              opacity: i < step ? 1 : i === step ? 1 : 0.3,
-              shadowColor: i <= step ? AC : 'transparent',
-              shadowRadius: i <= step ? 4 : 0,
-              shadowOpacity: 0.5,
+              backgroundColor: i <= step ? AC : BR,
+              opacity: i === step ? 1 : i < step ? 0.8 : 0.2,
             }}
           />
         ))}
       </View>
 
-      {/* ── STEP 0: Dimensiones ── */}
+      {/* ── PASO 0 ── */}
       {step === 0 && (
-        <View>
+        <>
           <Text
             style={{
-              fontSize: 10,
+              fontSize: 9,
               fontWeight: '700',
               color: T3,
               letterSpacing: 1.2,
               textTransform: 'uppercase',
-              marginBottom: 8,
+              marginBottom: 7,
             }}
           >
             Nombre del recinto
           </Text>
           <TextInput
-            style={{ ...inputStyle, marginBottom: 14 }}
+            style={{ ...iStyle, marginBottom: 14 }}
             placeholder="Ej: Iglesia Central"
             placeholderTextColor={T3}
             value={nombre}
@@ -628,29 +500,29 @@ export default function RoomScanScreen() {
 
           <Text
             style={{
-              fontSize: 10,
+              fontSize: 9,
               fontWeight: '700',
               color: T3,
               letterSpacing: 1.2,
               textTransform: 'uppercase',
-              marginBottom: 8,
+              marginBottom: 7,
             }}
           >
             Dimensiones
           </Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
             {[
-              { label: 'Largo (mt)', value: largo, set: setLargo },
-              { label: 'Ancho (mt)', value: ancho, set: setAncho },
-              { label: 'Altura máx. (mt)', value: alto, set: setAlto },
-              { label: 'Capacidad (pers.)', value: cap, set: setCap },
-            ].map(({ label, value, set }) => (
-              <View key={label} style={{ width: '47%' }}>
-                <Text style={{ fontSize: 9, color: T2, marginBottom: 4 }}>{label}</Text>
+              { l: 'Largo (mt)', v: largo, s: setLargo },
+              { l: 'Ancho (mt)', v: ancho, s: setAncho },
+              { l: 'Altura máx. (mt)', v: alto, s: setAlto },
+              { l: 'Capacidad (pers.)', v: cap, s: setCap },
+            ].map(({ l, v, s }) => (
+              <View key={l} style={{ width: '47%' }}>
+                <Text style={{ fontSize: 9, color: T2, marginBottom: 4 }}>{l}</Text>
                 <TextInput
-                  style={inputStyle}
-                  value={value}
-                  onChangeText={set}
+                  style={iStyle}
+                  value={v}
+                  onChangeText={s}
                   keyboardType="numeric"
                   placeholderTextColor={T3}
                 />
@@ -658,40 +530,75 @@ export default function RoomScanScreen() {
             ))}
           </View>
 
+          {/* Live preview */}
+          <View
+            style={{
+              backgroundColor: C.ac3,
+              borderRadius: 10,
+              borderWidth: 0.5,
+              borderColor: 'rgba(26,255,110,0.15)',
+              padding: 10,
+              flexDirection: 'row',
+              gap: 18,
+              marginBottom: 14,
+            }}
+          >
+            {[
+              { l: 'RT60 vacío', v: `${diag.rt60Empty.toFixed(1)}s`, c: AC },
+              { l: 'Volumen', v: `${diag.vol}m³`, c: PU },
+              { l: 'Eco máx.', v: `${diag.eco}ms`, c: diag.eco > 50 ? RD : BL },
+            ].map(({ l, v, c }) => (
+              <View key={l}>
+                <Text
+                  style={{
+                    fontSize: 8,
+                    color: T3,
+                    letterSpacing: 0.8,
+                    textTransform: 'uppercase',
+                    marginBottom: 2,
+                  }}
+                >
+                  {l}
+                </Text>
+                <Text style={{ fontSize: 17, fontWeight: '700', color: c }}>{v}</Text>
+              </View>
+            ))}
+          </View>
+
           <Text
             style={{
-              fontSize: 10,
+              fontSize: 9,
               fontWeight: '700',
               color: T3,
               letterSpacing: 1.2,
               textTransform: 'uppercase',
-              marginBottom: 8,
+              marginBottom: 7,
             }}
           >
             Tipo de techo
           </Text>
           {MAT_TECHO.map((m, i) => (
-            <TouchableOpacity key={i} onPress={() => setSelTecho(i)} style={selBtn(selTecho === i)}>
+            <TouchableOpacity key={i} onPress={() => setSelTecho(i)} style={sb(selTecho === i)}>
               <Text style={{ fontSize: 12, fontWeight: '600', color: selTecho === i ? AC : TX }}>
                 {m.label}
               </Text>
               <Text style={{ fontSize: 10, color: T2, marginTop: 1 }}>{m.desc}</Text>
             </TouchableOpacity>
           ))}
-        </View>
+        </>
       )}
 
-      {/* ── STEP 1: Materiales ── */}
+      {/* ── PASO 1 ── */}
       {step === 1 && (
-        <View>
+        <>
           <Text
             style={{
-              fontSize: 10,
+              fontSize: 9,
               fontWeight: '700',
               color: T3,
               letterSpacing: 1.2,
               textTransform: 'uppercase',
-              marginBottom: 8,
+              marginBottom: 7,
             }}
           >
             Material de paredes
@@ -701,11 +608,7 @@ export default function RoomScanScreen() {
               <TouchableOpacity
                 key={i}
                 onPress={() => setSelPared(i)}
-                style={{
-                  ...selBtn(selPared === i),
-                  width: '47%',
-                  marginBottom: 0,
-                }}
+                style={{ ...sb(selPared === i), width: '47%', marginBottom: 0 }}
               >
                 <Text style={{ fontSize: 12, fontWeight: '600', color: selPared === i ? AC : TX }}>
                   {m.label}
@@ -714,15 +617,14 @@ export default function RoomScanScreen() {
               </TouchableOpacity>
             ))}
           </View>
-
           <Text
             style={{
-              fontSize: 10,
+              fontSize: 9,
               fontWeight: '700',
               color: T3,
               letterSpacing: 1.2,
               textTransform: 'uppercase',
-              marginBottom: 8,
+              marginBottom: 7,
             }}
           >
             Material de piso
@@ -732,11 +634,7 @@ export default function RoomScanScreen() {
               <TouchableOpacity
                 key={i}
                 onPress={() => setSelPiso(i)}
-                style={{
-                  ...selBtn(selPiso === i),
-                  width: '47%',
-                  marginBottom: 0,
-                }}
+                style={{ ...sb(selPiso === i), width: '47%', marginBottom: 0 }}
               >
                 <Text style={{ fontSize: 12, fontWeight: '600', color: selPiso === i ? AC : TX }}>
                   {m.label}
@@ -745,25 +643,24 @@ export default function RoomScanScreen() {
               </TouchableOpacity>
             ))}
           </View>
-
           <Text
             style={{
-              fontSize: 10,
+              fontSize: 9,
               fontWeight: '700',
               color: T3,
               letterSpacing: 1.2,
               textTransform: 'uppercase',
-              marginBottom: 8,
+              marginBottom: 7,
             }}
           >
             ¿Ventanales laterales?
           </Text>
           <View style={{ flexDirection: 'row', gap: 7 }}>
-            {MAT_VENTANALES.map((m, i) => (
+            {MAT_VENT.map((m, i) => (
               <TouchableOpacity
                 key={i}
                 onPress={() => setSelVent(i)}
-                style={{ ...selBtn(selVent === i), flex: 1, marginBottom: 0 }}
+                style={{ ...sb(selVent === i), flex: 1, marginBottom: 0 }}
               >
                 <Text
                   style={{
@@ -778,65 +675,60 @@ export default function RoomScanScreen() {
               </TouchableOpacity>
             ))}
           </View>
-        </View>
+        </>
       )}
 
-      {/* ── STEP 2: Diagnóstico ── */}
+      {/* ── PASO 2 — Diagnóstico ── */}
       {step === 2 && (
-        <View>
-          {/* Métricas */}
+        <>
+          <ScoreGauge score={diag.score} label={diag.scoreLabel} />
+
+          {/* Métricas 3×2 */}
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
             {[
-              { label: 'RT60 vacío', value: diag.rt60e.toFixed(1), unit: 'seg', color: AC },
+              { l: 'RT60 vacío', v: `${diag.rt60Empty.toFixed(1)}s`, c: AC },
               {
-                label: 'RT60 público',
-                value: diag.rt60f.toFixed(1),
-                unit: 'seg',
-                color: diag.rt60f > 1.2 ? RD : diag.rt60f > 0.8 ? AM : AC,
+                l: 'RT60 público',
+                v: `${diag.rt60Full.toFixed(1)}s`,
+                c: diag.rt60Full > 1.2 ? RD : diag.rt60Full > 0.8 ? AM : AC,
               },
+              { l: 'Eco', v: `${diag.eco}ms`, c: diag.eco > 80 ? RD : diag.eco > 50 ? AM : BL },
               {
-                label: 'Eco pared',
-                value: String(diag.eco),
-                unit: 'ms',
-                color: diag.eco > 80 ? RD : diag.eco > 50 ? AM : BL,
+                l: 'STI',
+                v: diag.sti.toFixed(2),
+                c: diag.sti >= 0.65 ? AC : diag.sti >= 0.5 ? AM : RD,
               },
-              { label: 'Volumen', value: String(diag.vol), unit: 'm³', color: PU },
-            ].map(({ label, value, unit, color }) => (
+              { l: 'Volumen', v: `${diag.vol}m³`, c: PU },
+              { l: 'Delay SUBs', v: `${diag.delaySubsMs}ms`, c: BL },
+            ].map(({ l, v, c }) => (
               <View
-                key={label}
+                key={l}
                 style={{
-                  width: '47%',
+                  width: '30%',
                   backgroundColor: C.glass,
                   borderRadius: 12,
                   borderWidth: 0.5,
                   borderColor: BR,
-                  padding: 13,
+                  padding: 10,
                 }}
               >
                 <Text
                   style={{
-                    fontSize: 9,
+                    fontSize: 8,
                     fontWeight: '700',
                     color: T3,
-                    letterSpacing: 1,
+                    letterSpacing: 0.8,
                     textTransform: 'uppercase',
-                    marginBottom: 5,
+                    marginBottom: 4,
                   }}
                 >
-                  {label}
+                  {l}
                 </Text>
-                <Text style={{ fontSize: 20, fontWeight: '700', color, lineHeight: 22 }}>
-                  {value}
-                </Text>
-                <Text style={{ fontSize: 10, color: T3, marginTop: 2 }}>{unit}</Text>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: c }}>{v}</Text>
               </View>
             ))}
           </View>
 
-          {/* SPL Map */}
-          <SPLMap L={L} A={A} />
-
-          {/* Prediagnóstico */}
           <Text
             style={{
               fontSize: 9,
@@ -844,17 +736,149 @@ export default function RoomScanScreen() {
               color: T3,
               letterSpacing: 1.2,
               textTransform: 'uppercase',
-              marginBottom: 10,
-              marginTop: 4,
+              marginBottom: 8,
             }}
           >
-            Prediagnóstico acústico
+            Distribución SPL estimada
           </Text>
-          {buildPredItems().map((item, i) => (
-            <PredItem key={i} {...item} />
-          ))}
+          <SPLMap L={L} A={A} />
 
-          {/* Guardar */}
+          {/* Tabs */}
+          <View style={{ flexDirection: 'row', gap: 6, marginBottom: 12, marginTop: 4 }}>
+            {[
+              { k: 'diag', l: '🔍 Diagnóstico' },
+              { k: 'frec', l: '🎵 Frecuencias' },
+              { k: 'trat', l: '🔧 Tratamiento' },
+            ].map(({ k, l }) => (
+              <TouchableOpacity
+                key={k}
+                onPress={() => setDiagTab(k as any)}
+                style={{
+                  flex: 1,
+                  paddingVertical: 7,
+                  borderRadius: 20,
+                  alignItems: 'center',
+                  borderWidth: diagTab === k ? 1 : 0.5,
+                  borderColor: diagTab === k ? 'rgba(26,255,110,0.3)' : BR,
+                  backgroundColor: diagTab === k ? C.ac2 : 'transparent',
+                }}
+              >
+                <Text style={{ fontSize: 10, fontWeight: '700', color: diagTab === k ? AC : T2 }}>
+                  {l}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {diagTab === 'diag' && diag.items.map((item) => <DiagCard key={item.id} item={item} />)}
+
+          {diagTab === 'frec' && (
+            <View>
+              <Text style={{ fontSize: 11, color: T2, lineHeight: 17, marginBottom: 12 }}>
+                Modos axiales — frecuencias donde el sonido se refuerza naturalmente por las
+                dimensiones del recinto.
+              </Text>
+              {diag.problemFreqs.map((f) => {
+                const fc = f.sev === 'ok' ? AC : f.sev === 'warn' ? AM : RD
+                return (
+                  <View
+                    key={f.hz}
+                    style={{
+                      backgroundColor: C.glass,
+                      borderRadius: 12,
+                      borderWidth: 0.5,
+                      borderColor: BR,
+                      borderLeftWidth: 3,
+                      borderLeftColor: fc,
+                      padding: 12,
+                      marginBottom: 7,
+                    }}
+                  >
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 8,
+                        marginBottom: 5,
+                      }}
+                    >
+                      <View
+                        style={{
+                          paddingHorizontal: 8,
+                          paddingVertical: 3,
+                          borderRadius: 20,
+                          backgroundColor: `${fc}18`,
+                          borderWidth: 0.5,
+                          borderColor: `${fc}40`,
+                        }}
+                      >
+                        <Text style={{ fontSize: 11, fontWeight: '800', color: fc }}>
+                          {f.hz} Hz
+                        </Text>
+                      </View>
+                      <Text style={{ fontSize: 11, fontWeight: '600', color: TX, flex: 1 }}>
+                        {f.label.split('—')[1]?.trim()}
+                      </Text>
+                    </View>
+                    <Text style={{ fontSize: 11, color: T2, lineHeight: 16 }}>{f.desc}</Text>
+                  </View>
+                )
+              })}
+              <View
+                style={{
+                  backgroundColor: C.ac3,
+                  borderRadius: 10,
+                  borderWidth: 0.5,
+                  borderColor: 'rgba(26,255,110,0.15)',
+                  padding: 12,
+                  marginTop: 4,
+                }}
+              >
+                <Text style={{ fontSize: 10, fontWeight: '700', color: AC, marginBottom: 4 }}>
+                  → En el DCX2496
+                </Text>
+                <Text style={{ fontSize: 11, color: T2, lineHeight: 17 }}>
+                  Verificar los peaks del EQ de SUBs en estas frecuencias. Cortes de −1 a −2dB en
+                  los modos problemáticos mejoran la uniformidad del campo sonoro.
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {diagTab === 'trat' && (
+            <View>
+              {diag.tratamiento.length === 0 ? (
+                <View
+                  style={{
+                    backgroundColor: C.ac2,
+                    borderRadius: 12,
+                    borderWidth: 0.5,
+                    borderColor: 'rgba(26,255,110,0.2)',
+                    padding: 16,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text style={{ fontSize: 22, marginBottom: 8 }}>✓</Text>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: AC }}>
+                    Sala en buen estado acústico
+                  </Text>
+                  <Text style={{ fontSize: 11, color: T2, marginTop: 4, textAlign: 'center' }}>
+                    No se detectaron problemas que requieran tratamiento inmediato.
+                  </Text>
+                </View>
+              ) : (
+                <>
+                  <Text style={{ fontSize: 11, color: T2, lineHeight: 17, marginBottom: 12 }}>
+                    Sugerencias ordenadas por prioridad. Costos son referenciales en USD.
+                  </Text>
+                  {diag.tratamiento.map((t, i) => (
+                    <TratCard key={i} t={t} />
+                  ))}
+                </>
+              )}
+            </View>
+          )}
+
           <TouchableOpacity
             onPress={() => saveScene(nombre)}
             style={{
@@ -862,7 +886,7 @@ export default function RoomScanScreen() {
               alignItems: 'center',
               gap: 6,
               alignSelf: 'flex-start',
-              marginTop: 4,
+              marginTop: 12,
               paddingHorizontal: 14,
               paddingVertical: 8,
               borderRadius: 20,
@@ -873,26 +897,26 @@ export default function RoomScanScreen() {
           >
             <Text style={{ fontSize: 11, fontWeight: '700', color: AC }}>💾 Guardar escenario</Text>
           </TouchableOpacity>
-        </View>
+        </>
       )}
 
-      {/* ── Buttons ── */}
+      {/* Nav buttons */}
       <View style={{ flexDirection: 'row', gap: 8, marginTop: 24 }}>
-        {step > 0 && (
-          <TouchableOpacity
-            onPress={goBack}
-            style={{
-              paddingHorizontal: 18,
-              paddingVertical: 13,
-              borderRadius: 13,
-              borderWidth: 0.5,
-              borderColor: BR,
-              backgroundColor: C.glass,
-            }}
-          >
-            <Text style={{ fontSize: 13, fontWeight: '500', color: TX }}>Atrás</Text>
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity
+          onPress={() => (step > 0 ? setStep(step - 1) : router.back())}
+          style={{
+            paddingHorizontal: 18,
+            paddingVertical: 13,
+            borderRadius: 13,
+            borderWidth: 0.5,
+            borderColor: BR,
+            backgroundColor: C.glass,
+          }}
+        >
+          <Text style={{ fontSize: 13, fontWeight: '500', color: TX }}>
+            {step > 0 ? 'Atrás' : 'Cancelar'}
+          </Text>
+        </TouchableOpacity>
         <TouchableOpacity
           onPress={goNext}
           style={{
