@@ -1,6 +1,6 @@
-import React, { useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native'
-import Svg, { Circle, Line, Path, Rect, Text as SvgText } from 'react-native-svg'
+import Svg, { Circle, Line, Path, Text as SvgText } from 'react-native-svg'
 import { useAppStore, type DSPConfig, type DSPOutput, type SystemPreset } from '@/store/app'
 import { GEAR_DB } from '@/constants/gear-database'
 import { C } from '@/constants/theme'
@@ -8,14 +8,28 @@ import { C } from '@/constants/theme'
 const AC = C.ac, BG = C.bg, BR = C.br2
 const TX = C.tx, T2 = C.t2, T3 = C.t3, AM = C.am, RD = C.rd, BL = C.bl
 
-// ── EQ Chart SVG ─────────────────────────────────────────
 interface EQBand { hz: number; db: number; tipo: 'peak'|'hpf'|'lpf'|'shelf_high'|'shelf_low'; q?: number }
 
-function EQChart({ bands, label, compact = false }: { bands: EQBand[]; label: string; compact?: boolean }) {
-  const W = 300, H = compact ? 80 : 110, padL = 24, padR = 8, padT = 10, padB = compact ? 18 : 22
+const DEFAULT_TOP_BANDS: EQBand[] = [
+  { hz: 80,   db: 0,    tipo: 'hpf' },
+  { hz: 180,  db: -1.5, tipo: 'peak', q: 1.4 },
+  { hz: 300,  db: -2,   tipo: 'peak', q: 1.2 },
+  { hz: 2500, db: 1,    tipo: 'peak', q: 1.5 },
+  { hz: 8000, db: -1,   tipo: 'shelf_high' },
+]
+const DEFAULT_SUB_BANDS: EQBand[] = [
+  { hz: 35,  db: 0,    tipo: 'hpf' },
+  { hz: 55,  db: 2,    tipo: 'peak', q: 1.4 },
+  { hz: 80,  db: -1.5, tipo: 'peak', q: 1.8 },
+  { hz: 100, db: -2,   tipo: 'peak', q: 2.0 },
+  { hz: 80,  db: 0,    tipo: 'lpf' },
+]
+
+function EQChart({ bands, label, tagName }: { bands: EQBand[]; label: string; tagName?: string }) {
+  const safeBands = bands.length > 0 ? bands : DEFAULT_TOP_BANDS
+  const W = 300, H = 100, padL = 24, padR = 8, padT = 10, padB = 22
   const iW = W - padL - padR, iH = H - padT - padB
-  const midY = padT + iH / 2
-  const maxDb = 4
+  const midY = padT + iH / 2, maxDb = 4
   const dbToY  = (db: number) => midY - (db * (iH / 2)) / maxDb
   const logToX = (hz: number) => {
     const lMin = Math.log10(20), lMax = Math.log10(20000)
@@ -23,11 +37,10 @@ function EQChart({ bands, label, compact = false }: { bands: EQBand[]; label: st
   }
   const freqVals   = [20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000]
   const freqLabels = ['20', '50', '100', '200', '500', '1k', '2k', '5k', '10k', '20k']
-
   const pts: [number, number][] = []
   for (let hz = 20; hz <= 20000; hz *= 1.06) {
     let db = 0
-    bands.forEach((b) => {
+    safeBands.forEach((b) => {
       if (b.tipo === 'peak' && b.db !== 0) {
         const q = b.q ?? 1.4
         const diff = Math.abs(Math.log2(hz / b.hz))
@@ -44,10 +57,33 @@ function EQChart({ bands, label, compact = false }: { bands: EQBand[]; label: st
     curve += ` C ${cx} ${y0} ${cx} ${y1} ${x1} ${y1}`
   }
   const fill = `${curve} L ${pts[pts.length - 1]?.[0] ?? W} ${midY} L ${pts[0]?.[0] ?? padL} ${midY} Z`
-
   return (
-    <View style={{ marginBottom: 10 }}>
-      <Text style={{ fontSize: 9, fontWeight: '700', color: T3, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 5 }}>{label}</Text>
+    <View style={{ marginBottom: 12 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+        <Text style={{ fontSize: 9, fontWeight: '700', color: T3, letterSpacing: 0.8, textTransform: 'uppercase' }}>{label}</Text>
+        {tagName && (
+          <View style={{ paddingHorizontal: 7, paddingVertical: 2, borderRadius: 20, backgroundColor: C.ac2, borderWidth: 0.5, borderColor: 'rgba(26,255,110,0.2)' }}>
+            <Text style={{ fontSize: 8, fontWeight: '700', color: AC }}>{tagName}</Text>
+          </View>
+        )}
+      </View>
+      <View style={{ flexDirection: 'row', gap: 4, flexWrap: 'wrap', marginBottom: 6 }}>
+        {safeBands.map((b, i) => {
+          const isHP = b.tipo === 'hpf' || b.tipo === 'lpf'
+          const fc = isHP ? BL : b.db > 0 ? AC : b.db < 0 ? RD : T3
+          const bg = isHP ? C.bl2 : b.db > 0 ? C.ac2 : b.db < 0 ? C.rd2 : C.glass
+          const lbl = isHP
+            ? `${b.tipo.toUpperCase()} ${b.hz}Hz`
+            : b.db === 0
+              ? `${b.hz >= 1000 ? b.hz / 1000 + 'k' : b.hz}Hz`
+              : `${b.hz >= 1000 ? b.hz / 1000 + 'k' : b.hz}Hz ${b.db > 0 ? '+' : ''}${b.db}dB`
+          return (
+            <View key={i} style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 20, backgroundColor: bg, borderWidth: 0.5, borderColor: `${fc}40` }}>
+              <Text style={{ fontSize: 8, fontWeight: '700', color: fc }}>{lbl}</Text>
+            </View>
+          )
+        })}
+      </View>
       <View style={{ backgroundColor: '#080810', borderRadius: 8, borderWidth: 0.5, borderColor: BR, overflow: 'hidden' }}>
         <Svg width={W} height={H}>
           {[-3, 0, 3].map((db) => (
@@ -55,7 +91,7 @@ function EQChart({ bands, label, compact = false }: { bands: EQBand[]; label: st
               stroke={db === 0 ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.04)'}
               strokeWidth={db === 0 ? 0.8 : 0.4} />
           ))}
-          {!compact && freqVals.map((f, i) => (
+          {freqVals.map((f, i) => (
             <React.Fragment key={f}>
               <Line x1={logToX(f)} y1={padT} x2={logToX(f)} y2={padT + iH} stroke="rgba(255,255,255,0.03)" strokeWidth={0.4} />
               <SvgText x={logToX(f)} y={H - 3} textAnchor="middle" fill={T3} fontSize={6} fontFamily="Inter">{freqLabels[i]}</SvgText>
@@ -63,7 +99,7 @@ function EQChart({ bands, label, compact = false }: { bands: EQBand[]; label: st
           ))}
           <Path d={fill} fill="rgba(26,255,110,0.04)" />
           <Path d={curve} fill="none" stroke="rgba(26,255,110,0.55)" strokeWidth={1.5} />
-          {bands.map((b, i) => {
+          {safeBands.map((b, i) => {
             if (b.db === 0 && b.tipo === 'peak') return null
             const x = logToX(b.hz), y = dbToY(b.db)
             const isHP = b.tipo === 'hpf' || b.tipo === 'lpf'
@@ -81,24 +117,44 @@ function EQChart({ bands, label, compact = false }: { bands: EQBand[]; label: st
   )
 }
 
-// ── Panel de salida DSP ───────────────────────────────────
+function usePresetEQ(preset: SystemPreset | null, topSpl: number, subSpl: number) {
+  return useMemo(() => {
+    if (!preset) return { topBands: DEFAULT_TOP_BANDS, subBands: DEFAULT_SUB_BANDS }
+    const isCorta = preset.escenario === 'pared_corta'
+    const topBands: EQBand[] = [
+      { hz: preset.crossoverHz, db: 0, tipo: 'hpf' },
+      { hz: 180,  db: -1.5, tipo: 'peak', q: 1.4 },
+      { hz: 300,  db: isCorta ? -2.5 : -2, tipo: 'peak', q: 1.2 },
+      { hz: 2500, db: 1, tipo: 'peak', q: 1.5 },
+      { hz: 8000, db: preset.highShelfDb, tipo: 'shelf_high' },
+    ]
+    const subBands: EQBand[] = [
+      { hz: 35, db: 0, tipo: 'hpf' },
+      { hz: 55, db: preset.vidrios ? 1.5 : 2, tipo: 'peak', q: 1.4 },
+      { hz: 80, db: preset.vidrios ? -1.5 : -1, tipo: 'peak', q: 1.8 },
+      { hz: 100, db: -2, tipo: 'peak', q: 2.0 },
+      { hz: preset.crossoverHz, db: 0, tipo: 'lpf' },
+    ]
+    return { topBands, subBands }
+  }, [preset?.id, topSpl, subSpl])
+}
+
 function OutputPanel({ out, dspId }: { out: DSPOutput; dspId: string }) {
   const [open, setOpen] = useState(false)
-  const { updateDSP, gear } = useAppStore()
+  const updateDSP = useAppStore((s) => s.updateDSP)
+  const gear      = useAppStore((s) => s.gear)
   const isSub = out.label.toLowerCase().includes('sub')
   const color = isSub ? AM : AC
-
-  const bands: EQBand[] = out.eqBands.map((b) => ({
-    hz: b.hz, db: b.db, q: b.q, tipo: b.tipo,
-  }))
-  // Agregar HPF/LPF a la curva visual
-  if (out.hpfHz > 20)    bands.unshift({ hz: out.hpfHz, db: 0, tipo: 'hpf' })
-  if (out.lpfHz < 20000) bands.push({ hz: out.lpfHz, db: 0, tipo: 'lpf' })
-
+  const bands: EQBand[] = [
+    ...(out.hpfHz > 20 ? [{ hz: out.hpfHz, db: 0, tipo: 'hpf' as const }] : []),
+    ...out.eqBands.map((b) => ({ hz: b.hz, db: b.db, q: b.q, tipo: b.tipo })),
+    ...(out.lpfHz < 20000 ? [{ hz: out.lpfHz, db: 0, tipo: 'lpf' as const }] : []),
+  ]
+  const displayBands = bands.length > 0 ? bands : (isSub ? DEFAULT_SUB_BANDS : DEFAULT_TOP_BANDS)
   return (
     <View style={{ backgroundColor: C.glass, borderRadius: 12, borderWidth: 0.5, borderColor: BR, borderLeftWidth: 3, borderLeftColor: color, overflow: 'hidden', marginBottom: 8 }}>
       <TouchableOpacity onPress={() => setOpen(!open)} style={{ padding: 12, flexDirection: 'row', alignItems: 'center', gap: 9 }} activeOpacity={0.8}>
-        <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, backgroundColor: `${color}15`, borderWidth: 0.5, borderColor: `${color}40` }}>
+        <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, backgroundColor: `${color}15` }}>
           <Text style={{ fontSize: 10, fontWeight: '700', color }}>{out.id}</Text>
         </View>
         <View style={{ flex: 1 }}>
@@ -107,26 +163,23 @@ function OutputPanel({ out, dspId }: { out: DSPOutput; dspId: string }) {
         </View>
         <View style={{ alignItems: 'flex-end' }}>
           <Text style={{ fontSize: 10, color: T2 }}>{out.gainDb >= 0 ? '+' : ''}{out.gainDb}dB · {out.delayMs}ms</Text>
-          <Text style={{ fontSize: 9, color: T3 }}>{out.hpfHz}Hz–{out.lpfHz >= 20000 ? '20kHz' : out.lpfHz + 'Hz'}</Text>
+          <Text style={{ fontSize: 9, color: T3 }}>{out.hpfHz}Hz – {out.lpfHz >= 20000 ? '20kHz' : out.lpfHz + 'Hz'}</Text>
         </View>
         <Text style={{ color: T3, fontSize: 11, marginLeft: 4, transform: [{ rotate: open ? '180deg' : '0deg' }] }}>▾</Text>
       </TouchableOpacity>
-
       {open && (
         <View style={{ paddingHorizontal: 12, paddingBottom: 13, borderTopWidth: 0.5, borderTopColor: BR }}>
-          <EQChart bands={bands} label={`EQ — Salida ${out.id}: ${out.label}`} compact />
-
-          {/* Parámetros editables */}
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 8 }}>
+          <EQChart bands={displayBands} label={`Salida ${out.id} — ${out.label}`} />
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 6 }}>
             {[
-              { label: 'Gain (dB)',    value: String(out.gainDb),    key: 'gainDb' as const },
-              { label: 'Delay (ms)',   value: String(out.delayMs),   key: 'delayMs' as const },
-              { label: 'HPF (Hz)',     value: String(out.hpfHz),     key: 'hpfHz' as const },
-              { label: 'LPF (Hz)',     value: String(out.lpfHz),     key: 'lpfHz' as const },
-              { label: 'Limitador',    value: String(out.limiterDb), key: 'limiterDb' as const },
+              { label: 'Gain (dB)', value: String(out.gainDb), key: 'gainDb' as const },
+              { label: 'Delay ms', value: String(out.delayMs), key: 'delayMs' as const },
+              { label: 'HPF Hz', value: String(out.hpfHz), key: 'hpfHz' as const },
+              { label: 'LPF Hz', value: String(out.lpfHz), key: 'lpfHz' as const },
+              { label: 'Límit', value: String(out.limiterDb), key: 'limiterDb' as const },
             ].map(({ label, value, key }) => (
               <View key={key} style={{ width: '30%' }}>
-                <Text style={{ fontSize: 8, color: T3, marginBottom: 3, letterSpacing: 0.5 }}>{label}</Text>
+                <Text style={{ fontSize: 8, color: T3, marginBottom: 3 }}>{label}</Text>
                 <TextInput
                   style={{ backgroundColor: C.glass2, borderWidth: 0.5, borderColor: BR, borderRadius: 8, padding: 8, color: TX, fontSize: 12 }}
                   value={value}
@@ -135,261 +188,161 @@ function OutputPanel({ out, dspId }: { out: DSPOutput; dspId: string }) {
                     const num = parseFloat(v) || 0
                     const dsp = gear.dsps.find((d) => d.dspId === dspId)
                     if (!dsp) return
-                    const newOutputs = dsp.outputs.map((o) =>
-                      o.id === out.id ? { ...o, [key]: num } : o
-                    )
-                    updateDSP(dspId, { outputs: newOutputs })
+                    updateDSP(dspId, { outputs: dsp.outputs.map((o) => o.id === out.id ? { ...o, [key]: num } : o) })
                   }}
                 />
               </View>
             ))}
           </View>
-
-          {/* EQ bands */}
-          <Text style={{ fontSize: 8, fontWeight: '700', color: T3, letterSpacing: 1, textTransform: 'uppercase', marginTop: 10, marginBottom: 6 }}>Bandas EQ</Text>
-          {out.eqBands.map((band, bidx) => (
-            <View key={bidx} style={{ flexDirection: 'row', gap: 7, alignItems: 'center', marginBottom: 6 }}>
-              <View style={{ paddingHorizontal: 5, paddingVertical: 2, borderRadius: 8, backgroundColor: band.db > 0 ? C.ac2 : band.db < 0 ? C.rd2 : C.glass }}>
-                <Text style={{ fontSize: 9, fontWeight: '700', color: band.db > 0 ? AC : band.db < 0 ? RD : T2 }}>
-                  {band.hz >= 1000 ? (band.hz / 1000) + 'kHz' : band.hz + 'Hz'}
-                </Text>
-              </View>
-              {[
-                { l: 'dB', v: String(band.db), k: 'db' },
-                { l: 'Q',  v: String(band.q),  k: 'q'  },
-              ].map(({ l, v, k }) => (
-                <View key={k} style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 8, color: T3, marginBottom: 2 }}>{l}</Text>
-                  <TextInput
-                    style={{ backgroundColor: C.glass2, borderWidth: 0.5, borderColor: BR, borderRadius: 7, padding: 6, color: TX, fontSize: 12 }}
-                    value={v}
-                    keyboardType="numeric"
-                    onChangeText={(val) => {
-                      const num = parseFloat(val) || 0
-                      const dsp = gear.dsps.find((d) => d.dspId === dspId)
-                      if (!dsp) return
-                      const newOutputs = dsp.outputs.map((o) => {
-                        if (o.id !== out.id) return o
-                        const newBands = o.eqBands.map((b, bi) =>
-                          bi === bidx ? { ...b, [k]: num } : b
-                        )
-                        return { ...o, eqBands: newBands }
-                      })
-                      updateDSP(dspId, { outputs: newOutputs })
-                    }}
-                  />
-                </View>
-              ))}
-            </View>
-          ))}
         </View>
       )}
     </View>
   )
 }
 
-// ── DSP Card ──────────────────────────────────────────────
 function DSPCard({ dsp }: { dsp: DSPConfig }) {
   const [open, setOpen] = useState(false)
-  const { removeDSP, updateDSP, generateDSPConfig } = useAppStore()
+  const removeDSP = useAppStore((s) => s.removeDSP)
+  const updateDSP = useAppStore((s) => s.updateDSP)
   const item = GEAR_DB.find((g) => g.id === dsp.dspId)
-
+  const handleUpdate = useCallback((field: keyof DSPConfig, val: any) => {
+    updateDSP(dsp.dspId, { [field]: val })
+  }, [dsp.dspId, updateDSP])
   return (
     <View style={{ backgroundColor: C.glass, borderRadius: 16, borderWidth: 0.5, borderColor: BR, overflow: 'hidden', marginBottom: 10 }}>
       <TouchableOpacity onPress={() => setOpen(!open)} style={{ padding: 14, flexDirection: 'row', alignItems: 'center', gap: 10 }} activeOpacity={0.8}>
-        <Text style={{ fontSize: 20 }}>⚙️</Text>
+        <Text style={{ fontSize: 18 }}>⚙️</Text>
         <View style={{ flex: 1 }}>
           <Text style={{ fontSize: 13, fontWeight: '700', color: TX }}>{dsp.nombre}</Text>
-          <Text style={{ fontSize: 10, color: T2 }}>{item?.specs ?? dsp.dspId} · {dsp.outputs.length} salidas · {dsp.crossoverHz}Hz {dsp.tipo.replace('_', '-')} {dsp.pendiente}dB/oct</Text>
+          <Text style={{ fontSize: 10, color: T2 }}>{item?.name ?? dsp.dspId} · {dsp.outputs.length} sal. · {dsp.crossoverHz}Hz</Text>
         </View>
         <TouchableOpacity onPress={() => removeDSP(dsp.dspId)} style={{ padding: 5, borderRadius: 7, backgroundColor: C.rd2 }}>
           <Text style={{ fontSize: 11, color: RD }}>✕</Text>
         </TouchableOpacity>
         <Text style={{ color: T3, fontSize: 11, transform: [{ rotate: open ? '180deg' : '0deg' }] }}>▾</Text>
       </TouchableOpacity>
-
       {open && (
         <View style={{ paddingHorizontal: 12, paddingBottom: 14, borderTopWidth: 0.5, borderTopColor: BR }}>
-          {/* Parámetros del DSP */}
-          <View style={{ flexDirection: 'row', gap: 7, marginBottom: 12, marginTop: 10, flexWrap: 'wrap' }}>
-            {[
-              { l: 'Crossover Hz', v: String(dsp.crossoverHz), k: 'crossoverHz' },
-            ].map(({ l, v, k }) => (
-              <View key={k} style={{ width: '47%' }}>
-                <Text style={{ fontSize: 9, color: T3, marginBottom: 3 }}>{l}</Text>
-                <TextInput
-                  style={{ backgroundColor: C.glass2, borderWidth: 0.5, borderColor: BR, borderRadius: 8, padding: 9, color: TX, fontSize: 13 }}
-                  value={v}
-                  keyboardType="numeric"
-                  onChangeText={(val) => updateDSP(dsp.dspId, { [k]: parseFloat(val) || 80 })}
-                />
-              </View>
-            ))}
-            {/* Tipo de filtro */}
-            <View style={{ width: '47%' }}>
-              <Text style={{ fontSize: 9, color: T3, marginBottom: 3 }}>Tipo filtro</Text>
+          <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12, marginTop: 10 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 9, color: T3, marginBottom: 3 }}>Crossover (Hz)</Text>
+              <TextInput style={{ backgroundColor: C.glass2, borderWidth: 0.5, borderColor: BR, borderRadius: 8, padding: 9, color: TX, fontSize: 13 }} value={String(dsp.crossoverHz)} keyboardType="numeric" onChangeText={(v) => handleUpdate('crossoverHz', parseFloat(v) || 80)} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 9, color: T3, marginBottom: 3 }}>Tipo</Text>
               <View style={{ flexDirection: 'row', gap: 4 }}>
                 {(['linkwitz_riley', 'butterworth', 'bessel'] as DSPConfig['tipo'][]).map((t) => (
-                  <TouchableOpacity key={t} onPress={() => updateDSP(dsp.dspId, { tipo: t })} style={{ flex: 1, padding: 5, borderRadius: 7, borderWidth: 0.5, borderColor: dsp.tipo === t ? 'rgba(26,255,110,0.3)' : BR, backgroundColor: dsp.tipo === t ? C.ac2 : 'transparent', alignItems: 'center' }}>
+                  <TouchableOpacity key={t} onPress={() => handleUpdate('tipo', t)} style={{ flex: 1, padding: 6, borderRadius: 7, borderWidth: 0.5, borderColor: dsp.tipo === t ? 'rgba(26,255,110,0.3)' : BR, backgroundColor: dsp.tipo === t ? C.ac2 : 'transparent', alignItems: 'center' }}>
                     <Text style={{ fontSize: 7, fontWeight: '700', color: dsp.tipo === t ? AC : T3 }}>{t === 'linkwitz_riley' ? 'LR' : t === 'butterworth' ? 'BW' : 'BSL'}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
             </View>
-            {/* Pendiente */}
-            <View style={{ width: '47%' }}>
-              <Text style={{ fontSize: 9, color: T3, marginBottom: 3 }}>Pendiente dB/oct</Text>
-              <View style={{ flexDirection: 'row', gap: 4 }}>
-                {([12, 18, 24, 48] as DSPConfig['pendiente'][]).map((p) => (
-                  <TouchableOpacity key={p} onPress={() => updateDSP(dsp.dspId, { pendiente: p })} style={{ flex: 1, padding: 5, borderRadius: 7, borderWidth: 0.5, borderColor: dsp.pendiente === p ? 'rgba(26,255,110,0.3)' : BR, backgroundColor: dsp.pendiente === p ? C.ac2 : 'transparent', alignItems: 'center' }}>
-                    <Text style={{ fontSize: 7, fontWeight: '700', color: dsp.pendiente === p ? AC : T3 }}>{p}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
           </View>
-
-          {/* Salidas */}
-          <Text style={{ fontSize: 9, fontWeight: '700', color: T3, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>
-            Salidas ({dsp.outputs.length})
-          </Text>
-          {dsp.outputs.map((out) => (
-            <OutputPanel key={out.id} out={out} dspId={dsp.dspId} />
-          ))}
+          <Text style={{ fontSize: 9, fontWeight: '700', color: T3, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>Salidas</Text>
+          {dsp.outputs.map((out) => <OutputPanel key={out.id} out={out} dspId={dsp.dspId} />)}
         </View>
       )}
     </View>
   )
 }
 
-// ── EQ Monitores ──────────────────────────────────────────
 function MonitoresEQ() {
-  const { gear } = useAppStore()
-  const monitores = gear.monitores
-    .map((id) => GEAR_DB.find((g) => g.id === id))
-    .filter(Boolean) as typeof GEAR_DB
-
-  if (monitores.length === 0) {
+  const gear = useAppStore((s) => s.gear)
+  const mons = gear.monitores.map((id) => GEAR_DB.find((g) => g.id === id)).filter(Boolean) as typeof GEAR_DB
+  if (mons.length === 0) {
     return (
       <View style={{ padding: 24, alignItems: 'center', backgroundColor: C.glass, borderRadius: 16, borderWidth: 0.5, borderColor: BR }}>
-        <Text style={{ fontSize: 22, marginBottom: 8 }}>📺</Text>
-        <Text style={{ fontSize: 12, color: T2, textAlign: 'center' }}>No hay monitores seleccionados.</Text>
-        <Text style={{ fontSize: 11, color: T3, textAlign: 'center', marginTop: 4 }}>Ir a Gear Builder → Monitores.</Text>
+        <Text style={{ fontSize: 12, color: T2, textAlign: 'center' }}>Sin monitores. Ir a Gear Builder → Monitores.</Text>
       </View>
     )
   }
-
-  // EQ sugerida por tipo de monitor
-  const getMonitorEQ = (spl: number): EQBand[] => {
-    const isSmall = spl < 122
+  const getMonBands = (spl: number): EQBand[] => {
+    const s = spl < 122
     return [
-      { hz: 100,  db: isSmall ? -4 : -2, q: 1.2, tipo: 'peak' as const },
-      { hz: 300,  db: -2,                q: 1.4, tipo: 'peak' as const },
-      { hz: 800,  db: -1,                q: 1.0, tipo: 'peak' as const },
-      { hz: 3000, db: 1,                 q: 1.5, tipo: 'peak' as const },
-      { hz: 8000, db: isSmall ? -2 : -1, q: 0,   tipo: 'shelf_high' as const },
+      { hz: 100,  db: s ? -4 : -2, q: 1.2, tipo: 'peak' as const },
+      { hz: 300,  db: -2, q: 1.4, tipo: 'peak' as const },
+      { hz: 3000, db: 1, q: 1.5, tipo: 'peak' as const },
+      { hz: 8000, db: s ? -2 : -1, q: 0, tipo: 'shelf_high' as const },
     ]
   }
-
   return (
     <View>
       <View style={{ backgroundColor: C.bl2, borderRadius: 10, borderWidth: 0.5, borderColor: 'rgba(96,165,250,0.2)', padding: 11, marginBottom: 14 }}>
-        <Text style={{ fontSize: 11, fontWeight: '600', color: BL }}>
-          EQ sugerida para monitores de escenario. Ajustar según posición (frontal, batería, piano).
-        </Text>
+        <Text style={{ fontSize: 11, fontWeight: '600', color: BL }}>EQ sugerida para monitores. Ajustar según posición en el escenario.</Text>
       </View>
-      {monitores.map((mon) => {
-        const bands = getMonitorEQ(mon.spl ?? 120)
-        return (
-          <View key={mon.id} style={{ backgroundColor: C.glass, borderRadius: 14, borderWidth: 0.5, borderColor: BR, borderLeftWidth: 3, borderLeftColor: BL, padding: 13, marginBottom: 10 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-              <Text style={{ fontSize: 16 }}>{mon.emoji}</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 13, fontWeight: '700', color: TX }}>{mon.name}</Text>
-                <Text style={{ fontSize: 10, color: T2 }}>{mon.specs}</Text>
-              </View>
-            </View>
-            <EQChart bands={bands} label="EQ sugerida" compact />
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginTop: 6 }}>
-              {bands.map((b, i) => {
-                const fc = b.db > 0 ? AC : b.db < 0 ? RD : T2
-                const bg = b.db > 0 ? C.ac2 : b.db < 0 ? C.rd2 : C.glass
-                return (
-                  <View key={i} style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 20, backgroundColor: bg, borderWidth: 0.5, borderColor: `${fc}40` }}>
-                    <Text style={{ fontSize: 8, fontWeight: '700', color: fc }}>
-                      {b.hz >= 1000 ? (b.hz / 1000) + 'kHz' : b.hz + 'Hz'} {b.db > 0 ? '+' : ''}{b.db}dB
-                    </Text>
-                  </View>
-                )
-              })}
-            </View>
-            {/* Notas por posición */}
-            <View style={{ marginTop: 10, gap: 5 }}>
-              {[
-                { pos: 'Frontal de escenario', nota: 'Feedback frecuente en 500Hz–1kHz. Cortar extra en esa zona.' },
-                { pos: 'Monitor de batería',    nota: 'Bajar 80–100Hz para no pisarse con el kick. Bajar 200Hz.' },
-                { pos: 'Monitor de piano',      nota: 'Curva más plana. Mantener medios. Cortar 300Hz leve.' },
-              ].map(({ pos, nota }) => (
-                <View key={pos} style={{ flexDirection: 'row', gap: 7 }}>
-                  <Text style={{ fontSize: 9, fontWeight: '700', color: T3, width: 130 }}>{pos}</Text>
-                  <Text style={{ fontSize: 9, color: T2, flex: 1, lineHeight: 14 }}>{nota}</Text>
-                </View>
-              ))}
+      {mons.map((mon) => (
+        <View key={mon.id} style={{ backgroundColor: C.glass, borderRadius: 14, borderWidth: 0.5, borderColor: BR, borderLeftWidth: 3, borderLeftColor: BL, padding: 13, marginBottom: 10 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            <Text style={{ fontSize: 16 }}>{mon.emoji}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: TX }}>{mon.name}</Text>
+              <Text style={{ fontSize: 10, color: T2 }}>{mon.specs}</Text>
             </View>
           </View>
-        )
-      })}
+          <EQChart bands={getMonBands(mon.spl ?? 120)} label="EQ sugerida" />
+        </View>
+      ))}
     </View>
   )
 }
 
-// ── Pasos backup y arranque ───────────────────────────────
-const BACKUP   = ['Bajar master del mixer a −∞','Apagar TOPs activos','OUT A/B del DCX → Gemini P-800','Gemini CH1→PV215 IZQ · CH2→PV215 DER','Modo STEREO en Gemini','Cargar preset BACKUP en DCX','Encender Gemini — ganancia 75%','Subir master lentamente']
-const ARRANQUE = ['Master del mixer a −∞','Encender mixer','Phantom 48V activo (CH6)','DCX2496 → cargar preset correcto','Panel trasero RCF: FLAT + sensibilidad máxima','Encender TOPs IZQ y DER','Encender SUBs IZQ y DER','Subir master lentamente','Confirmar click solo en in-ears']
+const BACKUP   = ['Bajar master −∞','Apagar TOPs activos','OUT A/B DCX → Gemini P-800','Gemini CH1→PV215 IZQ · CH2→PV215 DER','Modo STEREO en Gemini','Cargar preset BACKUP en DCX','Encender Gemini — ganancia 75%','Subir master']
+const ARRANQUE = ['Master del mixer a −∞','Encender mixer','Phantom 48V activo (CH6)','DCX → cargar preset correcto','Panel trasero RCF: FLAT + sens. máxima','Encender TOPs IZQ y DER','Encender SUBs IZQ y DER','Subir master lentamente','Click solo en in-ears']
 
 type Tab = 'presets' | 'dsps' | 'monitores' | 'backup' | 'arranque'
 
 export default function ConfigScreen() {
-  const { allPresets, activePreset, setActivePreset, gear, generateDSPConfig, room } = useAppStore()
+  const allPresets      = useAppStore((s) => s.allPresets)
+  const activePreset    = useAppStore((s) => s.activePreset)
+  const setActivePreset = useAppStore((s) => s.setActivePreset)
+  const gear            = useAppStore((s) => s.gear)
+  const room            = useAppStore((s) => s.room)
+  const generateDSPConfig = useAppStore((s) => s.generateDSPConfig)
   const [tab, setTab] = useState<Tab>('presets')
-
   const topItem = GEAR_DB.find((g) => g.id === (gear.tops[0] ?? gear.top))
   const subItem = GEAR_DB.find((g) => g.id === (gear.subs[0] ?? gear.sub))
   const topName = topItem?.name ?? 'TOP'
   const subName = subItem?.name ?? 'SUB'
-  const topSpl  = topItem?.spl ?? 131
-  const subSpl  = subItem?.spl ?? 133
+  const { topBands, subBands } = usePresetEQ(activePreset, topItem?.spl ?? 131, subItem?.spl ?? 133)
 
   const TABS: { key: Tab; label: string }[] = [
-    { key: 'presets',   label: 'Presets'              },
-    { key: 'dsps',      label: `DSP (${gear.dsps.length})`      },
-    { key: 'monitores', label: 'Monitores'             },
-    { key: 'backup',    label: 'Backup'                },
-    { key: 'arranque',  label: 'Arranque'              },
+    { key: 'presets',   label: 'Presets' },
+    { key: 'dsps',      label: `DSP (${gear.dsps.length})` },
+    { key: 'monitores', label: 'Monitores' },
+    { key: 'backup',    label: 'Backup' },
+    { key: 'arranque',  label: 'Arranque' },
   ]
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: BG }} contentContainerStyle={{ paddingBottom: 100 }}>
       <View style={{ paddingHorizontal: 16, paddingTop: 60, paddingBottom: 14 }}>
         <Text style={{ fontSize: 22, fontWeight: '800', color: TX, letterSpacing: -0.5, marginBottom: 4 }}>Config Engine</Text>
-        {activePreset && (
-          <Text style={{ fontSize: 10, color: AC, fontWeight: '700', marginBottom: 4, letterSpacing: 0.5 }}>● {activePreset.nombre}</Text>
-        )}
-        {/* Equipos activos */}
         <View style={{ flexDirection: 'row', gap: 5, flexWrap: 'wrap', marginBottom: 12 }}>
-          {topItem && (
-            <View style={{ paddingHorizontal: 7, paddingVertical: 2, borderRadius: 20, backgroundColor: C.ac2, borderWidth: 0.5, borderColor: 'rgba(26,255,110,0.2)' }}>
-              <Text style={{ fontSize: 9, fontWeight: '700', color: AC }}>🔊 {topName}</Text>
-            </View>
-          )}
-          {subItem && (
-            <View style={{ paddingHorizontal: 7, paddingVertical: 2, borderRadius: 20, backgroundColor: C.am2, borderWidth: 0.5, borderColor: 'rgba(251,191,36,0.2)' }}>
-              <Text style={{ fontSize: 9, fontWeight: '700', color: AM }}>🔉 {subName}</Text>
-            </View>
-          )}
+          {topItem && <View style={{ paddingHorizontal: 7, paddingVertical: 2, borderRadius: 20, backgroundColor: C.ac2, borderWidth: 0.5, borderColor: 'rgba(26,255,110,0.2)' }}><Text style={{ fontSize: 9, fontWeight: '700', color: AC }}>🔊 {topName}</Text></View>}
+          {subItem && <View style={{ paddingHorizontal: 7, paddingVertical: 2, borderRadius: 20, backgroundColor: C.am2, borderWidth: 0.5, borderColor: 'rgba(251,191,36,0.2)' }}><Text style={{ fontSize: 9, fontWeight: '700', color: AM }}>🔉 {subName}</Text></View>}
+          {activePreset && <View style={{ paddingHorizontal: 7, paddingVertical: 2, borderRadius: 20, backgroundColor: C.glass, borderWidth: 0.5, borderColor: BR }}><Text style={{ fontSize: 9, fontWeight: '600', color: T2 }}>● {activePreset.nombre}</Text></View>}
         </View>
 
-        {/* Tabs */}
+        {/* EQ SIEMPRE VISIBLE — Fix Bug 2 */}
+        <EQChart bands={topBands} label="EQ paramétrico — TOPs" tagName={topName} />
+        <EQChart bands={subBands} label="EQ paramétrico — SUBs" tagName={subName} />
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginBottom: 14 }}>
+          {activePreset && [
+            { k: 'Crossover', v: `${activePreset.crossoverHz} Hz`, c: AC },
+            { k: 'TOPs', v: `${activePreset.nivelTopsDb >= 0 ? '+' : ''}${activePreset.nivelTopsDb} dB`, c: AC },
+            { k: 'SUBs', v: `${activePreset.nivelSubsDb} dB`, c: AM },
+            { k: 'Delay', v: `${activePreset.delaySubsMs} ms`, c: BL },
+            { k: 'Limitador', v: '+18 dBu', c: RD },
+            { k: 'Vidrios', v: activePreset.vidrios ? 'Sí' : 'No', c: T2 },
+          ].map(({ k, v, c }) => (
+            <View key={k} style={{ width: '30%', backgroundColor: C.glass, borderRadius: 10, borderWidth: 0.5, borderColor: BR, padding: 9 }}>
+              <Text style={{ fontSize: 8, color: T3, letterSpacing: 0.7, textTransform: 'uppercase', marginBottom: 3 }}>{k}</Text>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: c }}>{v}</Text>
+            </View>
+          ))}
+        </View>
+
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, flexDirection: 'row' }}>
           {TABS.map((t) => (
             <TouchableOpacity key={t.key} onPress={() => setTab(t.key)} style={{ paddingHorizontal: 11, paddingVertical: 6, borderRadius: 20, borderWidth: tab === t.key ? 1 : 0.5, borderColor: tab === t.key ? AC : BR, backgroundColor: tab === t.key ? C.ac2 : 'transparent' }}>
@@ -400,52 +353,34 @@ export default function ConfigScreen() {
       </View>
 
       <View style={{ paddingHorizontal: 14 }}>
-
-        {/* ── PRESETS ── */}
         {tab === 'presets' && (
           <View>
             {room && (
-              <TouchableOpacity
-                onPress={generateDSPConfig}
-                style={{ backgroundColor: C.ac2, borderRadius: 10, borderWidth: 0.5, borderColor: 'rgba(26,255,110,0.25)', padding: 12, marginBottom: 14, flexDirection: 'row', alignItems: 'center', gap: 8 }}
-              >
-                <Text style={{ fontSize: 11, fontWeight: '700', color: AC, flex: 1 }}>
-                  ⚡ Regenerar configs DSP desde Room Scan ({room.nombre})
-                </Text>
+              <TouchableOpacity onPress={generateDSPConfig} style={{ backgroundColor: C.ac2, borderRadius: 10, borderWidth: 0.5, borderColor: 'rgba(26,255,110,0.25)', padding: 11, marginBottom: 14, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Text style={{ fontSize: 11, fontWeight: '700', color: AC, flex: 1 }}>⚡ Regenerar desde Room Scan ({room.nombre})</Text>
                 <Text style={{ fontSize: 11, color: AC }}>›</Text>
               </TouchableOpacity>
             )}
-
+            {allPresets.length === 0 && (
+              <View style={{ padding: 20, backgroundColor: C.glass, borderRadius: 12, borderWidth: 0.5, borderColor: BR, alignItems: 'center' }}>
+                <Text style={{ fontSize: 12, color: T2, textAlign: 'center' }}>Completá el Room Scan para generar presets.</Text>
+              </View>
+            )}
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
               {allPresets.map((p) => {
-                const isActive  = activePreset?.id === p.id
-                const isBackup  = p.nombre.includes('BACKUP')
+                const isActive = activePreset?.id === p.id
+                const isBackup = p.nombre.includes('BACKUP')
                 return (
-                  <TouchableOpacity
-                    key={p.id}
-                    onPress={() => setActivePreset(p)}
-                    style={{ width: '47%', backgroundColor: isActive ? C.ac2 : C.glass, borderRadius: 14, borderWidth: isActive ? 1 : 0.5, borderColor: isActive ? 'rgba(26,255,110,0.4)' : BR, padding: 13, opacity: isBackup ? 0.72 : 1 }}
-                    activeOpacity={0.8}
-                  >
+                  <TouchableOpacity key={p.id} onPress={() => setActivePreset(p)} style={{ width: '47%', backgroundColor: isActive ? C.ac2 : C.glass, borderRadius: 14, borderWidth: isActive ? 1 : 0.5, borderColor: isActive ? 'rgba(26,255,110,0.4)' : BR, padding: 13, opacity: isBackup ? 0.72 : 1 }} activeOpacity={0.8}>
                     <Text style={{ fontSize: 7, fontWeight: '700', color: T3, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>{isBackup ? 'Backup' : 'Preset'}</Text>
-                    <Text style={{ fontSize: 11, fontWeight: '700', color: isActive ? AC : TX, marginBottom: 9 }}>{p.nombre}</Text>
-                    {[
-                      { k: 'Crossover', v: `${p.crossoverHz} Hz LR24` },
-                      { k: 'TOPs',      v: `${p.nivelTopsDb >= 0 ? '+' : ''}${p.nivelTopsDb} dB` },
-                      { k: 'SUBs',      v: `${p.nivelSubsDb} dB` },
-                      { k: 'Vidrios',   v: p.vidrios ? 'Sí' : 'No' },
-                      { k: 'Delay SUBs',v: `${p.delaySubsMs} ms` },
-                    ].map(({ k, v }) => (
-                      <View key={k} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3, borderBottomWidth: 0.5, borderBottomColor: isActive ? 'rgba(26,255,110,0.12)' : BR }}>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: isActive ? AC : TX, marginBottom: 8 }}>{p.nombre}</Text>
+                    {[{ k: 'Crossover', v: `${p.crossoverHz} Hz` }, { k: 'TOPs', v: `${p.nivelTopsDb >= 0 ? '+' : ''}${p.nivelTopsDb} dB` }, { k: 'SUBs', v: `${p.nivelSubsDb} dB` }, { k: 'Delay', v: `${p.delaySubsMs} ms` }].map(({ k, v }) => (
+                      <View key={k} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 2, borderBottomWidth: 0.5, borderBottomColor: isActive ? 'rgba(26,255,110,0.12)' : BR }}>
                         <Text style={{ fontSize: 9, color: T3 }}>{k}</Text>
                         <Text style={{ fontSize: 9, fontWeight: '600', color: isActive ? AC : T2 }}>{v}</Text>
                       </View>
                     ))}
-                    {p.vidrios && (
-                      <View style={{ marginTop: 5, backgroundColor: C.rd2, borderRadius: 7, paddingHorizontal: 5, paddingVertical: 1, alignSelf: 'flex-start' }}>
-                        <Text style={{ fontSize: 7, fontWeight: '700', color: RD }}>Vidrios</Text>
-                      </View>
-                    )}
+                    {isActive && <View style={{ marginTop: 5, backgroundColor: C.ac2, borderRadius: 7, paddingHorizontal: 5, paddingVertical: 1, alignSelf: 'flex-start' }}><Text style={{ fontSize: 7, fontWeight: '700', color: AC }}>● Activo</Text></View>}
                   </TouchableOpacity>
                 )
               })}
@@ -453,54 +388,40 @@ export default function ConfigScreen() {
           </View>
         )}
 
-        {/* ── DSPs ── */}
         {tab === 'dsps' && (
           <View>
             {room && (
-              <TouchableOpacity
-                onPress={generateDSPConfig}
-                style={{ backgroundColor: C.ac2, borderRadius: 10, borderWidth: 0.5, borderColor: 'rgba(26,255,110,0.25)', padding: 11, marginBottom: 14, flexDirection: 'row', alignItems: 'center', gap: 8 }}
-              >
-                <Text style={{ fontSize: 11, fontWeight: '600', color: AC, flex: 1 }}>
-                  ⚡ Auto-configurar desde Room Scan — RT60: {room.rt60Full.toFixed(1)}s
-                </Text>
+              <TouchableOpacity onPress={generateDSPConfig} style={{ backgroundColor: C.ac2, borderRadius: 10, borderWidth: 0.5, borderColor: 'rgba(26,255,110,0.25)', padding: 11, marginBottom: 14, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Text style={{ fontSize: 11, fontWeight: '600', color: AC, flex: 1 }}>⚡ Auto-configurar — RT60: {room.rt60Full.toFixed(1)}s</Text>
                 <Text style={{ fontSize: 11, color: AC }}>›</Text>
               </TouchableOpacity>
             )}
-
             {gear.dsps.length === 0 ? (
               <View style={{ padding: 24, alignItems: 'center', backgroundColor: C.glass, borderRadius: 16, borderWidth: 0.5, borderColor: BR }}>
-                <Text style={{ fontSize: 22, marginBottom: 8 }}>⚙️</Text>
-                <Text style={{ fontSize: 12, color: T2, textAlign: 'center' }}>Sin DSP configurado.</Text>
-                <Text style={{ fontSize: 11, color: T3, textAlign: 'center', marginTop: 4 }}>Seleccioná uno en Gear Builder → DSP.</Text>
+                <Text style={{ fontSize: 12, color: T2, textAlign: 'center' }}>Sin DSP. Seleccioná uno en Gear Builder.</Text>
               </View>
             ) : (
-              gear.dsps.map((dsp) => <DSPCard key={dsp.dspId} dsp={dsp} />)
+              gear.dsps.map((dsp) => <DSPCard key={`${dsp.dspId}-${dsp.crossoverHz}`} dsp={dsp} />)
             )}
           </View>
         )}
 
-        {/* ── MONITORES ── */}
         {tab === 'monitores' && <MonitoresEQ />}
 
-        {/* ── BACKUP ── */}
         {tab === 'backup' && (
           <View>
             <View style={{ backgroundColor: C.am2, borderRadius: 10, borderWidth: 0.5, borderColor: 'rgba(251,191,36,0.2)', padding: 12, marginBottom: 14 }}>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: AM }}>⚠ Protocolo de emergencia · TOPs activos caídos</Text>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: AM }}>⚠ Protocolo emergencia — TOPs caídos</Text>
             </View>
             {BACKUP.map((s, i) => (
               <View key={i} style={{ flexDirection: 'row', gap: 10, paddingVertical: 9, borderBottomWidth: 0.5, borderBottomColor: BR }}>
-                <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: AM, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Text style={{ fontSize: 9, fontWeight: '800', color: '#000' }}>{i + 1}</Text>
-                </View>
+                <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: AM, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Text style={{ fontSize: 9, fontWeight: '800', color: '#000' }}>{i + 1}</Text></View>
                 <Text style={{ fontSize: 12, color: T2, flex: 1, lineHeight: 18 }}>{s}</Text>
               </View>
             ))}
           </View>
         )}
 
-        {/* ── ARRANQUE ── */}
         {tab === 'arranque' && (
           <View>
             <View style={{ backgroundColor: C.ac2, borderRadius: 10, borderWidth: 0.5, borderColor: 'rgba(26,255,110,0.2)', padding: 12, marginBottom: 14 }}>
@@ -508,9 +429,7 @@ export default function ConfigScreen() {
             </View>
             {ARRANQUE.map((s, i) => (
               <View key={i} style={{ flexDirection: 'row', gap: 10, paddingVertical: 9, borderBottomWidth: 0.5, borderBottomColor: BR }}>
-                <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: AC, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Text style={{ fontSize: 9, fontWeight: '800', color: '#000' }}>{i + 1}</Text>
-                </View>
+                <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: AC, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Text style={{ fontSize: 9, fontWeight: '800', color: '#000' }}>{i + 1}</Text></View>
                 <Text style={{ fontSize: 12, color: T2, flex: 1, lineHeight: 18 }}>{s}</Text>
               </View>
             ))}
