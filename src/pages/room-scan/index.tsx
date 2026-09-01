@@ -1,5 +1,5 @@
 // SoundMap — Room Scan — Dark premium professional acoustic tool
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { RT60Modal } from "@/components/soundmap/rt60-modal.tsx";
@@ -147,7 +147,7 @@ function ScannerRing({ progress, scanning }: { progress: number; scanning: boole
           const y2 = size / 2 + (r + 8) * Math.sin(rad);
           return (
             <line key={i} x1={x1} y1={y1} x2={x2} y2={y2}
-              stroke={i % 3 === 0 ? "rgba(0,255,102,0.4)" : "rgba(255,255,255,0.08)"} strokeWidth={i % 3 === 0 ? 2 : 1} />
+              stroke={i % 3 === 0 ? "var(--accent-ring)" : "var(--border-strong)"} strokeWidth={i % 3 === 0 ? 2 : 1} />
           );
         })}
       </svg>
@@ -237,54 +237,88 @@ function ScoreRing({ value, label, color }: { value: number; label: string; colo
 }
 
 // ── Material Chip ──────────────────────────────────────────────────────────────
+/**
+ * Chip de selección de material.
+ * V6: el seleccionado se marca con el acento en el TEXTO y un borde tenue, no
+ * con un bloque relleno. Radio de chip (4px), no de tarjeta.
+ */
 function MaterialChip({
   label, selected, onClick
 }: { label: string; selected: boolean; onClick: () => void }) {
   return (
-    <motion.button
+    <button
       onClick={onClick}
-      whileTap={{ scale: 0.95 }}
-      className={cn(
-        "rounded-xl px-3 py-2.5 text-xs font-medium transition-all cursor-pointer",
-        selected
-          ? "bg-accent/12 text-accent"
-          : "bg-white/[0.02] text-muted-foreground hover:text-foreground",
-      )}
+      aria-pressed={selected}
+      className="px-3 h-8 text-[12px] cursor-pointer focus-visible:outline-none focus-visible:ring-2"
       style={{
-        boxShadow: selected
-          ? "0 0 0 1px rgba(201,240,62,0.35)"
-          : "0 0 0 1px rgba(255,255,255,0.05)",
+        borderRadius: "var(--radius-chip)",
+        background: selected ? "var(--accent-dim2)" : "transparent",
+        boxShadow: selected ? "0 0 0 1px var(--accent-ring)" : "0 0 0 1px var(--border)",
+        color: selected ? "var(--accent)" : "var(--muted-foreground)",
+        transition: "color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease)",
       }}
+      onMouseEnter={(e) => { if (!selected) e.currentTarget.style.color = "var(--foreground)"; }}
+      onMouseLeave={(e) => { if (!selected) e.currentTarget.style.color = "var(--muted-foreground)"; }}
     >
       {label}
-    </motion.button>
+    </button>
   );
 }
 
 // ── Number Input ───────────────────────────────────────────────────────────────
+/**
+ * Campo numérico técnico.
+ *
+ * Antes cada campo era una TARJETA (`rounded-2xl bg-secondary/50 border p-3`):
+ * seis campos = seis tarjetas apiladas, justo lo que el brief V6 prohíbe. Ahora
+ * es una fila: label a la izquierda, valor en mono a la derecha, y los
+ * steppers como controles discretos. El campo se lee como una lectura de
+ * instrumento editable, no como un formulario.
+ *
+ * El valor va en Geist Mono con `tabular-nums` para que no baile al escribir.
+ */
 function NumInput({
   label, value, onChange, suffix, step = 1
 }: { label: string; value: number; onChange: (v: number) => void; suffix?: string; step?: number }) {
+  const id = `num-${label.replace(/\s+/g, "-").toLowerCase()}`;
   return (
-    <div className="rounded-2xl bg-secondary/50 border border-border p-3 flex flex-col gap-1">
-      <span className="text-[10px] text-muted-foreground uppercase tracking-[0.28em] font-semibold">{label}</span>
-      <div className="flex items-center gap-2">
-        <button
-          onClick={() => onChange(Math.max(0, value - step))}
-          className="h-8 w-8 rounded-lg bg-secondary text-secondary-foreground font-bold text-sm flex items-center justify-center cursor-pointer hover:bg-accent/15 hover:text-accent active:scale-90 transition-all shrink-0"
-        >−</button>
-        <input
-          type="number"
-          value={value}
-          onChange={e => onChange(parseFloat(e.target.value) || 0)}
-          className="flex-1 bg-transparent text-center text-sm font-bold text-foreground focus:outline-none min-w-0"
-        />
-        <button
-          onClick={() => onChange(value + step)}
-          className="h-8 w-8 rounded-lg bg-secondary text-secondary-foreground font-bold text-sm flex items-center justify-center cursor-pointer hover:bg-accent/15 hover:text-accent active:scale-90 transition-all shrink-0"
-        >+</button>
-        {suffix && <span className="text-[11px] text-muted-foreground w-4 shrink-0">{suffix}</span>}
-      </div>
+    <div
+      className="flex items-center gap-3 px-3 h-11"
+      style={{
+        borderRadius: "var(--radius-control)",
+        background: "var(--surface-1)",
+        boxShadow: "0 0 0 1px var(--border)",
+      }}
+    >
+      <label htmlFor={id} className="text-[12px] flex-1 min-w-0 truncate" style={{ color: "var(--muted-foreground)" }}>
+        {label}
+      </label>
+      <button
+        onClick={() => onChange(Math.max(0, value - step))}
+        aria-label={`Reducir ${label}`}
+        className="h-6 w-6 flex items-center justify-center cursor-pointer shrink-0 text-[14px]"
+        style={{ borderRadius: "var(--radius-chip)", color: "var(--muted-foreground)" }}
+        onMouseEnter={(e) => { e.currentTarget.style.color = "var(--accent)"; }}
+        onMouseLeave={(e) => { e.currentTarget.style.color = "var(--muted-foreground)"; }}
+      >−</button>
+      <input
+        id={id}
+        type="number"
+        value={value}
+        onChange={e => onChange(parseFloat(e.target.value) || 0)}
+        className="t-mono w-[52px] bg-transparent text-right text-[14px] font-medium text-foreground focus:outline-none shrink-0"
+      />
+      <button
+        onClick={() => onChange(value + step)}
+        aria-label={`Aumentar ${label}`}
+        className="h-6 w-6 flex items-center justify-center cursor-pointer shrink-0 text-[14px]"
+        style={{ borderRadius: "var(--radius-chip)", color: "var(--muted-foreground)" }}
+        onMouseEnter={(e) => { e.currentTarget.style.color = "var(--accent)"; }}
+        onMouseLeave={(e) => { e.currentTarget.style.color = "var(--muted-foreground)"; }}
+      >+</button>
+      <span className="text-[11px] w-5 shrink-0 text-right" style={{ color: "var(--muted-foreground)" }}>
+        {suffix ?? ""}
+      </span>
     </div>
   );
 }
@@ -383,7 +417,7 @@ function ResultsPanel({ result, room, venueName, onContinue }: {
             { label: "SBIR", value: result.sbirRisk ? "Risk" : "Clear", color: result.sbirRisk ? AMBER : GREEN },
             { label: "Low-Mid Buildup", value: result.lowMidBuildupRisk ? "Likely" : "Clear", color: result.lowMidBuildupRisk ? RED : GREEN },
           ].map(item => (
-            <div key={item.label} className="rounded-xl bg-secondary/50 border border-border p-2.5">
+            <div key={item.label} className="p-2.5" style={{ borderRadius: "var(--radius-control)", background: "var(--surface-1)", boxShadow: "0 0 0 1px var(--border)" }}>
               <p className="text-[10px] text-muted-foreground mb-0.5">{item.label}</p>
               <p className="text-xs font-bold capitalize" style={{ color: item.color }}>{item.value}</p>
             </div>
@@ -481,7 +515,13 @@ export default function RoomScan() {
     }, 320);
   };
 
-  const result = step === 4 ? calculateAcoustics(form) : null;
+  // `calculateAcoustics` se llamaba en CADA render del paso 4. Es barato, pero
+  // el panel de resultados incluye reflexiones tempranas y modos de sala: sin
+  // memo, cada pulsación de tecla recalcula todo el árbol.
+  const result = useMemo(
+    () => (step === 4 ? calculateAcoustics(form) : null),
+    [step, form],
+  );
 
   const STEP_LABELS = [t("room_scan.step_venue"), t("room_scan.step_materials"), t("room_scan.step_scan")];
 
@@ -492,11 +532,11 @@ export default function RoomScan() {
         <div className="mb-8">
           <div className="flex items-end justify-between gap-6 mb-3 flex-wrap">
             <div className="min-w-0">
-              <p className="text-[11px] uppercase tracking-[0.28em] font-medium text-muted-foreground mb-3">
-                Escaneo
+              <p className="t-label mb-2" style={{ color: "var(--muted-foreground)" }}>
+                Design
               </p>
               <h1
-                className="text-[1.75rem] md:text-[2.4rem] leading-[1.05] tracking-[-0.03em] font-medium text-foreground"
+                className="text-[22px] md:text-[26px] leading-[1.1] tracking-[-0.02em] font-semibold text-foreground"
                 data-testid="page-header-title"
               >
                 {t("room_scan.title")}
@@ -540,23 +580,33 @@ export default function RoomScan() {
         </div>
       )}
 
-      {/* Wizard-only compact sub-step indicator (mini pills for the internal 3-step flow) */}
+      {/* Sub-pasos internos del Room. Antes eran tres barritas sin etiqueta más
+          un "1 / 3": el usuario veía que había tres etapas pero no cuáles. V6
+          las nombra, con el activo en acento y los completados marcados. */}
       {inWizard && step < 4 && (
-        <div className="mb-4 flex items-center gap-2">
-          <p className="text-[10px] uppercase tracking-[0.24em] font-medium text-muted-foreground">Sub-paso</p>
-          <div className="flex gap-1">
-            {[1, 2, 3].map(s => (
-              <span
-                key={s}
-                className="h-1 rounded-full transition-all"
-                style={{
-                  width: step === s ? 22 : 12,
-                  background: step > s ? "var(--sm-accent)" : step === s ? "var(--sm-accent)" : "rgba(255,255,255,0.10)",
-                }}
-              />
-            ))}
-          </div>
-          <span className="text-[10px] text-muted-foreground tabular-nums ml-1">{step} / 3</span>
+        <div className="px-4 mb-5 flex items-center gap-4" data-testid="room-substeps">
+          {STEP_LABELS.map((label, i) => {
+            const s = (i + 1) as 1 | 2 | 3;
+            const active = step === s;
+            const done = step > s;
+            return (
+              <div key={s} className="flex items-center gap-1.5 shrink-0">
+                <span
+                  className="t-mono text-[10px]"
+                  style={{ color: active ? "var(--accent)" : done ? "var(--secondary-foreground)" : "var(--muted-foreground)" }}
+                >
+                  {String(s).padStart(2, "0")}
+                </span>
+                <span
+                  className="text-[11px]"
+                  style={{ color: active ? "var(--accent)" : done ? "var(--secondary-foreground)" : "var(--muted-foreground)" }}
+                >
+                  {label}
+                </span>
+                {done && <CheckCircle size={10} style={{ color: "var(--accent)" }} />}
+              </div>
+            );
+          })}
         </div>
       )}
 
