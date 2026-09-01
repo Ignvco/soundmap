@@ -1,14 +1,22 @@
-// AppShell v6 — chrome mínimo con navegación en dos registros.
+// AppShell — layout raíz V6.
 //
-// Escritorio: sidebar discreta y colapsable (Home · Design · Perform · Analyze,
-// luego Workspace, luego Settings). Móvil: BottomNav con el "+" central como
-// acción principal. NO es el escritorio reducido — son dos diseños distintos
-// para dos contextos distintos, como pide el rediseño.
+// ── Modelo de scroll ────────────────────────────────────────────────────────
+// El cambio estructural de esta fase. Antes el shell era `min-h-[100dvh]` y el
+// scroll ocurría en el documento: la barra superior era `sticky` y el chrome se
+// movía junto al contenido.
 //
-// La v5 había eliminado la sidebar y dejado toda la navegación en el Command
-// Palette (⌘K). Se conserva el palette como atajo de teclado, pero ya no es el
-// único camino: en escritorio, esconder la navegación detrás de un atajo la
-// vuelve invisible para quien no lo conoce.
+// V6 es un layout de aplicación: el shell ocupa exactamente el viewport
+// (`h-[100dvh] overflow-hidden`) y el scroll vive DENTRO del área de contenido.
+// El chrome —sidebar y cabecera— queda fijo por estructura, no por `sticky`.
+// Eso es lo que separa "un sitio con barra pegajosa" de "una aplicación".
+//
+// En móvil se conserva el scroll de documento y el BottomNav: en un teléfono,
+// un contenedor de altura fija pelea con la barra de direcciones del navegador
+// y con el teclado virtual. Mismo lenguaje visual, distinta composición.
+//
+// ── Navegación ──────────────────────────────────────────────────────────────
+// La sidebar y el BottomNav actuales se conservan SIN CAMBIOS (corresponden a
+// la Fase 3). Esta fase sólo adapta el contenedor que los sostiene.
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "motion/react";
@@ -38,19 +46,25 @@ export function AppShellV5({ children }: Props) {
   }, []);
 
   return (
-    <div className="min-h-[100dvh] bg-background text-foreground flex">
+    <div className="min-h-[100dvh] md:h-[100dvh] md:overflow-hidden bg-background text-foreground flex">
       <DesktopSidebar />
 
-      <div className="flex-1 min-w-0 relative overflow-x-hidden">
+      {/* Columna de contenido: en escritorio es una columna flex de altura fija
+          para que el scroll ocurra en <main>; en móvil fluye normalmente. */}
+      <div className="flex-1 min-w-0 relative overflow-x-hidden md:h-full md:flex md:flex-col">
       {/* Top-nav — invisible on home, minimal on subpages */}
       {!isHome && (
         <motion.header
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-          className="sticky top-0 z-30 backdrop-blur-xl bg-background/70 border-b border-white/[0.04] pt-safe-0"
+          className="sticky top-0 md:static z-30 backdrop-blur-xl md:backdrop-blur-none bg-background/70 md:bg-background pt-safe-0 shrink-0"
+          style={{ borderBottom: "1px solid var(--border)" }}
         >
-          <div className="max-w-[1400px] mx-auto flex items-center justify-between px-5 md:px-8 h-14">
+          {/* 28px de padding lateral y 56px de alto: las proporciones del
+              mockup. Sin `max-w` centrado — en V6 el contenido arranca en el
+              borde de la sidebar, no flota en el medio de la pantalla. */}
+          <div className="flex items-center justify-between px-5 md:px-7 h-14">
             <Link
               to="/"
               onClick={() => feedback("tap")}
@@ -66,8 +80,13 @@ export function AppShellV5({ children }: Props) {
               <button
                 onClick={() => { feedback("tap"); setPaletteOpen(true); }}
                 data-testid="shell-cmd-btn"
-                className="inline-flex items-center gap-2 px-3 h-9 rounded-full bg-white/[0.03] hover:bg-white/[0.06] text-[12px] text-muted-foreground hover:text-foreground cursor-pointer"
-                style={{ transition: "background-color 0.3s ease, color 0.3s ease" }}
+                className="inline-flex items-center gap-2 px-3 h-8 text-[12px] text-muted-foreground hover:text-foreground cursor-pointer"
+                style={{
+                  borderRadius: "var(--radius-control)",
+                  background: "var(--surface-1)",
+                  boxShadow: "0 0 0 1px var(--border)",
+                  transition: "color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease)",
+                }}
               >
                 <CommandIcon size={12} strokeWidth={1.75} />
                 <kbd className="text-[10px] font-mono">⌘K</kbd>
@@ -84,8 +103,13 @@ export function AppShellV5({ children }: Props) {
           <button
             onClick={() => { feedback("tap"); setPaletteOpen(true); }}
             data-testid="shell-cmd-btn"
-            className="inline-flex items-center gap-2 h-9 px-3 rounded-full bg-white/[0.04] hover:bg-white/[0.07] text-[12px] text-muted-foreground hover:text-foreground cursor-pointer"
-            style={{ transition: "background-color 0.3s ease, color 0.3s ease" }}
+            className="inline-flex items-center gap-2 h-8 px-3 text-[12px] text-muted-foreground hover:text-foreground cursor-pointer"
+            style={{
+              borderRadius: "var(--radius-control)",
+              background: "var(--surface-1)",
+              boxShadow: "0 0 0 1px var(--border)",
+              transition: "color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease)",
+            }}
           >
             <CommandIcon size={12} strokeWidth={1.75} />
             <kbd className="text-[10px] font-mono">⌘K</kbd>
@@ -93,12 +117,13 @@ export function AppShellV5({ children }: Props) {
         </div>
       )}
 
-      {/* Reserva calculada para el BottomNav fijo (ver --sm-bottom-nav en
-          index.css). El pb-24 anterior era 96px fijos y se quedaba corto en
-          teléfonos con home indicator, cortando el último bloque de cada
-          pantalla. */}
-      {/* En escritorio no hay BottomNav, así que no hace falta reservar su alto. */}
-      <main className="relative pb-bottom-nav md:pb-10">
+      {/* Área de contenido.
+          Móvil: reserva el alto del BottomNav (ver --sm-bottom-nav) y deja que
+          el documento scrollee.
+          Escritorio: `flex-1 overflow-y-auto` — es ESTE elemento el que
+          scrollea, no la ventana. Las pantallas pueden así fijar sus propias
+          toolbars con `sticky top-0` sin pelear con el chrome global. */}
+      <main className="relative pb-bottom-nav md:pb-0 md:flex-1 md:min-h-0 md:overflow-y-auto">
         <ErrorBoundary>
           {children}
         </ErrorBoundary>
