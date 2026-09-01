@@ -1,0 +1,52 @@
+{
+  "summary": "E2E frontend validation of SoundMap PWA (mobile 420x900). Tested onboarding, all 15 primary routes, navigation (bottom-nav + FAB more overlay), modals (RT60), critical UI widgets (Toolkit 3 tabs, Stage-map 2D/3D, SPL meter, Templates grid, Scenes, Community). All routes load with no red JS console errors (only expected Cloudflare 429s and Vite HMR websocket warnings on this preview URL). Onboarding flow works, demo loads acoustics, and 3D canvas renders via r3f. Multiple test-ids from the review request are MISSING or MISMATCHED in the actual code; documented below.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Home / Index", "issue": "home-templates-btn is only rendered inside the 'no room yet' onboarding block (hasRoom === false). After loading the demo (which the review request instructs to do first), hasRoom becomes true and the button is unmounted. This contradicts the spec which says the button should appear on the home dashboard AFTER loading demo.", "selector": "[data-testid='home-templates-btn']", "priority": "MEDIUM"},
+      {"component": "Global topbar / Sync", "issue": "sync-indicator (data-testid='sync-indicator') only exists inside /scenes page (SyncIndicator is imported and mounted only in src/pages/scenes/index.tsx line 258). Review request expects it to appear globally in a topbar. Currently invisible on /, /live, /pa, /dsp, /room-scan, etc.", "selector": "[data-testid='sync-indicator']", "priority": "MEDIUM"},
+      {"component": "Nav FAB more overlay", "issue": "Secondary items in nav-more-overlay use data-testid pattern 'nav-more-{path.replace(/\\//g,\"-\")}' which produces DOUBLE-DASH ids like 'nav-more--toolkit', 'nav-more--templates', 'nav-more--compare', 'nav-more--community', 'nav-more--export-page', 'nav-more--scenes'. The review request and typical automation expect single-dash: 'nav-more-toolkit' etc. Only 'nav-more-settings' matches. Recommend stripping the leading slash before replacing (e.g. item.path.replace(/^\\//,'').replace(/\\//g,'-')).", "selector": "src/components/soundmap/nav.tsx:137", "priority": "MEDIUM"},
+      {"component": "AR Room Scan", "issue": "ar-scan-overlay is NOT present in the DOM on /room-scan step 1 and there is no visible/clickable button labelled 'AR' or 'Escaneo AR' to open it. Reviewer expected the overlay openable and closable without errors. Could not locate the trigger.", "selector": "[data-testid='ar-scan-overlay']", "priority": "MEDIUM"},
+      {"component": "Room Scan wizard step gating", "issue": "The 'Continuar' button on step 1 of /room-scan is disabled/not-enabled while 'NOMBRE DEL RECINTO' is empty. This means the RT60 preview (with open-rt60-modal-btn) at step 2 is only reachable after typing a room name. The button was found not reachable via straight Continuar clicks in automation. Consider auto-filling a placeholder name or providing a default so users (and tests) can progress smoothly.", "selector": "[data-testid='open-rt60-modal-btn']", "priority": "LOW"},
+      {"component": "Live / SPL Meter", "issue": "spl-value (data-testid) is only rendered while isRunning === true (mic active). Since the SPL toggle requires real mic hardware that is not available in the preview, this testid can never be exercised in automation. Consider rendering the element with a placeholder '—' value when idle so E2E automation can locate it.", "selector": "[data-testid='spl-value']", "priority": "LOW"},
+      {"component": "Community submit", "issue": "community-submit-btn is disabled when !isAuthenticated (correct by design, since anonymous users cannot submit). However the review spec asked to verify the submit-gear-overlay modal opens. In demo/anonymous mode this can NEVER be tested. Consider showing a login-prompt modal on click instead of just disabling the button.", "selector": "[data-testid='community-submit-btn']", "priority": "LOW"},
+      {"component": "DSP page", "issue": "submit-dsp testid (mentioned in review) was NOT found on /dsp. Only present when a specific state is met? Or missing entirely. Not blocking but worth verifying.", "selector": "[data-testid='submit-dsp']", "priority": "LOW"}
+    ],
+    "integration_issues": [
+      {"flow": "Convex sync (expected)", "issue": "In preview environment Convex is not connected. WebSocket errors from Vite HMR to wss://localhost:3000 appear in console — expected per review notes, not an app bug.", "affected_selectors": []}
+    ],
+    "design_issues": [
+      {"screen": "Guided tour / Onboarding tour", "issues": ["Guided tour cards ('Tu recinto actual', 'Acceso rápido', 'Flujo de 6 pasos') pop up automatically after demo load and can steal clicks from FAB/nav elements underneath. Consider adding a data-testid to the close button (currently only aria-label='Cerrar tour') for easier automation, and/or pausing the tour when a modal/overlay is being opened."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Fix home-templates-btn: move outside the '!hasRoom' block so it is visible on the home dashboard AFTER demo load (per spec).",
+    "Fix nav-more-* data-testids: use item.path.replace(/^\\//,'').replace(/\\//g,'-') so ids become nav-more-toolkit, nav-more-templates, nav-more-compare, nav-more-community, nav-more-export-page, nav-more-scenes (single dash).",
+    "Add SyncIndicator to global topbar (currently only mounted on /scenes) so status is visible across all pages, matching spec.",
+    "Expose an obvious button to open ar-scan-overlay (e.g. 'Escaneo AR' button on /room-scan step 1) with a stable data-testid like 'open-ar-scan-btn'.",
+    "Render spl-value with a placeholder ('—') when SPL is idle so the element is always present in DOM (helps automation and users who haven't started mic yet).",
+    "Consider auto-suggesting a default room name in /room-scan step 1 so 'Continuar' is not blocked, or make the button explicit about the required field.",
+    "Add data-testid='close-guided-tour' (or similar) to the guided tour close button (currently only has aria-label='Cerrar tour').",
+    "Verify submit-dsp testid: it was not found on /dsp and the review mentions it should exist 'cuando aplique'."
+  ],
+  "critical_code_review_comments": [
+    "src/components/soundmap/nav.tsx line 137: replacing '/' with '-' produces leading double-dash for absolute paths — pathological id format. Fix noted above.",
+    "src/pages/Index.tsx line 606-614: home-templates-btn nested inside !hasRoom gating — either move outside or wire the review spec differently.",
+    "src/components/soundmap/spl-meter.tsx line 188: data-testid='spl-value' rendered only inside {isRunning && (...)} — unreachable without mic hardware.",
+    "src/pages/community-gear/index.tsx line 58: disabled={!isAuthenticated} on community-submit-btn — no click feedback (silent). Consider an on-click auth prompt.",
+    "sync-indicator (src/components/soundmap/sync-indicator.tsx) is only imported/used in /scenes. Consider mounting in the shared top header for global visibility.",
+    "Guided tour overlay can obstruct interactions with FAB and home CTAs immediately after demo load; consider deferring first tour step or auto-dismissing when user interacts with nav."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (frontend-only test)", "frontend": "≈85% (all routes load, no fatal JS errors, most primary testids resolve; missing testids and 2 unreachable widgets flagged)"},
+  "test_credentials": "N/A — /app/memory/test_credentials.md not present; app is anonymous / demo mode. Convex backend not connected on preview URL (expected).",
+  "seed_data_creation": "Used built-in 'Cargar Recinto Demo' seed (The Warehouse Club — 400 pax, 32x22x6m, 4× JBL SRX906LA tops, etc.). No manual seed inserted.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "1) Rate limiting: The preview URL sits behind Cloudflare — >5 rapid navigations trigger 429 responses which return an EMPTY HTML body. Add >=1.5s wait between page.goto calls and expect intermittent CF 'Verify you are human' interstitials. 2) Onboarding flow: /Index shows a splash card with load-demo-btn / start-new-btn BEFORE the dashboard is visible. After clicking demo, a Guided Tour overlay (aria-label='Cerrar tour') pops up and steals clicks — dismiss it before testing nav/FAB. 3) Convex is not connected in preview, so /community shows 'Iniciá sesión…' and community-submit-btn is disabled. 4) /live spl-value only renders when SPL meter is running (requires mic). 5) Stage-map defaults to 2D; click the button whose text is exactly '3D' to render stage-3d-canvas (three/r3f). 6) All 15 primary routes DO load cleanly individually; the earlier 'body_len=0' reports for later routes in bulk were caused by CF rate-limiting, not app bugs. 7) Verified working: /, /room-scan (step 1), /gear-builder, /pa, /dsp, /live, /stage-map (2D+3D), /channels, /scenes, /compare, /templates, /toolkit (all 3 tabs), /community, /settings, /export-page.",
+  "rca of the issue": "N/A — no crash bugs. Missing testids are configuration/testability issues, not runtime bugs. home-templates-btn absence RCA: JSX conditional in src/pages/Index.tsx wraps the button inside a `{!hasRoom && (...)}` block; the review spec expects it to be visible AFTER loading a room, hence a spec/impl mismatch. Nav-more testid RCA: template literal `nav-more-${item.path.replace(/\\//g,'-')}` — because paths start with '/', the replace produces '-toolkit', giving 'nav-more--toolkit' with a double dash."
+}

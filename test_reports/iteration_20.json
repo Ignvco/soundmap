@@ -1,0 +1,71 @@
+{
+  "summary": "iteration_20 — Bug regression verification for the 'black flash on objective click' bug reported by user on /ai-home. After the revert in /app/src/components/soundmap/app-shell-v5.tsx (AnimatePresence + motion.div wrapper around children removed; children now renders directly under ErrorBoundary), ALL 5 objective clicks + shell-home back-navigation transition WITHOUT any black flash. Detection method: a 20ms-tick MutationObserver-like sampler that inspected `<main>`'s computed opacity AND its firstElementChild's computed opacity throughout the 900ms following each click. In all 6 flows, mainOp stayed at 1.0 and kidOp (the page root div, 1920×4000 min-h-screen) stayed at 1.0 — i.e. no exit-fade of the outer page frame. Per-page motion.div entrance animations INSIDE each page (e.g. AI Home's whisper header initial={opacity:0}, design-hub's whisper header) still play as intended and are correctly scoped to sub-elements, not to the whole main area — this matches the reviewer's note. H1 assertions: /design shows 'Nuevo proyecto' (objective-design, no room loaded); /design?tab=optimize shows 'The Warehouse Club' (objective-optimize — expected because AIHome.onObjective calls loadDemoVenue() for any non-'design' objective, so room.name overrides the 'Nuevo proyecto' fallback in design-hub L132: `{room?.name ?? 'Nuevo proyecto'}` — this is intended and not a regression); /perform shows 'The Warehouse Club' (demo scene loaded); /analyze (SceneCompare alias) shows 'Necesitás dos escenas' (empty compare state); /analyze?tab=export same. shell-home → / lands on AI Home with data-testid='ai-home-question' visible and text '¿Qué querés hacer hoy?'. Zero real console errors observed (all HMR/wss/429 noise filtered).",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "verified_criteria": [
+    "objective-design → /design : no black flash (mainOp=1, kidOp=1 across 35 samples over 900ms). H1='Nuevo proyecto'. URL matches. PASS",
+    "objective-optimize → /design?tab=optimize : no black flash (40 samples, mainOp=1, kidOp=1). URL matches. H1='The Warehouse Club' (loadDemoVenue side-effect — intended per AIHome.onObjective). PASS (no-flash requirement met)",
+    "objective-live → /perform : no black flash (27 samples). URL matches. H1='The Warehouse Club'. PASS",
+    "objective-diagnose → /analyze : no black flash (35 samples). URL matches. H1='Necesitás dos escenas' (empty compare state). PASS",
+    "objective-report → /analyze?tab=export : no black flash (37 samples). URL matches. H1='Necesitás dos escenas'. PASS",
+    "shell-home from /design → / : no black flash (mainOp=1, kidOp=1 throughout). AI Home reloads immediately; data-testid='ai-home-question' visible with text '¿Qué querés hacer hoy?'. PASS",
+    "Console cleanliness: 0 real errors (HMR wss://localhost:3000 noise and 429 rate-limit noise filtered per environment note). PASS"
+  ],
+  "detection_evidence": {
+    "sampler": "20ms setInterval reading computed opacity of `<main>` and `main.firstElementChild`; ran for 900ms after each objective click.",
+    "trigger_definition_for_flash": "kidOp (page root div) < 0.05 AND kidW > 800  ⇒ entire main area went dark (the iter_19 bug signature)",
+    "objective_design":   {"samples": 35, "main_opacity_dropped_below_0.95": 0, "kid_full_flashes": 0},
+    "objective_optimize": {"samples": 40, "main_opacity_dropped_below_0.95": 0, "kid_full_flashes": 0},
+    "objective_live":     {"samples": 27, "main_opacity_dropped_below_0.95": 0, "kid_full_flashes": 0},
+    "objective_diagnose": {"samples": 35, "main_opacity_dropped_below_0.95": 0, "kid_full_flashes": 0},
+    "objective_report":   {"samples": 37, "main_opacity_dropped_below_0.95": 0, "kid_full_flashes": 0},
+    "shell_home_back":    {"main_opacity_dropped_below_0.95": 0, "kid_full_flashes": 0, "ai_home_question_visible_post_nav": true},
+    "sample_trace_example_objective_design": [
+      "t=89ms  mainOp=1 kidTag=DIV.min-h-screen kidOp=1 1920x4000",
+      "t=197ms mainOp=1 kidTag=DIV.min-h-screen kidOp=1 1920x4000",
+      "t=203ms mainOp=1 kidTag=DIV.min-h-screen kidOp=1 1920x4000",
+      "t=220ms mainOp=1 kidTag=DIV.min-h-screen kidOp=1 1920x4000",
+      "t=240ms mainOp=1 kidTag=DIV.min-h-screen kidOp=1 1920x4000"
+    ],
+    "shell_home_back_trace": [
+      "t=40ms  mainOp=1 kidOp=1 1920x4000",
+      "t=99ms  mainOp=1 kidOp=1 1920x4000",
+      "t=140ms mainOp=1 kidOp=1 1920x4000",
+      "t=309ms mainOp=1 kidOp=1 1920x4000"
+    ]
+  },
+  "regression_note": "As instructed by the review, the iteration_19 'smooth cross-fade' expectation is intentionally REPLACED with 'instant navigation with per-page motion animations intact'. The removal of AnimatePresence at the shell level is correct — it was the source of the bug because RRv6 keeps `children` as a stable `<Routes>` element whose internal render depends on location, causing the exit clone to render the NEW page and fade it out. This is NOT flagged as a regression.",
+  "code_review_confirmation": [
+    "app-shell-v5.tsx L84-89: `<main class='relative'><ErrorBoundary>{children}</ErrorBoundary></main>` — no AnimatePresence, no motion.div wrapper. Correct fix.",
+    "ai-home/index.tsx L59-65: onObjective still calls loadDemoVenue() for non-'design' objectives before navigate(obj.path). This is why /design?tab=optimize shows 'The Warehouse Club' instead of 'Nuevo proyecto' — it's an intentional UX affordance so users don't land in an empty optimize tab.",
+    "Per-page motion.div initial={opacity:0} entrance animations (design-hub L121, perform-hub L26/48/82, compare/*.tsx L153/191/212) remain scoped to sub-elements (whisper headers, cards), not to full-page wrappers — confirmed by kidOp=1 throughout every observed transition."
+  ],
+  "test_report_links": [
+    "/app/src/components/soundmap/app-shell-v5.tsx",
+    "/app/src/pages/ai-home/index.tsx",
+    "/app/src/App.tsx"
+  ],
+  "action_items": [
+    "None. Bug fix verified across all 5 objectives + shell-home back-navigation. Shippable."
+  ],
+  "critical_code_review_comments": [
+    "The revert is minimal and surgical — only the wrapping <AnimatePresence mode='wait'>...<motion.div key=location.pathname>...</motion.div></AnimatePresence> around `children` was removed. Per-page motion animations remain, giving users a still-lively feel without the RRv6 location-reference-hazard.",
+    "Consider adding a small unit test / vitest that asserts `<main>` never contains an AnimatePresence keyed on location.pathname, so this regression cannot silently return. Not blocking.",
+    "The onObjective auto-loadDemoVenue is helpful but has one side effect worth documenting: after clicking optimize/live/diagnose/report on a fresh install, the room state persists — so a user who then clicks 'Diseñar' (design) will see 'The Warehouse Club' pre-populated instead of the empty 'Nuevo proyecto' baseline. Not a bug in this iteration's scope, but a potential UX confusion. Currently `!hasRoom && obj.id !== 'design'` guards the auto-load correctly; the effect only fires when the user starts with no room. Acceptable behavior."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (frontend-only per request)",
+    "frontend": "100% — 7/7 verified criteria pass, 0 non-HMR/429 console errors, 6/6 transition flows verified flash-free"
+  },
+  "test_credentials": "N/A — anonymous access to AI Home.",
+  "seed_data_creation": "None. loadDemoVenue() was auto-triggered by objective clicks (optimize/live/diagnose/report) during testing — this is the app's normal empty-state behavior and does not persist beyond the session.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Preview URL: https://soundmap-preview.preview.emergentagent.com. The AppShellV5 no longer wraps children in AnimatePresence — DO NOT expect shell-level cross-fade in future iterations unless intentionally re-introduced (and if so, the wrapper must NOT contain the Routes reference; e.g. use a memoized snapshot of location or lift AnimatePresence around <Routes location={location} key={location.pathname}> inside App.tsx per the RRv6 framer-motion pattern). Detection technique that worked: 20ms setInterval sampling `main` and `main.firstElementChild` computed opacity for 900ms after the click. If opacity drops < 0.05 on either, the bug has regressed. False-positive to avoid: per-page motion.div initial={opacity:0} animations on <=800px children are normal and expected.",
+  "rca of the issue": "iter_19 bug RCA: AppShellV5 wrapped `children` in `<AnimatePresence mode='wait'><motion.div key={location.pathname}>{children}</motion.div></AnimatePresence>`. Because React Router v6 keeps the `<Routes>` element (passed as `children`) referentially stable while its render output depends on the CURRENT `useLocation()`, the exit-cloned motion.div (still holding the same `children` reference) re-rendered the NEW page and faded it to opacity 0, then the new motion.div mounted and faded from opacity 0 up. Users perceived: new page flashes on → fades to black → fades back in. Fix (this iteration): remove the AnimatePresence + motion.div wrapper; render `{children}` directly under ErrorBoundary. Correct RRv6 + framer-motion pattern (if cross-fade is desired later) is to lift the AnimatePresence INTO App.tsx around a location-keyed `<Routes location={location} key={location.pathname}>`, so each Route's element mounts/unmounts independently with a stable identity. Verified: 6 nav flows sampled 20ms/tick for 900ms each; opacity of `<main>` and its 1920×4000 direct child stayed at 1.0 continuously. Bug is FIXED."
+}

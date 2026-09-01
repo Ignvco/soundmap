@@ -1,0 +1,88 @@
+{
+  "summary": "Iteration 7 — Frontend-only verification of the 2 iteration_6 non-blocking improvements. BOTH IMPROVEMENTS VERIFIED PASSING. (1) DSP Share QR compression: with demo preset (5 outputs, Lab Gruppen LM 44), the QR IS NOW generated (share-dsp-qr count=1), share-dsp-qr-warning is absent (count=0), URL length = 1053 chars (vs 4940 uncompressed → ~4.7x reduction), URL starts with '/shared/dsp#preset=z' (gzip prefix). All 4 primary testids present: share-dsp-url, share-dsp-copy, share-dsp-download, share-dsp-qr, plus share-dsp-close. (2) Round-trip decode: navigating the extracted URL renders 'Preset DSP importado' with shared-dsp-badge='Solo lectura', shared-dsp-created showing model+5 outputs, and all 5 shared-dsp-output-{0..4} cards with correct Gain/HPF/LPF/Delay/EQ values (OUT A TOP L 5 bands, OUT B TOP R 4 bands, OUT C SUB L 2 bands, OUT D SUB R 2 bands, OUT E ...). (3) Malicious/empty payload rejection: '/shared/dsp#preset=zINVALID_GZIP_DATA', '/shared/dsp#preset=' (empty), and '/shared/dsp' (no hash) all render 'Enlace inválido' + shared-dsp-back button — NO crashes, no pageerrors. (4) Regression: /kiosk (kiosk-root=1, kiosk-panic-btn=1) and /settings (replay-tour-btn=1) unchanged. /dsp dsp-share-btn requires a loaded room (expected — with demo loaded it appears, without a room state it is gated).",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "src/pages/shared-dsp/index.tsx L46-49 MAX_OUTPUTS/MAX_EQ_PER_OUTPUT caps are enforced AFTER decompression → an attacker could still submit a compressed blob whose gzip-decompressed size is huge (zip bomb). Consider adding a byte-limit on the decompressed size before JSON.parse (e.g. bail if bytes.length > 128 KiB). Non-blocking but a real DoS vector remains theoretically open.",
+    "src/pages/shared-dsp/index.tsx L34 uses `new Blob([bytes as BlobPart]).stream()` — the `as BlobPart` cast bypasses TS. Safer/cleaner: `new Blob([bytes.buffer])` or `new Response(bytes).body!`. Non-blocking.",
+    "src/components/soundmap/share-dsp-modal.tsx L60-65 useMemo captures ts=Date.now() only when outputs/dspModel change (same comment as iteration_6). If a user opens the modal, edits outside, and reopens, ts stays stable across re-opens of an unchanged preset. Minor UX/semantics issue.",
+    "src/components/soundmap/share-dsp-modal.tsx L108-119 copy() silently swallows the error via toast; no logging. If clipboard denials in production need diagnosis, consider console.warn(err) inside catch. Non-blocking.",
+    "src/components/soundmap/share-dsp-modal.tsx encodePreset async is awaited inside useEffect but there is no visible 'encoding…' state on the UI — when the modal first opens, the URL/QR area is blank for ~200-500ms. Minor UX polish opportunity (a spinner in that slot instead of the empty container). Non-blocking."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (frontend-only per request)",
+    "frontend": "100% — both iteration_7 improvements verified: QR now generates for 5-output demo (URL 1053 chars, ~4.7x compression), round-trip decode renders all outputs & badge, malicious payloads rejected gracefully, regression targets pass."
+  },
+  "test_credentials": "N/A — anonymous demo mode.",
+  "seed_data_creation": "Onboarding modal 'Cargar Recinto Demo' button (role selector) seeds 'The Warehouse Club' room + Lab Gruppen LM 44 DSP with 5 outputs so /dsp exposes dsp-share-btn.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 7. Preview: https://soundmap-preview.preview.emergentagent.com. Compression via CompressionStream/DecompressionStream works headless (Chromium). Cloudflare rate limits still real — kept >=6.5s between goto calls. Seed via role-based click on 'Cargar Recinto Demo' (onboarding modal). Round-trip URL is deterministic given same outputs+model+ts; the encoded token starts with prefix 'z' when compressed. Empty hash and 'zINVALID' both correctly render 'Enlace inválido' state. Note: dsp-share-btn is gated on room state — it only renders after demo/scan; a fresh session lands on 'Sin Sala Cargada' with no share button (this is by design, not a bug).",
+  "detailed_results": {
+    "improvement_1_qr_with_compression": {
+      "route": "/dsp (after seeding demo)",
+      "dsp-share-btn": 1,
+      "share-dsp-overlay": 1,
+      "share-dsp-url": 1,
+      "share-dsp-url_length_chars": 1053,
+      "share-dsp-url_starts_with": "https://soundmap-preview.preview.emergentagent.com/shared/dsp#preset=zH4sIAAAAAAAAA",
+      "share-dsp-url_contains_preset_z_prefix": true,
+      "share-dsp-copy": 1,
+      "share-dsp-download": 1,
+      "share-dsp-qr": 1,
+      "share-dsp-qr-warning": 0,
+      "share-dsp-close": 1,
+      "verdict": "PASS — QR generated, URL <2000 chars, compression prefix present"
+    },
+    "improvement_2_round_trip_decode": {
+      "route": "/shared/dsp#preset=z<full 979-char compressed 5-output demo>",
+      "shared-dsp-badge_count": 1,
+      "shared-dsp-badge_text": "SOLO LECTURA",
+      "shared-dsp-created_count": 1,
+      "shared-dsp-created_text_contains": "Lab Gruppen LM 44 · 5 salidas",
+      "shared-dsp-output-0": 1,
+      "shared-dsp-output-1": 1,
+      "shared-dsp-output-2": 1,
+      "shared-dsp-output-3": 1,
+      "shared-dsp-output-4": 1,
+      "shared-dsp-download_count": 1,
+      "visible_output_labels": ["OUT A TOP L", "OUT B TOP R (MIRROR)", "OUT C SUB L", "OUT D SUB R", "OUT E ..."] ,
+      "eq_bands_examples": "OUT A: 5 bandas (86Hz -5.5dB Q8 peak, 114Hz -4.5dB Q8 peak, 315Hz -3dB Q1.2 peak, 3000Hz +2dB Q1.5 peak, 10000Hz +1.5dB Q0.7 shelf-hi)",
+      "no_page_errors": true,
+      "verdict": "PASS — full round-trip encode→decode renders all 5 outputs read-only"
+    },
+    "improvement_3_malicious_rejection": {
+      "test_a_invalid_gzip": {
+        "route": "/shared/dsp#preset=zINVALID_GZIP_DATA",
+        "enlace_invalido_shown": 1,
+        "shared-dsp-back": 1,
+        "shared-dsp-badge": 0,
+        "no_crash": true
+      },
+      "test_b_empty_preset": {
+        "route": "/shared/dsp#preset=",
+        "enlace_invalido_shown": 1,
+        "shared-dsp-back": 1,
+        "no_crash": true
+      },
+      "test_c_no_hash": {
+        "route": "/shared/dsp",
+        "enlace_invalido_shown": 1,
+        "no_crash": true
+      },
+      "verdict": "PASS — all three malformed inputs rejected gracefully with 'Enlace inválido' + back button"
+    },
+    "regression": {
+      "/kiosk": {"kiosk-root": 1, "kiosk-panic-btn": 1, "verdict": "PASS"},
+      "/settings": {"replay-tour-btn": 1, "verdict": "PASS"},
+      "/dsp": {"dsp-share-btn (with demo loaded)": 1, "dsp-share-btn (no room state)": 0, "note": "Share btn correctly gated on room state — expected behavior, not a regression", "verdict": "PASS"}
+    }
+  }
+}

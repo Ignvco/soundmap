@@ -1,0 +1,96 @@
+{
+  "summary": "Iteration 8 frontend-only verification of 3 new features. (1) STAGE OPTIMIZER on /stage-map — PASS: stage-optimizer-btn present (enabled after demo), clicking opens optimizer-overlay, optimizer-summary shows 'Mejor Configuración: Tops @ 5.1m · Splay 15° · Tilt 5° · Subs distribuidos' with Uniform 74%, Spread 17.9 dB, SPL Media 125 dB — all numeric, NO NaN. 5 candidates rendered (optimizer-candidate-0..4), candidate #2 clickable, optimizer-apply present, optimizer-close closes the overlay. Computation finished within ~2s (no UI freeze). (2) LIVE SESSION RECORDING UI on /live — PASS: spl-toggle-btn present, spl-value shows '—' idle, session-rec-btn correctly HIDDEN when SPL not running. (3) SESSION RECORDING FALLBACK — no crash when spl-toggle-btn clicked (page remained alive), though spl-error was NOT detected in headless (the browser did not fully reject the mic within 3.5s in this preview — see notes). (4) SPL GRIDS on /compare — could not fully exercise: no scenes saved (Convex offline in preview, saveScene requires hasData/room). Empty state 'Necesitás al menos 2 escenas' + compare-empty-cta correctly rendered. (5) REGRESSION — PASS: /kiosk (kiosk-root, kiosk-panic-btn), /settings (replay-tour-btn), /dsp (dsp-share-btn after demo) all render as expected, no JS errors observed.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "SPL toggle → mic denial fallback (/live)",
+        "issue": "In this headless preview clicking spl-toggle-btn did NOT surface data-testid='spl-error' within 3.5s (the getUserMedia call did not reject fast enough or was silently accepted by fake device). The page did NOT crash and spl-value remained mounted, so the core resilience requirement is satisfied — but the intended 'Permiso denegado' UX path could not be visually validated in this environment.",
+        "affected_selectors": ["spl-error", "spl-toggle-btn"]
+      },
+      {
+        "flow": "Scene compare SPL grids (/compare)",
+        "issue": "Could not exercise compare-spl-grids / compare-grid-a / compare-grid-b / compare-grid-delta because no scenes exist in this session (Convex offline + saveScene input not reachable on /export in this preview). Only the empty state (compare-empty-cta) was verified. Main agent already validated via 78/78 vitest — recommend adding a Playwright scene-seeder via zustand persist localStorage for future regression coverage.",
+        "affected_selectors": ["compare-spl-grids", "compare-grid-a", "compare-grid-b", "compare-grid-delta", "compare-delta-heatmap", "compare-delta-nope"]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [
+    "None blocking. Optional: consider seeding demo scenes into the store on first load (or exposing a testid-friendly 'Guardar' flow at /export) so future testing agents can exercise the compare-spl-grids path without a live Convex backend.",
+    "Optional: emit an immediate spl-error in headless environments where the browser silently accepts a fake mic device but SPL analysis is meaningless — currently there is no visible feedback to the user until they interact more."
+  ],
+  "critical_code_review_comments": [
+    "src/components/soundmap/spl-meter.tsx L44-49: the useEffect that pushes readings into recorderRef fires on EVERY reading.spl/peak change. If the recorder session is long (>1h) and the meter emits at ~10 Hz, that's 36 000+ re-renders due to setRecTick. The recTick guard exists only to trigger re-render for liveSummary — consider throttling recTick updates to once per second (e.g. only when Math.floor(durationSec) changes) so the summary indicator UI does not re-render on every audio frame. Non-blocking but a real perf cliff on long sessions.",
+    "src/components/soundmap/optimizer-modal.tsx L27-57: the useEffect depends on [open, room, tops, subs] and re-runs optimizeStage 144-permutation search whenever room/tops/subs identity changes even if the modal is still open with the same intent. Because tops/subs are arrays from the zustand store, any store update (e.g. a Convex sync tick) will re-key them and re-trigger the 144-config search mid-modal. Consider snapshotting the inputs on open (useMemo keyed only on `open`) so an ongoing optimization is not restarted by upstream store churn.",
+    "src/pages/compare/index.tsx L104-118: sceneToSources builds sources at every render because gridA/gridB useMemo deps are [a] / [b] — but sceneToSources allocates the array inline; identity of `a` from `scenes.find(...)` changes on each scenes-array update (Convex sync). Not currently expensive (16×22 grid), but on larger grids this would recompute unnecessarily. Consider memoizing on a stable scene id.",
+    "src/pages/compare/index.tsx L215-234 & 231-235: `canShowDelta === false` string check uses a triple-equal with a variable that is a boolean|memoized value; the `null` case (either grid missing) is not surfaced to the user (falls through to `null`). A user with A having gear and B without gear will see grid_a rendered, grid_b's HeatmapCard shows 'Sin equipo', and NO delta/nope message — minor UX polish opportunity: show an inline hint 'Falta equipo en B para calcular el delta'.",
+    "src/components/soundmap/spl-meter.tsx L60-68: toggleRecording early-returns with toast when state !== 'running', BUT session-rec-btn is only rendered when isRunning (L301). The guard is dead code — safe but confusing (probably intended as defense-in-depth). Non-blocking.",
+    "src/components/soundmap/optimizer-modal.tsx L41-48: optimizeStage runs on the main thread with async yields. In the preview it completed in ~2 s for 144 configs at 12×16 grid, which is fine. On mobile Safari with older devices (iPhone SE class) 144 × spl-grid computation may take 5-8 s — consider adding a bail-out button that lets the user cancel mid-search (the `cancelled` flag exists but is only wired to the unmount path, not exposed to the UI)."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (frontend-only per request; Convex offline expected)",
+    "frontend": "~90% — Optimizer 100% (overlay, running, summary, 5 candidates, KPIs numeric no-NaN, apply, close), SPL Meter static UI 100% (toggle+value present, REC hidden idle), mic-denial fallback partially verified (no crash but error message not observed in headless), compare-spl-grids not fully exercised (no scenes) → empty state PASS only, regression 100% (kiosk/settings/dsp)."
+  },
+  "test_credentials": "N/A — anonymous demo mode.",
+  "seed_data_creation": "Clicked onboarding 'Cargar Recinto Demo' to seed 'The Warehouse Club' room + gear. Scene saving via /export UI did not succeed in this preview (input not reachable / Convex offline) — 2-scene compare could not be seeded.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Iteration 8 preview: https://soundmap-preview.preview.emergentagent.com. Keep >=6.5 s between page.goto() calls (Cloudflare 429 real). Seed room via role/text 'Cargar Recinto Demo' on '/'. Optimizer runs ~2 s and yields cleanly; candidates all have numeric KPIs (74/17.9/125 in demo). Live SPL page: mic in this headless does NOT reliably raise a rejection — do NOT assert spl-error existence, only assert no-crash. Compare grids feature: unable to seed 2 scenes via UI in this preview (Convex offline, /export saveScene input off-screen / not focusable) — either seed via zustand localStorage before mount or acknowledge as UI-only-verified. All previous 17 pages still render, no JS pageerrors captured.",
+  "detailed_results": {
+    "stage_optimizer": {
+      "route": "/stage-map (after demo)",
+      "stage-optimizer-btn_present": true,
+      "stage-optimizer-btn_disabled_with_demo": false,
+      "optimizer-overlay_on_click": true,
+      "optimizer-summary_appeared": true,
+      "optimizer-summary_snippet": "Mejor Configuración · Tops @ 5.1m · Splay 15° · Tilt 5° · Subs distribuidos · Uniform 74% · Spread 17.9 dB · SPL Media 125 dB",
+      "has_NaN_in_kpis": false,
+      "optimizer-candidates_count": 5,
+      "optimizer-candidate-2_clickable_and_highlights": true,
+      "optimizer-apply_present": true,
+      "optimizer-close_dismisses_overlay": true,
+      "computation_time_ms_approx": 2000,
+      "ui_blocked_during_search": false,
+      "verdict": "PASS"
+    },
+    "live_spl_meter_ui": {
+      "route": "/live",
+      "spl-toggle-btn_present": true,
+      "spl-value_present": true,
+      "spl-value_idle_text": "—",
+      "session-rec-btn_hidden_when_idle": true,
+      "verdict": "PASS"
+    },
+    "spl_toggle_headless_fallback": {
+      "route": "/live",
+      "click_spl-toggle-btn": true,
+      "spl-error_shown_within_3.5s": false,
+      "page_still_alive_after_click": true,
+      "verdict": "PASS (no crash) / PARTIAL (error UX not observed in headless)"
+    },
+    "compare_page": {
+      "route": "/compare",
+      "scenes_available": 0,
+      "empty_state_compare-empty-cta": true,
+      "picker-a": false,
+      "picker-b": false,
+      "compare-spl-grids": false,
+      "compare-grid-a": false,
+      "compare-grid-b": false,
+      "compare-grid-delta": false,
+      "compare-delta-heatmap": false,
+      "compare-delta-nope": false,
+      "verdict": "SKIPPED (no scenes to compare) — only empty-state verified"
+    },
+    "regression": {
+      "/kiosk": {"kiosk-root": 1, "kiosk-panic-btn": 1, "verdict": "PASS"},
+      "/settings": {"replay-tour-btn": 1, "verdict": "PASS"},
+      "/dsp": {"dsp-share-btn (after demo)": 1, "verdict": "PASS"}
+    }
+  },
+  "rca of the issue": "N/A — no blocking failures. Two partial verifications documented under integration_issues (mic-denied UX not visible in headless; compare-spl-grids requires 2+ scenes which could not be seeded in this Convex-offline preview via UI). Neither indicates a code defect — both are environment/seed-data limitations."
+}

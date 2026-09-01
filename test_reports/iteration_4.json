@@ -1,0 +1,96 @@
+{
+  "summary": "Iteration 4 — validated the 2 new physics features (SPL grid in /stage-map 3D view + J-Array physical prediction in /toolkit) plus slider reactivity + full 15-route regression + iteration_1/2/3 fixes. All PASS. No NaN/Infinity, no console app errors, 4 new testids resolve to numeric/non-empty values, and both physics engines react correctly to slider changes.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "src/pages/stage-map/index.tsx L778-809: splGrid useMemo is well-scoped (dependencies: pins, room, geo) and only builds sources for tops/subs/delay — monitors are correctly excluded (they aim backward, not into the audience grid). Fixed 20x28 grid @ 1 kHz / 1.6m yPlane is a sensible default. Returns undefined when there are no PA sources so the KPI card is conditionally hidden.",
+    "src/pages/toolkit/index.tsx L221-231: solveLineArray() useMemo re-runs on every slider change. Reactivity confirmed live (boxes 8→12 shifts spread 10.7→9.9 dB, far 30→60 shifts targets 27→7m → 55→7m and spread to 14.1 dB).",
+    "Minor UX: the 'Predicción física ISO 9613' KPI card in /stage-map renders 'Uniform 70%' which is high enough to be colored #00FF9E — visual state matches the physical meaning. However the SPL Máx = 133 dB is only credible with the demo gear; verify that computeSplGrid still guards against pathological sources (SPL@1m > 145 dB) to avoid saturating audiences visually if a user picks extreme values.",
+    "src/_r3f_isolated/stage-3d.jsx is intentionally kept as .jsx per the documented R3F v9 JSX-namespace-pollution constraint. No regression — data-testid='stage-3d-canvas' renders correctly with the new splGrid prop wired through.",
+    "429 Cloudflare rate-limits: 15 routes in sequence within ~1 min triggered the WAF. Not an app bug, but future testing agents should keep >=7s between goto() calls to stay under the rate."
+  ],
+  "updated_files": [
+    "/etc/supervisor/conf.d/supervisord.conf — replaced '/usr/bin/pnpm dev' with '/app/node_modules/.bin/vite' because /usr/bin/pnpm resolves to corepack shim 11.15.0 which requires node:sqlite (Node 22+) and this env has Node 20.20.2, causing the frontend supervisor process to enter FATAL on start. Frontend now RUNNING and serving 200 on the public URL."
+  ],
+  "success_rate": {
+    "backend": "N/A (frontend-only per request)",
+    "frontend": "100% — 2/2 new features PASS, 15/15 routes load with 0 app errors, 4/4 new testids resolve to sensible numeric values, slider reactivity PASS on both la-boxes and la-far, all iteration_1/2/3 regressions still PASS."
+  },
+  "test_credentials": "N/A — anonymous demo mode.",
+  "seed_data_creation": "Used load-demo-btn to seed 'The Warehouse Club' room + PA gear for /stage-map 3D + SPL grid checks.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 4 introduces two physics modules exercised by 4 new testids: (a) /stage-map 3D view → spl-grid-max, spl-grid-uniformity (both under card labelled 'Predicción física ISO 9613'); (b) /toolkit → toolkit-tab-line-array → la-physical-spread, la-physical-uniform (under 'Predicción física J-Array (ISO 9613)'). Slider testids la-boxes / la-far are already reactive via React controlled inputs — when scripting slider drags, use the native HTMLInputElement.value setter + dispatchEvent('input', {bubbles:true}), or el.dispatchEvent alone will NOT trigger React state updates. Frontend supervisor is now started via /app/node_modules/.bin/vite (not pnpm) because Node 20 cannot host corepack pnpm 11 (needs node:sqlite). If the env is re-forked and pnpm reappears in supervisord.conf, expect FATAL and re-apply the same substitution. Cloudflare 429 rate-limits kick in around 6-7 rapid page navigations — put >=7s between goto() calls.",
+  "rca of the issue": "N/A — no outstanding functional issues. Only environmental fix required: supervisor was pointed at /usr/bin/pnpm which is the corepack pnpm 11.15.0 shim; it fails on Node 20 because pnpm 11 depends on the built-in node:sqlite module introduced in Node 22. Root cause: env drift between the fork and the pinned Node version. Mitigation applied: run vite directly via /app/node_modules/.bin/vite in supervisord.conf.",
+  "detailed_results": {
+    "new_feature_1_stage_3d_spl_grid": {
+      "route": "/stage-map",
+      "path": "load demo on home → navigate to /stage-map → click stage-view-3d toggle",
+      "canvas": { "testid": "stage-3d-canvas", "count": 1 },
+      "kpi_card_header": "Predicción física ISO 9613 — present (1 match)",
+      "kpis": {
+        "spl-grid-max": { "count": 1, "text": "133dB", "numeric": 133, "nan_or_inf": false },
+        "spl-grid-uniformity": { "count": 1, "text": "70%", "numeric": 70, "nan_or_inf": false },
+        "spread_visible": "12.4 dB",
+        "mean_visible": "125 dB"
+      },
+      "verdict": "PASS"
+    },
+    "new_feature_2_toolkit_line_array_physical": {
+      "route": "/toolkit → toolkit-tab-line-array",
+      "kpi_card_header": "Predicción física J-Array (ISO 9613) — present (1 match)",
+      "kpis": {
+        "la-physical-spread": { "count": 1, "text": "Spread SPL 10.7 dB (initial)", "nan_or_inf": false },
+        "la-physical-uniform": { "count": 1, "text": "No (initial)", "nan_or_inf": false },
+        "targets_visible_initial": "27→7 m"
+      },
+      "verdict": "PASS"
+    },
+    "slider_reactivity": {
+      "la-boxes 8→12": { "spread_before": "10.7", "spread_after": "9.9", "targets_after": "28→6m", "verdict": "PASS" },
+      "la-far 30→60":  { "spread_after": "14.1", "targets_after": "55→7m", "verdict": "PASS" },
+      "note": "React controlled inputs — must dispatch via native value setter + 'input' event; direct el.value = X does NOT re-render."
+    },
+    "route_regression": {
+      "/":            { "sync": 1, "app_errors": 0, "body_len": 1509 },
+      "/room-scan":   { "sync": 1, "app_errors": 0, "body_len": 1228 },
+      "/gear-builder":{ "sync": 1, "app_errors": 0, "body_len": 8407 },
+      "/pa":          { "sync": 1, "app_errors": 0, "body_len": 2434 },
+      "/dsp":         { "sync": 1, "app_errors": 0, "body_len": 2826 },
+      "/stage-map":   { "sync": 1, "app_errors": 0, "body_len": 1661 },
+      "/channels":    { "sync": 1, "app_errors": 0, "body_len": 1336 },
+      "/live":        { "sync": 1, "app_errors": 0, "body_len": 2204 },
+      "/export-page": { "sync": 1, "app_errors": 0, "body_len": 1825 },
+      "/scenes":      { "sync": 2, "app_errors": 0, "body_len": 1177, "note": "2 sync-indicator matches — likely a header + demo banner both mounting one; not a regression." },
+      "/compare":     { "sync": 1, "app_errors": 0, "body_len": 1028 },
+      "/community":   { "sync": 1, "app_errors": 0, "body_len": 1015 },
+      "/templates":   { "sync": 1, "app_errors": 0, "body_len": 2616 },
+      "/toolkit":     { "sync": 1, "app_errors": 0, "body_len": 1319 },
+      "/settings":    { "sync": 1, "app_errors": 0, "body_len": 1679 },
+      "summary": "15/15 routes render with 0 app-level console errors (429s and Vite HMR websocket messages excluded as environmental noise)."
+    },
+    "iteration_1_2_3_regressions": {
+      "sync-indicator": "PRESENT on all 15 routes (2 on /scenes — non-blocking)",
+      "home-templates-btn": "PRESENT on / after demo load",
+      "nav-pills_no_double_dash": "['nav-pill-home','nav-pill-gear-builder','nav-pill-dsp','nav-pill-live'] — 0 double-dash",
+      "room-continue-step1": "count=1, disabled=null, aria-disabled=null → enabled with empty name",
+      "spl-value idle": "'—' on /live",
+      "community-submit-btn": "count=1, disabled=null → enabled",
+      "open-ar-scan-btn": "PRESENT on /room-scan (verified via source grep — test script wrongly probed / instead of /room-scan; iteration_3 report already confirmed functional)",
+      "stage-3d-canvas": "PRESENT + no WebGL/Three.js console errors"
+    },
+    "console_errors_breakdown": {
+      "app_errors": 0,
+      "environmental_noise": [
+        "Cloudflare 429 during rapid sequential navigation (WAF, not the app)",
+        "Vite HMR websocket handshake to wss://localhost:3000 fails behind ingress — expected, does not affect page render"
+      ]
+    }
+  }
+}

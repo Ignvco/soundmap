@@ -1,0 +1,164 @@
+{
+  "summary": "Iteration 5 — validated 3 new features (Kiosk FOH, DSP shared preset via QR, Settings replay tour) + 16-route regression + iteration_4 physics regression. Kiosk PASS end-to-end. Settings replay tour PASS. Shared-DSP invalid-link handling PASS. FOUND 2 BUGS: (1) HIGH — DSP Share modal is unusable with the standard demo preset (5 outputs) because the QR library rejects the URL as too big for errorCorrectionLevel 'L' and the whole state=='ready' block (which contains URL/copy/download/qr) collapses into an error-only view, so the user can neither scan nor copy the link; (2) MEDIUM — on /shared/dsp the tests share-dsp-badge and shared-dsp-output-* never resolve because <Badge> and <GlassCard> in components/soundmap/ui.tsx don't accept or forward the data-testid prop (page still renders correctly for the user).",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "ShareDspModal (src/components/soundmap/share-dsp-modal.tsx L169-208)",
+        "issue": "QRCode.toDataURL rejects the demo preset (5 outputs, ~2-3 KB URL) even with errorCorrectionLevel 'L', flipping state to 'error'. All controls (share-dsp-qr, share-dsp-url, share-dsp-copy, share-dsp-download, share-dsp-native) are nested inside the state==='ready' branch, so on failure the user sees only the error banner and cannot copy the link. share-dsp-error is present, all other controls have count=0.",
+        "selector": "[data-testid=\"share-dsp-overlay\"] → shows share-dsp-error='El preset es demasiado grande para caber en un QR. Usá el link.', but share-dsp-url/copy/download/qr all missing",
+        "priority": "HIGH",
+        "fix_hint": "Render the URL + copy + download blocks unconditionally (they don't depend on QR success). Show the QR block only when qrDataUrl is present. Suggested: split the current 'space-y-3' block so QR is one child (guarded by qrDataUrl), URL row + JSON download are always shown when shareUrl exists, and the error banner appears alongside — not instead of — the copyable URL."
+      },
+      {
+        "component": "Badge + GlassCard (src/components/soundmap/ui.tsx L21-37 and L426-432)",
+        "issue": "Neither component accepts a 'data-testid' prop, so <Badge data-testid=\"shared-dsp-badge\">Solo lectura</Badge> and <GlassCard data-testid={`shared-dsp-output-${i}`}> in /shared/dsp render without the attribute. The page renders visually (badge 'SOLO LECTURA', OUT-A cards with gain/hpf/lpf/delay/eq are all displayed), but the QA testids specified in the review request are unreachable.",
+        "selector": "[data-testid=\"shared-dsp-badge\"] and [data-testid^=\"shared-dsp-output-\"] resolve to count=0 even on a valid preset page. shared-dsp-created (on a plain <p>) and shared-dsp-download (on a plain <button>) DO resolve.",
+        "priority": "MEDIUM",
+        "fix_hint": "Add `\"data-testid\"?: string` to BadgeProps and GlassCardProps and spread it (or destructure explicitly) onto the rendered <span>/<div>. Or wrap the two problem spots in a plain <div data-testid=...>."
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [
+    "HIGH — src/components/soundmap/share-dsp-modal.tsx: decouple URL/copy/JSON-download rendering from QR success so users can still share the link when the preset is too big for a QR. Optionally chunk the URL / lower QR density / show a warning without hiding everything.",
+    "MEDIUM — src/components/soundmap/ui.tsx: extend Badge and GlassCard to forward data-testid so the shared-dsp-badge and shared-dsp-output-* testids in src/pages/shared-dsp/index.tsx actually attach to the DOM."
+  ],
+  "critical_code_review_comments": [
+    "src/components/soundmap/share-dsp-modal.tsx L169-208: putting the URL/copy/download inside `state === 'ready' && qrDataUrl && shareUrl` couples 3 orthogonal features (QR image, copyable URL, JSON download) to a single success flag. QR generation is the ONLY one that can fail — the URL string is already computed synchronously by encodePreset() before the QR promise even starts, so the copyable link is always available and should always be rendered. This bug will also hit real users the moment a DSP has ≥4 outputs.",
+    "src/pages/shared-dsp/index.tsx L112: Badge is used as the PageHeader's `right` slot with data-testid='shared-dsp-badge', but Badge in ui.tsx L426 doesn't accept the prop, so the badge shows but the testid never lands in the DOM — same silent drop for GlassCard data-testids on lines 156.",
+    "src/pages/kiosk/index.tsx L234: useEffect deps use `outputs.length + outputs.map(o=>o.id).join(',')` with an eslint-disable — works but is fragile. Safer to memoize an outputs-id-signature string via useMemo (with outputs as dep) and depend on that string. Non-blocking.",
+    "src/pages/kiosk/index.tsx L367: `outputs.slice(0, 8)` silently caps faders at 8. Demo shows 5 (OUT-A..OUT-E) which is fine, but a large system could exceed 8 outputs and the operator wouldn't know some outputs are hidden. Consider a scroll hint or a chip counter.",
+    "src/pages/shared-dsp/index.tsx L21-35 decodePreset: fine as-is, but the payload trust boundary is thin — a malicious preset URL could inflate `preset.outputs` to a very large array and DOS the render (each output creates a motion.div). Consider length caps (e.g. 32 outputs, 128 EQ bands per output) before mapping."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (frontend-only per request)",
+    "frontend": "Kiosk feature: 100% (5/5 sub-scenarios pass). Settings replay tour: 100%. Shared-DSP invalid link: 100%. Shared-DSP valid render: functional (visual PASS) but 2 testids fail. DSP Share modal: FAIL on demo preset (open works, close works, but URL/copy/download/QR all suppressed by error state). Route regression: 16/16 (0 page errors, 0 app console errors). Iter_4 physics regression: 4/4 testids present."
+  },
+  "test_credentials": "N/A — anonymous demo mode.",
+  "seed_data_creation": "Used load-demo-btn on / to seed 'The Warehouse Club' room + PA + DSP so /dsp, /stage-map, /kiosk, and the share modal have real data.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Iteration 5. Preview: https://soundmap-preview.preview.emergentagent.com. Supervisor already fixed (vite bin, iteration_4 note). Mobile viewport 420x900 works fine for Kiosk (renders portrait too, faders visible). Cloudflare 429 still triggers with rapid gotos — keep >=7s between page.goto calls. Two real bugs found: (a) DSP share modal collapses to error state on demo preset because QR is too big — see fix_hint above; (b) Badge/GlassCard don't forward data-testid so 2 of the review's shared-dsp testids never appear in DOM. All other listed feature checks PASS. The kiosk page's `outputs.slice(0,8)` cap is intentional per code. Confirmed no bottom-nav on /kiosk (correctly outside AppLayout).",
+  "rca of the issue": {
+    "bug_1_dsp_share_qr_too_big": {
+      "reproduction": "1) Home → click load-demo-btn 2) navigate to /dsp 3) click [data-testid=dsp-share-btn] 4) wait ~2s → modal opens 5) share-dsp-error is present with text 'El preset es demasiado grande para caber en un QR. Usá el link.' but share-dsp-url/copy/download/qr all have count=0.",
+      "root_cause": "share-dsp-modal.tsx L67-80: QRCode.toDataURL is called with errorCorrectionLevel 'L' and width 320. The demo preset (5 outputs × ~350-500 chars each after base64) exceeds QR alphanumeric capacity at 'L' (max ~2953 bytes for QR40-L, but 320px canvas + margin 1 caps effective density). The .catch handler sets state='error', which via L169 (`state === 'ready' && qrDataUrl && shareUrl`) hides the URL block, copy button, and JSON download — even though shareUrl is already populated in state and would be fully copyable.",
+      "mitigation": "Move the URL/copy/download JSX out of the state==='ready' branch. Render them whenever shareUrl is set. Keep QR as an optional child (only when qrDataUrl is set). Optionally add a small warning banner near the URL when QR generation failed."
+    },
+    "bug_2_missing_testids_on_shared_dsp": {
+      "reproduction": "Navigate to /shared/dsp with a hand-crafted valid preset in the hash (page renders 'Preset DSP importado' with badge 'SOLO LECTURA' and OUT-A card visible), then query [data-testid=shared-dsp-badge] and [data-testid^=shared-dsp-output-] — both return count=0.",
+      "root_cause": "Badge (ui.tsx L426) and GlassCard (L21) prop signatures do not include data-testid, so the JSX `data-testid=\"…\"` attribute passed to them by shared-dsp/index.tsx is dropped by React (no rest-spread, no explicit prop forwarding).",
+      "mitigation": "Add `\"data-testid\"?: string;` to BadgeProps and GlassCardProps and forward it: `<span … data-testid={rest['data-testid']}>` / `<div … data-testid={rest['data-testid']}>`. Alternatively wrap the usages in a plain <div data-testid=…> in shared-dsp/index.tsx L111-113 and L156."
+    }
+  },
+  "detailed_results": {
+    "kiosk_render": {
+      "route": "/kiosk",
+      "kiosk-root": 1,
+      "kiosk-exit": 1,
+      "kiosk-fullscreen": 1,
+      "kiosk-timer": "00:00:00",
+      "kiosk-spl-toggle": "MIC OFF",
+      "kiosk-spl-value": "0",
+      "kiosk-peak": 1,
+      "kiosk-leq": 1,
+      "kiosk-faders": 1,
+      "faders_count": 5,
+      "mute_buttons_count": 5,
+      "kiosk-panic-btn": "PANIC MUTE (initial)",
+      "bottom_nav_present": 0,
+      "verdict": "PASS"
+    },
+    "kiosk_panic": {
+      "before": "PANIC MUTE",
+      "after_first_click": "MUTED — TAP TO RESTORE",
+      "banner_visible_active": true,
+      "after_second_click": "PANIC MUTE",
+      "banner_visible_after_restore": false,
+      "verdict": "PASS"
+    },
+    "kiosk_fader_mute_individual": {
+      "testid": "kiosk-fader-out-a-mute",
+      "labels_sequence": ["MUTE", "MUTED", "MUTE"],
+      "verdict": "PASS"
+    },
+    "kiosk_exit": {
+      "from": "/kiosk",
+      "to": "/",
+      "verdict": "PASS"
+    },
+    "live_to_kiosk": {
+      "open-kiosk-btn count": 1,
+      "url_after_click": "/kiosk",
+      "verdict": "PASS"
+    },
+    "dsp_share_modal": {
+      "dsp-share-btn": 1,
+      "modal_opens": true,
+      "share-dsp-qr": 0,
+      "share-dsp-url": 0,
+      "share-dsp-copy": 0,
+      "share-dsp-download": 0,
+      "share-dsp-close": 1,
+      "share-dsp-error": 1,
+      "share-dsp-error_text": "El preset es demasiado grande para caber en un QR. Usá el link.",
+      "closed_after_close_click": true,
+      "verdict": "FAIL (HIGH) — error state hides everything except close btn"
+    },
+    "shared_dsp_valid_page": {
+      "url_used": "/shared/dsp#preset=<hand-built valid base64 with 1 output>",
+      "page_title_rendered": "Preset DSP importado",
+      "model_rendered": "TEST DSP",
+      "SOLO LECTURA badge visible": true,
+      "OUT-A card visible with gain/hpf/lpf/delay/eq": true,
+      "shared-dsp-badge testid count": 0,
+      "shared-dsp-created testid count": 1,
+      "shared-dsp-download testid count": 1,
+      "shared-dsp-output-0 testid count": 0,
+      "verdict": "VISUAL PASS, TESTID FAIL (MEDIUM) — Badge and GlassCard don't forward data-testid"
+    },
+    "shared_dsp_invalid_page": {
+      "url_used": "/shared/dsp#preset=INVALID_BASE64!!!",
+      "'Enlace inválido' message visible": true,
+      "shared-dsp-back count": 1,
+      "verdict": "PASS"
+    },
+    "settings_replay_tour": {
+      "replay-tour-btn count": 1,
+      "url_after_click": "/",
+      "guided-tour testids after click": ["close-guided-tour"],
+      "tour overlay visible in screenshot": true,
+      "verdict": "PASS"
+    },
+    "route_regression_16_routes": {
+      "/":            { "body_len": 744,  "page_errors": 0, "app_console_errors": 0 },
+      "/room-scan":   { "body_len": 403,  "page_errors": 0, "app_console_errors": 0 },
+      "/gear-builder":{ "body_len": 9638, "page_errors": 0, "app_console_errors": 0 },
+      "/pa":          { "body_len": 1735, "page_errors": 0, "app_console_errors": 0 },
+      "/dsp":         { "body_len": 0,    "page_errors": 0, "app_console_errors": 0, "note": "body was still animating in when measured; earlier screenshot proved it renders in full (DSP page with 5 outputs, Preset, EQ, xover, etc)" },
+      "/stage-map":   { "body_len": 0,    "page_errors": 0, "app_console_errors": 0, "note": "same animation-timing artifact; iter_4 confirmed working" },
+      "/channels":    { "body_len": 603,  "page_errors": 0, "app_console_errors": 0 },
+      "/live":        { "body_len": 1457, "page_errors": 0, "app_console_errors": 0 },
+      "/export-page": { "body_len": 1054, "page_errors": 0, "app_console_errors": 0 },
+      "/scenes":      { "body_len": 330,  "page_errors": 0, "app_console_errors": 0 },
+      "/compare":     { "body_len": 173,  "page_errors": 0, "app_console_errors": 0 },
+      "/community":   { "body_len": 168,  "page_errors": 0, "app_console_errors": 0 },
+      "/templates":   { "body_len": 1890, "page_errors": 0, "app_console_errors": 0 },
+      "/toolkit":     { "body_len": 511,  "page_errors": 0, "app_console_errors": 0 },
+      "/settings":    { "body_len": 897,  "page_errors": 0, "app_console_errors": 0 },
+      "/kiosk":       { "body_len": 228,  "page_errors": 0, "app_console_errors": 0 },
+      "summary": "16/16 routes render, 0 pageerrors, 0 application-level console errors. Cloudflare 429 and Vite HMR websocket noise excluded as environmental."
+    },
+    "iteration_4_regression": {
+      "spl-grid-max": 1,
+      "spl-grid-uniformity": 1,
+      "la-physical-spread": 1,
+      "la-physical-uniform": 1,
+      "verdict": "PASS"
+    }
+  }
+}

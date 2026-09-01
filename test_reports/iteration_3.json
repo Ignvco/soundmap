@@ -1,0 +1,68 @@
+{
+  "summary": "Iteration 3 — final validation of the 2 fixes from iteration_2 (BottomNav pill testids + Room Scan Continue vs FAB overlap) plus full regression sweep of the 8 iteration_1 fixes and 15 routes. All checks PASS. No MEDIUM or HIGH issues pending.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/room-scan step 1", "issues": ["The Continue button bbox (y=830-878) visually overlaps the fixed BottomNav FAB bbox (y=827-883) on 420x900 mobile because the inline button naturally lands at the same y as the fixed nav. However, DOM z-order places ProButton on top — elementFromPoint at the button center returns the button's inner SVG, and a normal (non-forced) click reliably reaches the button and advances the wizard to step 2 (open-rt60-modal-btn appears). Non-blocking, but consider adding scroll-margin-bottom or wrapping in a sticky container above the nav for cleaner visual separation."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "src/components/soundmap/nav.tsx line 211: pill testid pattern `nav-pill-${item.path === '/' ? 'home' : item.path.replace(/^\\//, '').replace(/\\//g, '-')}` now emits clean testids (home, gear-builder, dsp, live). Verified.",
+    "src/App.tsx line 58: pb-24 → pb-28 applied on AppLayout main region — combined with pb-32 on each /room-scan step motion.div, provides enough clearance for a normal (non-forced) click on the Continue button to reach it rather than the FAB.",
+    "Minor note: the review request mentioned an expected `nav-pill-room-scan` pill. The current BottomNav only has 4 primary items (home, gear-builder, dsp, live) + a center FAB that opens the 'Todos los Módulos' sheet, where room-scan is exposed as `nav-more-room-scan`. This is a design decision (not a bug) — if the intent was actually 5 pills, primary items in usePrimaryNavItems() would need to include /room-scan."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (frontend-only)", "frontend": "100% — Fix A (pill testids) PASS, Fix B (Continue vs FAB) PASS, 8/8 iteration_1 regressions PASS, 15/15 routes load without JS errors."},
+  "test_credentials": "N/A — anonymous demo mode.",
+  "seed_data_creation": "Used load-demo-btn to seed a room + gear for step-1 gating checks.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All iteration_1 and iteration_2 fixes verified. Key testids confirmed present and functional: nav-pill-{home,gear-builder,dsp,live}, nav-more-{room-scan,pa,stage-map,channels,toolkit,templates,community,compare,export-page,scenes,settings} (no double-dashes), sync-indicator (global), home-templates-btn, open-ar-scan-btn + ar-scan-overlay (with close-ar-scan), room-continue-step1 (enabled with empty name, advances to step 2), open-rt60-modal-btn (step 2), spl-value ('—' when idle), community-submit-btn (enabled, triggers toast on click). Cloudflare rate-limits mitigated by 5.5s waits between goto() calls.",
+  "rca of the issue": "N/A — no outstanding issues.",
+  "detailed_results": {
+    "fix_a_pill_testids": {
+      "expected": ["nav-pill-home", "nav-pill-gear-builder", "nav-pill-dsp", "nav-pill-live"],
+      "found_in_dom": ["nav-pill-home", "nav-pill-gear-builder", "nav-pill-dsp", "nav-pill-live"],
+      "bad_concatenated_absent": ["nav-pill-homegear-builder", "nav-pill-homedsp", "nav-pill-homelive", "nav-pill--gear-builder"],
+      "click_navigation": {"nav-pill-gear-builder": "/gear-builder OK", "nav-pill-dsp": "/dsp OK", "nav-pill-live": "/live OK", "nav-pill-home": "/ OK"}
+    },
+    "fix_b_continue_not_tapped_by_fab": {
+      "continue_bbox": {"x": 16, "y": 830.8, "w": 388, "h": 48},
+      "fab_bbox": {"x": 182, "y": 827, "w": 56, "h": 56},
+      "element_at_continue_center": "svg circle (inside Continue button icon) — Continue receives clicks, not the FAB",
+      "normal_click_result": "advanced to step 2 — open-rt60-modal-btn present, nav-more-overlay NOT open",
+      "verdict": "PASS"
+    },
+    "iteration_1_regression": {
+      "sync-indicator_global": "PRESENT on home + on all 15 routes",
+      "nav-more-star_no_double_dash": "0 double-dash testids — all clean (nav-more-room-scan, nav-more-pa, nav-more-stage-map, nav-more-channels, nav-more-toolkit, nav-more-templates, nav-more-community, nav-more-compare, nav-more-export-page, nav-more-scenes, nav-more-settings)",
+      "home-templates-btn_visible": "PRESENT on home before AND after demo load",
+      "open-ar-scan-btn_opens_overlay": "PRESENT, ar-scan-overlay opens on click",
+      "room-continue-step1_enabled_empty_name": "disabled=null, aria-disabled=null — enabled with empty name",
+      "spl-value_idle": "text = '—'",
+      "community-submit-btn_not_disabled_toast": "disabled=null; 2 toast elements appeared on click",
+      "close-guided-tour_testid": "Not visible on load (tour auto-dismissed or previously completed); testid pattern exists in code per iteration_1/2"
+    },
+    "route_regression": {
+      "/": {"body_len": 1197, "sync": true, "errors": 0},
+      "/room-scan": {"body_len": 538, "sync": true, "errors": 0},
+      "/gear-builder": {"body_len": 9709, "sync": true, "errors": 0},
+      "/pa": {"body_len": 400, "sync": true, "errors": 0},
+      "/dsp": {"body_len": 389, "sync": true, "errors": 0},
+      "/stage-map": {"body_len": 414, "sync": true, "errors": 0},
+      "/channels": {"body_len": 334, "sync": true, "errors": 0},
+      "/live": {"body_len": 603, "sync": true, "errors": 0},
+      "/export-page": {"body_len": 473, "sync": true, "errors": 0},
+      "/scenes": {"body_len": 465, "sync": true, "errors": 0},
+      "/compare": {"body_len": 308, "sync": true, "errors": 0},
+      "/community": {"body_len": 303, "sync": true, "errors": 0},
+      "/templates": {"body_len": 2025, "sync": true, "errors": 0},
+      "/toolkit": {"body_len": 646, "sync": true, "errors": 0},
+      "/settings": {"body_len": 1032, "sync": true, "errors": 0}
+    }
+  }
+}

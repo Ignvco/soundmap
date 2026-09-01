@@ -1,0 +1,73 @@
+{
+  "summary": "iteration_23 — Perform Hub v7 (app-native SoundMap Vitals show-time dashboard) verified end-to-end on preview URL. ALL 8 review criteria PASS: (1) Persona greeting eyebrow 'Hola 👋' (CSS text-transform:uppercase renders it as 'HOLA 👋') + persona-name h1 = 'The Warehouse Club'; streak-chip = '3 shows' with amber styling. Note: PersonaGreeting testId is overridden in perform-hub to 'perform-hub-title-wrap' so 'persona-greeting' is NOT present — used 'persona-name' as instructed by the review. (2) perform-freq-response line chart renders REAL PA response with 10 x-labels EXACTLY [31, 63, 125, 250, 500, 1k, 2k, 4k, 8k, 16k], 10 curve dots, LR24 slope visible; big value '152 dB máx' (arraySpl = 140 + 20·log10(4) = 152); extra 'Crossover 80 Hz · LR24' from calculateCrossover(tops, subs). MINOR: Y-axis renders only 4 of 5 requested ticks [-24, -12, -6, 3] — recharts auto-hides the '0' tick because ChartCardLine YAxis lacks `interval={0}` (ChartCardBar has it — same bug as iter_21). (3) perform-sessions-bar renders 3 bars [SET, FIE, WAR] (from scene names 'Setup Rehearsal', 'Field Test', 'Warehouse Show'), last bar highlighted bright lime (#C9F03E) vs dim (rgba(201,240,62,0.35)) on the other two; big value '158 dB' (8 tops seed = 140 + 20·log10(8) ≈ 158); extra 'Últimas 3 escenas guardadas'; Y-ticks [100, 120, 145]; delta chip '↑ 2 dB vs sesión anterior' with lucide-arrow-up icon and tone=bad (warm hue) because deltaPeak>0. Delta of 2 dB (not 6 as suggested in review) is mathematically correct: scene[i-1]=156 dB (6 tops), scene[i]=158 dB (8 tops), delta = last − previous = 158 − 156 = 2. (4) Split cards: perform-live-spl-card shows 'Ahora' / '— dB' / ProgressRing with Radio icon (lime accent). perform-compliance-card shows 'Compliance 100 %' + lime bar + '47 dB headroom' (152 − 105 = 47). perform-spl-meter-wrap contains SPLMeter component with mic controls. (5) Quick actions: perform-goto-export click → /export-page ✅, perform-goto-dsp click → /dsp ✅ (since dspUnits populated with LM 44), perform-goto-kiosk click → /kiosk ✅. (6) Empty state (localStorage.clear() + reload): page renders without crashing, persona-name = 'Show time', streak-chip count = 0 (NOT rendered because hasSystem=false), freq-response big value '—' + extra 'Cargá tops o subs' + x-labels still shown, sessions-bar big value '—' + extra 'Guardá una escena para ver el histórico', perform-goto-design fallback link visible at bottom. (7) NO fake weekly day-of-week labels anywhere: all rendered .recharts-cartesian-axis-tick-value elements = ['31','63','125','250','500','1k','2k','4k','8k','16k','-24','-12','-6','3','SET','FIE','WAR','100','120','145'] — zero L/M/J/V/S/D day-letter ticks; body text does not contain the L,M,M,J,V,S,D pattern. (8) Regression: Vitest 78/78 GREEN (all 5 test files: toolkit, rt60, engines, physics, optimizer-recorder — 78 tests / 5 files pass in 6.38s), tsc -b --noEmit exits 0, no real console errors on /perform navigation (only Vite HMR debug and React DevTools info).",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "ChartCardLine (used by perform-freq-response)",
+        "issue": "YAxis is missing `interval={0}` so recharts auto-hides some yTicks — specifically the '0' tick from [-24, -12, -6, 0, 3] is not rendered in the seeded state, and both '-12' and '0' are hidden in empty state (data all -60). Review explicitly asked for '-24, -12, -6, 0, 3' visible. Same class of bug as the SPL bar tick suppression fixed in iter_21. One-line fix: add `interval={0}` to the YAxis in ChartCardLine at /app/src/components/soundmap/vitals/charts.tsx line ~95-103, matching ChartCardBar at line ~48-49.",
+        "selector": "[data-testid='perform-freq-response'] .recharts-yAxis .recharts-cartesian-axis-tick-value",
+        "priority": "LOW"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "verified_criteria": [
+    "persona greeting: eyebrow 'Hola 👋' (rendered HOLA via uppercase), persona-name h1 = 'The Warehouse Club', streak-chip = '3 shows' amber ✅",
+    "perform-freq-response: big value '152 dB máx' ✅, 'Crossover 80 Hz · LR24' extra ✅, 10 x-labels [31,63,125,250,500,1k,2k,4k,8k,16k] ✅, 10 dot points on curve ✅, LR24 smoothing visible ✅ — MINOR: only 4/5 yTicks render (missing '0')",
+    "perform-sessions-bar: 3 bars [SET,FIE,WAR], last bar highlighted bright lime (#C9F03E) vs dim (rgba(201,240,62,0.35)) ✅, big value '158 dB' ✅, extra 'Últimas 3 escenas guardadas' ✅, delta '↑ 2 dB vs sesión anterior' with lucide-arrow-up + tone=bad ✅, Y-ticks [100,120,145] ✅",
+    "perform-live-spl-card: 'Ahora' + '— dB' + ProgressRing/Radio icon ✅",
+    "perform-compliance-card: 'Compliance 100 %' + lime bar + '47 dB headroom' ✅",
+    "perform-spl-meter-wrap contains SPLMeter with '⏺ INICIAR' button ✅",
+    "perform-goto-export → /export-page ✅",
+    "perform-goto-dsp → /dsp ✅ (hasDsp=true, links to /dsp; would be /design if empty)",
+    "perform-goto-kiosk → /kiosk ✅",
+    "Empty state (localStorage cleared): persona-name='Show time' ✅, streak-chip NOT rendered ✅, freq-response value '—' + 'Cargá tops o subs' ✅, sessions-bar '—' + 'Guardá una escena para ver el histórico' ✅, perform-goto-design fallback visible ✅, page does not crash ✅, no console errors ✅",
+    "NO fake weekly L/M/M/J/V/S/D labels anywhere: all axis ticks + body text scanned, zero day-letter matches ✅",
+    "Vitest 78/78 GREEN across 5 files (toolkit, rt60, engines, physics, optimizer-recorder) ✅",
+    "tsc -b --noEmit exit 0 — TS compiles cleanly ✅"
+  ],
+  "detection_evidence": {
+    "seed_method": "Injected soundmap-store JSON directly into localStorage (version=2 schema): room 'The Warehouse Club' 32×22×6, tops JBL SRX906LA×4 (splMax=140), subs QSC KLA181×4, monitors QSC K10.2×2, dspUnits Lab Gruppen LM 44 ×1, PLUS 3 scenes with varying top quantities (4, 6, 8) named 'Setup Rehearsal' / 'Field Test' / 'Warehouse Show' with monotonically increasing updatedAt timestamps. This matches the review's requested shape.",
+    "freq_response_dots": "SVG inspection: 10 recharts-line-dot elements + 1 recharts-line-curve path. Card text extract: 'Respuesta del PA / 152 / dB máx / Crossover 80 Hz · LR24 / 31 63 125 250 500 1k 2k 4k 8k 16k / -24 -12 -6 3'.",
+    "sessions_bar_highlight": "Fill inspection of 3 rendered bars: [rgba(201,240,62,0.35), rgba(201,240,62,0.35), #C9F03E] — last bar (WAR / 158 dB) is the fully saturated lime accent, others dimmed. Confirms the highlight rule (i === lastIdx) in sessionsPeakSeries.",
+    "delta_arrow_icon": "Inside [data-testid='perform-sessions-bar']: found 1 lucide-arrow-up SVG (delta chip). Chip text 'vs sesión anterior' matches; tone=bad → warm hue since deltaPeak (2) > 0.",
+    "axis_ticks_seeded": "[31, 63, 125, 250, 500, 1k, 2k, 4k, 8k, 16k, -24, -12, -6, 3, SET, FIE, WAR, 100, 120, 145] — 20 total; expected 21 (missing '0' in freq-response yAxis).",
+    "axis_ticks_empty": "[31, 63, 125, 250, 500, 1k, 2k, 4k, 8k, 16k, -24, -6, 3, —, 100, 120, 145] — no day letters anywhere.",
+    "navigation": "perform-goto-export click → URL becomes /export-page; perform-goto-dsp → /dsp; perform-goto-kiosk → /kiosk. All 3 verified via URL assertion after click+wait.",
+    "vitest": "78 tests / 5 files / 6.38s / all green",
+    "tsc": "tsc -b --noEmit → exit 0"
+  },
+  "test_report_links": [
+    "/app/src/pages/perform-hub/index.tsx",
+    "/app/src/lib/audio/system-vitals.ts",
+    "/app/src/components/soundmap/vitals/charts.tsx",
+    "/app/src/components/soundmap/vitals/index.tsx",
+    "/app/src/store/app.ts"
+  ],
+  "action_items": [
+    "LOW-priority polish: Add `interval={0}` to the YAxis in ChartCardLine (charts.tsx line ~95-103) so all 5 yTicks render for perform-freq-response — matches ChartCardBar which already has this. Currently the '0' dB tick is auto-hidden by recharts. All other review criteria pass; this does not block release."
+  ],
+  "critical_code_review_comments": [
+    "perform-hub/index.tsx L57 — PersonaGreeting is invoked with testId='perform-hub-title-wrap', so the default data-testid='persona-greeting' does NOT appear on /perform. The review flagged this correctly. Consider dropping the override and letting persona-greeting be the canonical testid, then adding an outer wrapper testid separately if needed for layout tests.",
+    "perform-hub/index.tsx L70 — an sr-only span with data-testid='perform-hub-title' duplicates persona-name for testability. Fine, but slightly redundant given persona-name already has a stable testid.",
+    "perform-hub/index.tsx L137 — the extra text calls calculateCrossover(tops, subs) a SECOND time in the JSX (already called inside useMemo at L31). Cheap function but conceptually redundant — either read xover.crossoverFreq from the useMemo or memoize the extra string.",
+    "system-vitals.ts L282 — sessionsPeakSeries labels use scene.name.slice(0,3).toUpperCase(). Scene names starting with the same 3 letters would collide visually. Consider using an index or the first initial of each word instead for future-proofing.",
+    "system-vitals.ts L268-272 — sort uses updatedAt ?? new Date(createdAt).getTime(). Correct fallback; no issues.",
+    "system-vitals.ts L278-280 — arraySpl uses Math.round after 20·log10(N). Consistent with paSummary at line 99 (which rounds to 0.1). The bar chart integer rounding is fine for a headline, but the delta comparison (latest − previous) may show ±1 dB step artifacts vs the paSummary display; not a bug, just cosmetic.",
+    "charts.tsx L95-103 — ChartCardLine YAxis is missing `interval={0}`. This is the SAME regression class as the SPL Y-tick suppression fixed in iter_21 for ChartCardBar (L48-49). One-line fix will make all 5 yTicks visible for perform-freq-response.",
+    "perform-hub/index.tsx L162-165 — When sessions.length === 0 the bar chart still renders one placeholder bar `{label: '—', value: 0, highlight: false}`. Verified empty-state works (bar collapses to zero height, no crash). Fine."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (frontend-only per request)",
+    "frontend": "100% — 8/8 review criteria PASS. Only a single LOW-priority tick-rendering polish item (missing '0' tick on freq-response yAxis) remains, does not affect correctness of computed data. Vitest 78/78, tsc clean, all 3 quick-action navigations verified, empty-state rendered cleanly, no console errors."
+  },
+  "test_credentials": "N/A — anonymous access to /perform.",
+  "seed_data_creation": "Injected soundmap-store JSON directly into localStorage matching the review's specified shape (JBL SRX906LA×4 tops splMax=140 freqLow=55 freqHigh=20000; QSC KLA181×4 subs freqLow=37 freqHigh=100; QSC K10.2×2 monitors; Lab Gruppen LM 44 ×1 dspUnits; room 'The Warehouse Club' 32×22×6 capacity 400) PLUS 3 scenes with 4/6/8 tops respectively named 'Setup Rehearsal', 'Field Test', 'Warehouse Show' with monotonic updatedAt. This yields arraySpl progression 152 → 156 → 158 and deltaPeak = +2 dB.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Preview URL: https://soundmap-preview.preview.emergentagent.com. Perform Hub v7 uses REAL data from Zustand store; seed via direct localStorage['soundmap-store'] injection (version=2 schema). PersonaGreeting testId is OVERRIDDEN in perform-hub to 'perform-hub-title-wrap' — so [data-testid='persona-greeting'] will NOT be found; use 'persona-name' or 'perform-hub-title-wrap' instead. Delta computation uses last-minus-previous of the sorted (chronological) scenes list; with 3 scenes of 4/6/8 tops the delta is 2 dB (not 6 as review text implied — 6 would require only 2 scenes of 4/8 tops). Cloudflare rate-limits after ~10 rapid navigations to this preview URL — space out tests by ~30-45s if you see 'Verify you are human' challenge. Vitest suite is 78 tests across 5 files, fully passing.",
+  "rca of the issue": "Missing '0' yTick in perform-freq-response — RCA: recharts YAxis auto-hides ticks when `interval` prop is unset (default is 'preserveEnd'). ChartCardLine YAxis at charts.tsx L95-103 does not pass `interval={0}`, unlike ChartCardBar YAxis at L45-49 which does. Fix: add `interval={0}` to the ChartCardLine YAxis. Reproduction: navigate to /perform with seed data, inspect [data-testid='perform-freq-response'] .recharts-yAxis .recharts-cartesian-axis-tick-value textContents — will show ['-24','-12','-6','3'] instead of ['-24','-12','-6','0','3']."
+}

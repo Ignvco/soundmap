@@ -1,0 +1,90 @@
+{
+  "summary": "iteration_24 — Vitals lime-palette propagation across Design Hub / Compare / Community / Settings / Scenes. 5 of 6 review criteria PASS; #1 (grep sanity zero legacy hues) FAILS because the bulk sed missed several occurrences. Visual checks on /community (VERIFICADO badge is lime), /settings (both Feedback sensorial toggles ON = lime; Datos title = warm) and /scenes (empty state clean; code constants HUE_SYNC=#C9F03E, push=#F5B62E, share=#4A6BFF, HUE_DANGER=#FF6B4A) all match the intended palette. Compare page empty state renders CTA 'Ir a Escenas' with white bg as expected; the code constants A_HUE=#C9F03E and B_HUE=#F5B62E, plus DeltaStat 'hue' props at lines 297/304 (lime + amber), are correct. Vitest 78/78 GREEN and tsc -b --noEmit exits 0.\n\nCRITICAL MISS — /app/src/pages/compare/index.tsx lines 720-721 in the DiffRow renderer (not the DeltaStat calls) still hardcodes the legacy sage #5BA777 and amethyst #9B7EBD for TrendingUp / TrendingDown icons. Since these render whenever two scenes are compared with acoustics diffs, the delta arrows will still visually use the OLD sage/amethyst hues even though A_HUE / B_HUE at the top of the file are lime/amber. Fix: swap #5BA777 → #C9F03E (or use A_HUE) and #9B7EBD → #F5B62E (or use B_HUE) on lines 720-721.\n\nAdditional grep hits (may be intentional audio-warning colors, but the review said 'zero occurrences with only 3 exceptions'): /app/src/components/soundmap/spl-meter.tsx:529 (#FF7A3A for '>90 dB' SumStat); /app/src/components/soundmap/spl-heatmap-2d.tsx lines 20/24/32/33/34 (#FF7A3A, #4EA8DE for SPL heatmap thresholds); /app/src/pages/kiosk/index.tsx:42 (#FF7A3A for 'hot' SPL band). These are semantic SPL warning-zone colors (audio-spec meaning: >102 dB, >78 dB, etc.), not UI accent tokens. Confirm with product whether they should also map to the new warm hue #FF6B4A or stay as-is for domain semantics. Kiosk was not called out in the review checklist.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "compare/index.tsx → DiffRow (component at ~L694)",
+        "issue": "Legacy hex #5BA777 (sage) and #9B7EBD (amethyst) hardcoded on TrendingUp / TrendingDown icons at lines 720-721. Violates the grep-sanity criterion and visually breaks A/B chromatic consistency (numbers use A_HUE=lime / B_HUE=amber correctly, but delta arrows still render sage/amethyst).",
+        "selector": "compare-diff diff-row-* .lucide-trending-up / .lucide-trending-down",
+        "priority": "HIGH"
+      },
+      {
+        "component": "components/soundmap/spl-meter.tsx L529",
+        "issue": "SumStat '>90 dB' still uses legacy #FF7A3A. If warm hue should follow the new #FF6B4A, replace here. Otherwise document as an intentional SPL-warning constant and exempt in the review checklist.",
+        "selector": "[data-testid='summary-t90']",
+        "priority": "MEDIUM"
+      },
+      {
+        "component": "components/soundmap/spl-heatmap-2d.tsx L20/L24/L32/L33/L34",
+        "issue": "SPL heatmap threshold colors still use legacy #FF7A3A and #4EA8DE. Same call-out as spl-meter: either replace or explicitly exempt as SPL-band semantics.",
+        "selector": "spl-heatmap-2d cells",
+        "priority": "MEDIUM"
+      },
+      {
+        "component": "pages/kiosk/index.tsx L42",
+        "issue": "bandColor('hot') still returns #FF7A3A. Kiosk not in review checklist but grep sanity says pages/*.tsx must return zero. Either propagate to #FF6B4A or exempt kiosk.",
+        "selector": "kiosk band coloring",
+        "priority": "LOW"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "verified_criteria": [
+    "Community VERIFICADO badge is LIME (#C9F03E) — visual confirmed on screenshot; badge next to KS28 gear card renders in the new lime palette (was sage). Demo-mode strip retains amethyst-tinted background as noted in the review (rgba(155,126,189,x) intentional keep). ✅",
+    "Settings 'Feedback sensorial' → sonido toggle ON = lime; haptics toggle ON = lime; 'Datos' danger title = warm hue. Visual screenshot confirms both toggles render in bright lime and Datos section is red-orange (#FF6B4A). ✅",
+    "Compare empty state ('Necesitás dos escenas') CTA 'Ir a Escenas' still renders white background. Code-level: A_HUE='#C9F03E', B_HUE='#F5B62E' at compare/index.tsx top; DeltaStat hue props at L297='#C9F03E' and L304='#F5B62E'. Delta legend chips 'A más fuerte' at L286 uses inline background '#C9F03E'. ✅ (with caveat: DiffRow icons at L720-721 still legacy — see ui_bugs)",
+    "Scenes constants correct: HUE_SYNC='#C9F03E' (Cargar / sync — was sage), HUE_DANGER='#FF6B4A' (delete confirm — was soft-red), push cloud color '#F5B62E' at L151 (amber — was amethyst), share color '#4A6BFF' at L167 (blue — was teal). Page renders empty state cleanly on preview. ✅",
+    "Regression: /, /design, /perform, /compare, /community, /settings all load without React ErrorBoundary; only /scenes loads as empty state (no seeded data); no page-crash console errors (only Vite HMR WSS + expected Cloudflare 429 retries). Vitest 78/78 pass in 6.44s. tsc -b --noEmit exits 0. ✅"
+  ],
+  "detection_evidence": {
+    "grep_command": "grep -rn -E '#5BA777|#9B7EBD|#B45C6E|#C28B62|#4E9EA8|#4E8C8C|#B78C4E|#7E6BBD|#6BA5C7|#4EA8DE|#FF7A3A' src/pages/ src/components/soundmap/ (excluding vitals/index.tsx + charts.tsx per review exception).",
+    "grep_hits_remaining": [
+      "src/pages/compare/index.tsx:720 (#5BA777, #9B7EBD)",
+      "src/pages/compare/index.tsx:721 (#5BA777, #9B7EBD)",
+      "src/pages/kiosk/index.tsx:42 (#FF7A3A)",
+      "src/components/soundmap/spl-meter.tsx:529 (#FF7A3A)",
+      "src/components/soundmap/spl-heatmap-2d.tsx:20,24,32,33,34 (#FF7A3A, #4EA8DE, #4EA8DE, #4EA8DE, #FF7A3A)"
+    ],
+    "screenshots": [
+      "/tmp/community.png — VERIFICADO badge visibly lime; category chips grey until active",
+      "/tmp/settings.png — Feedback sensorial expanded; both toggles ON with LIME (#C9F03E) fill; Datos title in warm-red (#FF6B4A)",
+      "/tmp/scenes.png — Empty state (Sin escenas guardadas) renders cleanly, no crash"
+    ],
+    "vitest": "78 tests / 5 files / 6.44s / all green (toolkit, rt60, engines, physics, optimizer-recorder)",
+    "tsc": "tsc -b --noEmit → exit 0",
+    "cloudflare_429": "Hit rate-limit on rapid multi-page sweep as flagged in review — spaced tests by 20-30s between page navigations to work around."
+  },
+  "test_report_links": [
+    "/app/src/pages/compare/index.tsx",
+    "/app/src/pages/settings/index.tsx",
+    "/app/src/pages/scenes/index.tsx",
+    "/app/src/pages/community-gear/index.tsx",
+    "/app/src/components/soundmap/spl-meter.tsx",
+    "/app/src/components/soundmap/spl-heatmap-2d.tsx",
+    "/app/src/pages/kiosk/index.tsx"
+  ],
+  "action_items": [
+    "HIGH: In /app/src/pages/compare/index.tsx L720-721, replace hardcoded 'text-[#5BA777]' → 'text-[#C9F03E]' (or reference A_HUE) and 'text-[#9B7EBD]' → 'text-[#F5B62E]' (or reference B_HUE) so DiffRow trend arrows match the new A_HUE/B_HUE lime+amber convention. This is the only miss that directly contradicts the review's chromatic-consistency intent.",
+    "MEDIUM: Decide on policy for SPL warning colors in spl-meter.tsx L529, spl-heatmap-2d.tsx L20-34, and kiosk/index.tsx L42. If they should follow the new palette, replace #FF7A3A → #FF6B4A and #4EA8DE → #4A6BFF. If they're intentional audio-spec constants, extend the review's exception list to cover them and adjust the grep-sanity criterion.",
+    "LOW (carryover from iter_23): Add `interval={0}` to ChartCardLine YAxis at /app/src/components/soundmap/vitals/charts.tsx so all 5 yTicks render for perform-freq-response."
+  ],
+  "critical_code_review_comments": [
+    "compare/index.tsx L720-721 — DiffRow uses the legacy sage/amethyst hardcoded via tailwind arbitrary values `text-[#5BA777]`/`text-[#9B7EBD]`. Because these are inside a template string with cn(...), grep still picks them up correctly, but they escaped the bulk sed that only targeted `#5BA777`/`#9B7EBD` as strings (or maybe was scoped to inline style props). Recommend a follow-up sed OR — better — replace with the file-level A_HUE / B_HUE constants so future palette changes are localized.",
+    "compare/index.tsx L286 — 'A más fuerte' chip uses `background: '#C9F03E'` inline. Fine and correct, but consider using the A_HUE constant here too for DRY.",
+    "spl-heatmap-2d.tsx — This file is a strong candidate for a dedicated 'SPL semantic palette' constant module: bg-color-for-spl(spl) and bg-color-for-delta(delta) currently return raw hex per band. If these are meant to follow the app palette, extract to a shared constants file with named tokens (SPL_HOT, SPL_LOUD, SPL_MOD, SPL_QUIET) and reuse in kiosk + spl-meter.",
+    "settings/index.tsx — clean; constants HUE_ON/HUE_WARN/HUE_DANGER at file top and only referenced downstream. Good pattern to replicate in compare (see comment above)."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (frontend-only per request)",
+    "frontend": "5/6 review criteria PASS (83%). Grep sanity fails due to compare DiffRow legacy hex on L720-721 (definite miss) plus 3 SPL-semantics files (spl-meter, spl-heatmap-2d, kiosk) which may or may not be intended exceptions. All visual palette checks on community + settings + scenes render correctly. Vitest 78/78, tsc clean, no page crashes."
+  },
+  "test_credentials": "N/A — anonymous access to all tested routes.",
+  "seed_data_creation": "Attempted to seed compare with 2 scenes via localStorage.setItem('soundmap-store', {...}) but the store's ErrorBoundary caught 'Cannot read properties of undefined (reading speechScore)' because seed lacked full acoustics + speech fields required by DiffRow > compare-acoustics. Not a review bug — my seed shape was too minimal. Recommend either (a) using the store's built-in seedDemo() action if exposed, or (b) capturing a real scene from /design → 'Guardar escena' before hitting /compare in the next iteration.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Preview URL: https://soundmap-preview.preview.emergentagent.com. Cloudflare rate-limits after ~5-8 rapid navigations; space out requests by 20-30s. Palette tokens: lime=#C9F03E, amber=#F5B62E, warm=#FF6B4A, blue=#4A6BFF. Legacy hues to grep for: #5BA777 (sage), #9B7EBD (amethyst), #B45C6E (soft-red), #C28B62, #4E9EA8, #4E8C8C, #B78C4E, #7E6BBD, #6BA5C7, #4EA8DE, #FF7A3A. Review exception list: vitals/index.tsx, charts.tsx, settings/index.tsx (correctly uses #F5B62E + #FF6B4A). Compare seeding needs full Scene shape including acoustics.speechScore or the ErrorBoundary triggers. Vitest is 78/5 files, remains fully green.",
+  "rca of the issue": "DiffRow legacy hues RCA: The bulk sed pass replaced #5BA777 and #9B7EBD in inline `style={{ ... }}` blocks and in constant declarations (A_HUE, B_HUE, HUE_SYNC etc.), but missed the tailwind arbitrary-value class strings `text-[#5BA777]` / `text-[#9B7EBD]` because these are wrapped inside a `cn(better === 'b' ? ... : ...)` conditional that likely didn't match the sed regex (which probably targeted `\"#5BA777\"` or `#5BA777` outside brackets). Reproduction: `grep -n 'text-\\[#' src/pages/compare/index.tsx` shows the two survivors on L720-721. Fix: manual replace OR extend sed pattern to `#5BA777` unconditionally (no whitespace boundary). Mitigation: reference A_HUE/B_HUE via tailwind's arbitrary syntax `text-[${A_HUE}]` — however TS template strings inside className arbitrary values don't get picked up by Tailwind's JIT scanner, so a safer fix is to use inline `style={{ color: better === 'b' ? A_HUE : B_HUE }}` on the icons instead of the className prop."
+}

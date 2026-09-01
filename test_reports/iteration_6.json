@@ -1,0 +1,106 @@
+{
+  "summary": "Iteration 6 — Frontend-only verification of the 2 fixes from iteration_5 + full regression. Both fixes VERIFIED PASSING. Fix HIGH (DSP share modal degrades gracefully): modal opens with share-dsp-url, share-dsp-copy, share-dsp-download and share-dsp-close ALWAYS present; when the QR generator rejects the URL, share-dsp-qr-warning is shown with 'Preset demasiado grande para QR. Copiá el link.' while URL/copy/download remain functional. Fix MEDIUM (Badge + GlassCard forward data-testid): shared-dsp-badge (count=1, text 'Solo lectura') and shared-dsp-output-0 (count=1) now resolve on /shared/dsp with a valid preset. All regression targets pass: Kiosk (root, panic toggle, exit → /), Settings replay-tour-btn, 17 routes render with 0 page errors and 0 app console errors.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "share-dsp-copy in headless browser",
+        "issue": "As expected per review request, navigator.clipboard.writeText fails in the sandbox headless browser (permission not granted). Modal DOES NOT break: toast 'No se pudo copiar' appears and modal stays functional (URL/download/close all still work). This is environmental, not a real regression.",
+        "affected_selectors": ["[data-testid=\"share-dsp-copy\"]"]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "src/components/soundmap/share-dsp-modal.tsx L40-58: encoded preset is recomputed via useMemo on every outputs/dspModel change AND ts:Date.now() is captured inside the memo — meaning ts stays stable across re-opens of the same modal but resets only when outputs/model actually change. This is fine but subtly counter-intuitive (ts is not 'creation time' but 'first memoization time'). Non-blocking.",
+    "src/components/soundmap/share-dsp-modal.tsx L67: QR errorCorrectionLevel is 'L' with width 320. For 5-output demo preset the URL is ~5KB which exceeds even L capacity. The graceful degradation now works, but consider a second attempt with a smaller QR (or splitting the payload) — currently users with >3 outputs will never get a QR. Non-blocking (behavior is documented via qr-warning).",
+    "src/pages/shared-dsp/index.tsx L21-35 decodePreset: still no length caps on preset.outputs / preset.outputs[i].eq — a malicious link can DOS the render. Same comment as iteration_5, still applies.",
+    "src/components/soundmap/ui.tsx L22/L258/L429: forwarding data-testid via rest[\"data-testid\"] works but it's a bit boilerplaty. Could destructure explicitly as `{ 'data-testid': testId, ...rest }` for readability. Non-blocking."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (frontend-only per request)",
+    "frontend": "100% — both fixes verified, all regressions pass (Kiosk, Settings, 17-route render). Only environmental notice: clipboard API blocked in headless (expected)."
+  },
+  "test_credentials": "N/A — anonymous demo mode.",
+  "seed_data_creation": "Onboarding 'Cargar Recinto Demo' button (in onboarding modal, no testid) → seeds 'The Warehouse Club' room + PA + DSP so /dsp has 5 outputs for the share modal test. Also used hand-crafted 1-output DSP preset in URL hash for /shared/dsp test.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 6. Preview: https://soundmap-preview.preview.emergentagent.com. Cloudflare rate limits still active — kept >=6.5s between page.goto calls, no 429s hit. Onboarding modal on first load intercepts pointer events over the Index page's load-demo-btn — must click the ONBOARDING 'Cargar Recinto Demo' button (in onboarding.tsx L123, no testid) via get_by_role('button', name='Cargar Recinto Demo').first.click(force=True) to seed. Both iteration_5 bugs are fully fixed. Mobile viewport 420x900 works fine. Clipboard API is blocked in headless — the toast 'No se pudo copiar' is EXPECTED and does not break the modal.",
+  "detailed_results": {
+    "fix_high_dsp_share_modal": {
+      "route": "/dsp (after seeding demo)",
+      "dsp-share-btn": 1,
+      "share-dsp-overlay": 1,
+      "share-dsp-url": 1,
+      "share-dsp-url_length_chars": 4940,
+      "share-dsp-copy": 1,
+      "share-dsp-download": 1,
+      "share-dsp-qr": 0,
+      "share-dsp-qr-warning": 1,
+      "share-dsp-qr-warning_text": "Preset demasiado grande para QR. Copiá el link.",
+      "share-dsp-close": 1,
+      "modal_closes_after_close_click": true,
+      "verdict": "PASS"
+    },
+    "fix_high_dsp_share_copy": {
+      "action": "click on share-dsp-copy",
+      "no_js_error_thrown": true,
+      "check_icon_visible_2s": false,
+      "toasts_after_click": ["No se pudo copiar"],
+      "note": "navigator.clipboard.writeText rejects in headless sandbox → toast 'No se pudo copiar' shown, modal remains open and functional. Per review note this is acceptable.",
+      "verdict": "PASS (functionally correct — no crash, graceful error toast)"
+    },
+    "fix_medium_shared_dsp_testids": {
+      "route": "/shared/dsp#preset=<hand-crafted 1-output preset>",
+      "shared-dsp-badge count": 1,
+      "shared-dsp-badge text": "Solo lectura",
+      "shared-dsp-output-0 count": 1,
+      "shared-dsp-output-0 content includes": "OUT-A, SUB, Gain, HPF, LPF, Delay, EQ (1 bandas), 100Hz +2dB Q1.2 peak",
+      "shared-dsp-created count": 1,
+      "shared-dsp-download count": 1,
+      "verdict": "PASS"
+    },
+    "regression_kiosk": {
+      "route": "/kiosk",
+      "kiosk-root": 1,
+      "kiosk-panic-btn": 1,
+      "kiosk-panic-btn text before": "PANIC MUTE",
+      "kiosk-panic-btn text after": "MUTED — TAP TO RESTORE",
+      "kiosk-exit": 1,
+      "url_after_exit": "/",
+      "kiosk-faders": 1,
+      "verdict": "PASS"
+    },
+    "regression_settings_replay_tour": {
+      "route": "/settings",
+      "replay-tour-btn count": 1,
+      "url_after_click": "/",
+      "close-guided-tour count": 1,
+      "verdict": "PASS"
+    },
+    "regression_17_routes": {
+      "/":            { "body_len": 744,  "page_errors": 0, "app_console_errors": 0 },
+      "/room-scan":   { "body_len": 403,  "page_errors": 0, "app_console_errors": 0 },
+      "/gear-builder":{ "body_len": 9638, "page_errors": 0, "app_console_errors": 0 },
+      "/pa":          { "body_len": 1735, "page_errors": 0, "app_console_errors": 0 },
+      "/dsp":         { "body_len": 2086, "page_errors": 0, "app_console_errors": 0 },
+      "/stage-map":   { "body_len": 862,  "page_errors": 0, "app_console_errors": 0 },
+      "/channels":    { "body_len": 603,  "page_errors": 0, "app_console_errors": 0 },
+      "/live":        { "body_len": 1457, "page_errors": 0, "app_console_errors": 0 },
+      "/export-page": { "body_len": 1054, "page_errors": 0, "app_console_errors": 0 },
+      "/scenes":      { "body_len": 330,  "page_errors": 0, "app_console_errors": 0 },
+      "/compare":     { "body_len": 173,  "page_errors": 0, "app_console_errors": 0 },
+      "/community":   { "body_len": 168,  "page_errors": 0, "app_console_errors": 0 },
+      "/templates":   { "body_len": 1890, "page_errors": 0, "app_console_errors": 0 },
+      "/toolkit":     { "body_len": 511,  "page_errors": 0, "app_console_errors": 0 },
+      "/settings":    { "body_len": 897,  "page_errors": 0, "app_console_errors": 0 },
+      "/kiosk":       { "body_len": 228,  "page_errors": 0, "app_console_errors": 0 },
+      "/shared/dsp":  { "body_len": 256,  "page_errors": 0, "app_console_errors": 0 },
+      "summary": "17/17 routes clean, 0 pageerrors, 0 application-level console errors. Cloudflare 429 and Vite HMR websocket noise filtered as environmental."
+    }
+  }
+}
