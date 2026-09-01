@@ -18,7 +18,6 @@ import GearBuilder from "@/pages/gear-builder/index.tsx";
 import DSPPage from "@/pages/dsp/index.tsx";
 import Channels from "@/pages/channels/index.tsx";
 import ExportPage from "@/pages/export-page/index.tsx";
-import { V } from "@/components/soundmap/vitals/index.tsx";
 
 const STEPS = [
   { id: "room",   label: "Recinto",  hint: "Dimensiones + material",      Component: RoomScan },

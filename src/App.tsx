@@ -39,6 +39,9 @@ const NotFound       = lazy(() => import("./pages/NotFound.tsx"));
 // Showcase del design system: la fuente visual de verdad. Es una herramienta
 // interna, así que va lazy y no aparece en la navegación.
 const DesignSystem   = lazy(() => import("./pages/design-system/index.tsx"));
+// Registrada en la Fase 3 para completar el grupo ANALYZE de la navegación.
+// La pantalla real se construye en la fase Analyze.
+const AcousticAnalysis = lazy(() => import("./pages/acoustic-analysis/index.tsx"));
 
 function AppLayout() {
   // Prime the AudioContext on first user interaction
@@ -106,6 +109,7 @@ export default function App() {
                 <Route path="/toolkit" element={<PAToolkit />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/design-system" element={<DesignSystem />} />
+                <Route path="/acoustic-analysis" element={<AcousticAnalysis />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>

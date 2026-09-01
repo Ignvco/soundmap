@@ -46,9 +46,9 @@ export function BottomNav() {
         aria-label="Navegación principal"
         className="fixed bottom-0 inset-x-0 z-40 pb-safe"
         style={{
-          background: "rgba(15, 15, 18, 0.85)",
+          background: "rgba(10, 10, 10, 0.88)",
           backdropFilter: "blur(24px)",
-          borderTop: "1px solid rgba(255,255,255,0.06)",
+          borderTop: "1px solid var(--border)",
         }}
       >
         <div className="max-w-3xl mx-auto grid grid-cols-5 items-center px-2 py-2">
@@ -64,9 +64,9 @@ export function BottomNav() {
               aria-label={t("nav.quick_actions")}
               className="h-14 w-14 rounded-full flex items-center justify-center cursor-pointer -mt-6"
               style={{
-                background: "var(--sm-accent)",
+                background: "var(--accent)",
                 color: "var(--background)",
-                boxShadow: "0 12px 32px -8px rgba(201,240,62,0.45), 0 0 0 6px rgba(9,9,11,0.9)",
+                boxShadow: "0 8px 24px -8px rgba(0,0,0,0.6), 0 0 0 5px var(--background)",
                 transition: "transform 0.2s ease",
               }}
               onPointerDown={(e) => (e.currentTarget.style.transform = "scale(0.94)")}
@@ -101,10 +101,12 @@ export function BottomNav() {
               initial={{ y: 60, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 60, opacity: 0 }}
               transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-md rounded-t-[26px] p-6 pb-10"
+              className="w-full max-w-md p-6 pb-10"
               style={{
-                background: "#131316",
-                boxShadow: "0 -20px 60px -10px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.06)",
+                borderTopLeftRadius: "var(--radius-card)",
+                borderTopRightRadius: "var(--radius-card)",
+                background: "var(--surface-2)",
+                boxShadow: "0 -20px 60px -10px rgba(0,0,0,0.7), 0 0 0 1px var(--border)",
               }}
             >
               <div className="flex items-center justify-between mb-5">
@@ -116,7 +118,7 @@ export function BottomNav() {
                   aria-label={t("nav.close")}
                   data-testid="bottom-nav-fab-close"
                   className="h-8 w-8 rounded-full flex items-center justify-center cursor-pointer"
-                  style={{ background: "rgba(255,255,255,0.04)" }}
+                  style={{ background: "var(--surface-3)" }}
                 >
                   <X size={13} className="text-muted-foreground" strokeWidth={1.75} />
                 </button>
@@ -129,15 +131,16 @@ export function BottomNav() {
                       key={action.id}
                       onClick={() => { feedback("tap"); setFabOpen(false); navigate(action.path); }}
                       data-testid={`fab-action-${action.id}`}
-                      className="text-left rounded-xl px-4 py-3.5 flex items-center gap-3 cursor-pointer"
+                      className="text-left px-4 py-3.5 flex items-center gap-3 cursor-pointer"
                       style={{
-                        background: "rgba(255,255,255,0.02)",
-                        boxShadow: "0 0 0 1px rgba(255,255,255,0.06)",
+                        borderRadius: "var(--radius-control)",
+                        background: "var(--surface-1)",
+                        boxShadow: "0 0 0 1px var(--border)",
                       }}
                     >
                       <div
                         className="h-9 w-9 rounded-full flex items-center justify-center shrink-0"
-                        style={{ background: "rgba(201,240,62,0.15)", color: "var(--sm-accent)" }}
+                        style={{ background: "var(--accent-dim)", color: "var(--accent)" }}
                       >
                         <Icon size={14} strokeWidth={1.75} />
                       </div>
@@ -168,7 +171,7 @@ function NavTab({ tab, active }: { tab: typeof TABS[number]; active: boolean }) 
       data-testid={`bottom-nav-${tab.id}`}
       className="flex flex-col items-center gap-0.5 py-1 cursor-pointer"
       style={{
-        color: active ? "var(--sm-accent)" : "var(--muted-foreground)",
+        color: active ? "var(--accent)" : "var(--muted-foreground)",
         transition: "color 0.3s ease",
       }}
     >
