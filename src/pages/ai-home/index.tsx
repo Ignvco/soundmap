@@ -1,38 +1,125 @@
-// Home v8 — command center.
+// Home — V6.
 //
-// El rediseño pide eliminar el look de "card · card · card". La v7 apilaba
-// siete tarjetas del mismo peso: nada dominaba y no había una acción evidente.
+// Composición tomada del mockup: un panel de aplicación de altura completa, no
+// un documento que scrollea.
 //
-// Jerarquía nueva, de arriba abajo:
-//   1. Saludo + nombre del recinto (editorial, grande)
-//   2. Cuatro métricas SIN caja — el número es el elemento
-//   3. El heatmap de SPL como protagonista, no encerrado en una tarjeta chica
-//   4. UNA acción primaria (Continuar diseño) + dos secundarias
-//   5. Escenas recientes como lista, no como grilla de tarjetas
+//   Header      cabecera contextual (saludo · recinto · estado + acciones)
+//   Métricas    banda de 4 lecturas separadas por hairlines verticales
+//   Heatmap     ocupa TODO el espacio restante — es el protagonista
+//   CTAs        flotan sobre el heatmap, abajo a la izquierda
+//   Escenas     banda fija de 148 px al pie
 //
-// La capa de datos NO cambió: los mismos motores, los mismos hooks.
-import { useMemo, useState } from "react";
+// ── Escritorio vs móvil ─────────────────────────────────────────────────────
+// En escritorio las cinco zonas son paneles de altura fija: nada scrollea, todo
+// está a la vista. En 390 px eso es imposible —cinco zonas no entran—, así que
+// móvil apila y scrollea. Mismo lenguaje visual, distinta composición.
+//
+// ── Datos ───────────────────────────────────────────────────────────────────
+// La capa de datos NO cambió respecto de la versión anterior: mismos motores
+// (`paSummary`, `coverageByZone`, `roomSummary`, `computeSplGrid`,
+// `sceneToSources`), mismo store. El mockup dibuja su heatmap con gradientes
+// fijos; acá se alimenta del grid real.
+import { useMemo } from "react";
 import { motion } from "motion/react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, ChevronDown, Radio, BarChart3, Plus, Check } from "lucide-react";
+import { ArrowRight, ChevronDown, Play, Activity, Plus, Map, Sparkles } from "lucide-react";
 import { useAppStore } from "@/store/app.ts";
 import { feedback } from "@/lib/feedback.ts";
-import { CommandPalette } from "@/components/soundmap/command-palette.tsx";
-import { Metric, MetricRow, SectionLabel, Divider } from "@/components/soundmap/vitals/metric.tsx";
 import { SplHeatmap2D } from "@/components/soundmap/spl-heatmap-2d.tsx";
 import { computeSplGrid } from "@/lib/audio/spl-grid.ts";
 import {
   paSummary, coverageByZone, roomSummary, sceneToSources,
 } from "@/lib/audio/system-vitals.ts";
 
+/** Lectura de instrumento: valor mono grande, unidad, label en mayúsculas. */
+function Reading({
+  value, unit, label, tone = "default", testId,
+}: {
+  value: string;
+  unit?: string;
+  label: string;
+  tone?: "default" | "accent" | "warning";
+  testId?: string;
+}) {
+  // Un "—" es ausencia de dato, no una lectura: va en el color apagado para
+  // que no compita visualmente con las métricas que sí tienen valor.
+  const isEmpty = value === "—";
+  const color = isEmpty
+    ? "var(--muted-foreground)"
+    : tone === "accent" ? "var(--accent)"
+    : tone === "warning" ? "var(--warning)"
+    : "var(--foreground)";
+  return (
+    <div className="min-w-0" data-testid={testId}>
+      <div className="flex items-baseline gap-1">
+        <span
+          className="t-mono font-semibold leading-none truncate"
+          style={{ fontSize: 26, color }}
+        >
+          {value}
+        </span>
+        {unit && (
+          <span className="t-mono" style={{ fontSize: 13, color: "var(--secondary-foreground)" }}>
+            {unit}
+          </span>
+        )}
+      </div>
+      <div
+        className="mt-[3px] uppercase truncate"
+        style={{ fontSize: 10, letterSpacing: "0.1em", color: "var(--muted-foreground)" }}
+      >
+        {label}
+      </div>
+    </div>
+  );
+}
+
+/** Botón de la cabecera: superficie elevada, borde sutil, radio de control. */
+function HeaderAction({
+  icon, label, onClick, accentIcon, testId,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  accentIcon?: boolean;
+  testId?: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      data-testid={testId}
+      className="hidden sm:inline-flex items-center gap-1.5 px-3.5 h-8 text-[12px] cursor-pointer shrink-0"
+      style={{
+        borderRadius: "var(--radius-control)",
+        background: "var(--surface-2)",
+        boxShadow: "0 0 0 1px var(--border)",
+        color: "var(--secondary-foreground)",
+        transition: "color var(--dur-fast) var(--ease)",
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.color = "var(--foreground)"; }}
+      onMouseLeave={(e) => { e.currentTarget.style.color = "var(--secondary-foreground)"; }}
+    >
+      <span style={accentIcon ? { color: "var(--accent)" } : undefined}>{icon}</span>
+      {label}
+    </button>
+  );
+}
+
 export default function AIHome() {
   const navigate = useNavigate();
   const { room, acoustics, tops, subs, monitors, scenes, loadDemoVenue } = useAppStore();
-  const [paletteOpen, setPaletteOpen] = useState(false);
 
   const hasSystem = !!room && (tops.length > 0 || subs.length > 0);
 
-  // Misma capa de datos que antes: los motores no cambiaron.
+  // `paSummary` deriva Max SPL y Headroom de los TOPS. Sin tops devuelve
+  // arraySpl = 0 y headroom = 0 − 105 = −105 dB, que no son mediciones: son el
+  // resultado aritmético de no tener datos. Presentarlos como métricas sería
+  // exactamente el patrón de "dato falso" que venimos corrigiendo.
+  //
+  // El motor NO se toca —esos valores son correctos para su contrato—: es la
+  // vista la que decide cuándo hay información suficiente para mostrarlos.
+  const hasTops = tops.length > 0;
+
   const { pa, coverage, roomInfo, grid } = useMemo(() => {
     if (!hasSystem || !room || !acoustics) {
       return { pa: null, coverage: null, roomInfo: null, grid: null };
@@ -57,271 +144,256 @@ export default function AIHome() {
   const recent = scenes.slice(0, 3);
 
   return (
-    <>
-      <div className="px-5 md:px-10 pt-10 md:pt-12">
-        <div className="max-w-[1180px] mx-auto">
+    <div className="md:h-full md:flex md:flex-col md:overflow-hidden" data-testid="home-v6">
 
-          {/* ── 1. Encabezado editorial ─────────────────────────────────── */}
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      {/* ── Cabecera contextual ─────────────────────────────────────────── */}
+      <header
+        className="flex items-start sm:items-center justify-between gap-4 px-5 md:px-7 py-4 shrink-0"
+        style={{ borderBottom: "1px solid var(--border)" }}
+      >
+        <div className="min-w-0">
+          <p className="text-[11px] mb-1" style={{ color: "var(--muted-foreground)" }}>
+            {greeting}, LevelPro
+          </p>
+          <button
+            onClick={() => { feedback("tap"); navigate(hasSystem ? "/scenes" : "/design?step=room"); }}
+            data-testid="home-venue"
+            className="flex items-center gap-2 cursor-pointer text-left"
           >
-            <p className="text-[13px]" style={{ color: "var(--muted-foreground)" }}>
-              {greeting}, LevelPro
+            <h1 className="text-[19px] md:text-[22px] font-semibold tracking-[-0.02em] text-foreground truncate">
+              {hasSystem && roomInfo ? roomInfo.name : "Sin sistema cargado"}
+            </h1>
+            <ChevronDown size={14} strokeWidth={1.5} className="shrink-0" style={{ color: "var(--muted-foreground)" }} />
+          </button>
+          <div className="flex items-center gap-1.5 mt-1">
+            <span
+              className="h-1.5 w-1.5 rounded-full shrink-0"
+              style={{ background: hasSystem && hasTops ? "var(--accent)" : "var(--muted-foreground)" }}
+              aria-hidden="true"
+            />
+            <span className="text-[11px] font-medium" style={{ color: hasSystem && hasTops ? "var(--accent)" : "var(--muted-foreground)" }}>
+              {!hasSystem ? "Sin sistema" : hasTops ? "Sistema optimizado" : "Recinto cargado · falta PA"}
+            </span>
+            {hasSystem && roomInfo && (
+              <span className="text-[11px] truncate" style={{ color: "var(--muted-foreground)" }}>
+                · {roomInfo.dims}
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <HeaderAction
+            icon={<Map size={13} strokeWidth={1.5} />}
+            label="3D Map"
+            onClick={() => { feedback("tap"); navigate("/stage-map"); }}
+            testId="home-open-3d"
+          />
+          <HeaderAction
+            icon={<Sparkles size={13} strokeWidth={1.5} />}
+            label="AI Advisor"
+            accentIcon
+            onClick={() => { feedback("tap"); window.dispatchEvent(new Event("soundmap:openadvisor")); }}
+            testId="home-open-advisor"
+          />
+        </div>
+      </header>
+
+      {/* ── Banda de métricas ───────────────────────────────────────────── */}
+      <div
+        className="grid grid-cols-2 md:grid-cols-4 shrink-0"
+        style={{ borderBottom: "1px solid var(--border)" }}
+        data-testid="home-metrics"
+      >
+        {[
+          {
+            value: pa && hasTops ? `${Math.round(pa.arraySpl)}` : "—",
+            unit: pa && hasTops ? "dB" : undefined,
+            label: hasSystem && !hasTops ? "Max SPL · sin tops" : "Max SPL",
+            testId: "metric-spl",
+          },
+          {
+            // coverageByZone devuelve null si no hay fuentes: ya es honesto.
+            value: coverage ? `${Math.round(coverage.uniformityPct)}` : "—",
+            unit: coverage ? "%" : undefined,
+            label: "Cobertura",
+            testId: "metric-coverage",
+          },
+          {
+            // El RT60 sólo depende del recinto: es válido aunque no haya PA.
+            value: roomInfo ? roomInfo.rt60Audience.toFixed(2) : "—",
+            unit: roomInfo ? "s" : undefined,
+            label: "RT60 mid",
+            testId: "metric-rt60",
+          },
+          {
+            value: pa && hasTops ? `${pa.headroomDb > 0 ? "+" : ""}${pa.headroomDb}` : "—",
+            unit: pa && hasTops ? "dB" : undefined,
+            label: hasSystem && !hasTops ? "Headroom · sin tops" : "Headroom",
+            testId: "metric-headroom",
+            tone: (!pa || !hasTops ? "default" : pa.headroomDb >= 3 ? "accent" : "warning") as "default" | "accent" | "warning",
+          },
+        ].map((m, i) => (
+          <div
+            key={m.label}
+            className="px-5 md:px-7 py-3.5"
+            style={{
+              // Hairlines verticales entre lecturas. En móvil la grilla es 2×2,
+              // así que el corte va en las columnas impares.
+              borderRight: i % 2 === 0 || i < 3 ? "1px solid var(--border)" : "none",
+              borderTop: i >= 2 ? "1px solid var(--border)" : "none",
+            }}
+          >
+            <Reading {...m} />
+          </div>
+        ))}
+      </div>
+
+      {/* ── Heatmap protagonista + CTAs flotantes ───────────────────────── */}
+      <div className="relative md:flex-1 md:min-h-0" data-testid="home-hero">
+        {grid ? (
+          <button
+            onClick={() => { feedback("tap"); navigate("/pa"); }}
+            data-testid="home-heatmap"
+            aria-label="Abrir análisis de SPL"
+            className="block w-full h-[280px] md:h-full cursor-pointer"
+          >
+            <SplHeatmap2D grid={grid} className="w-full h-full" />
+          </button>
+        ) : (
+          <div
+            className="flex flex-col items-center justify-center h-[280px] md:h-full px-6 text-center"
+            data-testid="home-heatmap-empty"
+          >
+            <p className="text-[14px] text-foreground font-medium">Sin cobertura que mostrar</p>
+            <p className="text-[12px] mt-1.5 max-w-xs leading-relaxed" style={{ color: "var(--muted-foreground)" }}>
+              Definí el recinto y elegí las cajas: el mapa de SPL se calcula solo.
             </p>
             <button
-              onClick={() => { feedback("tap"); navigate(hasSystem ? "/scenes" : "/design?step=room"); }}
-              data-testid="home-venue"
-              className="group mt-1.5 flex items-center gap-2.5 cursor-pointer text-left"
-            >
-              <h1 className="text-[30px] md:text-[42px] font-semibold tracking-[-0.035em] leading-[1.05] text-foreground truncate">
-                {hasSystem && roomInfo ? roomInfo.name : "Sin sistema cargado"}
-              </h1>
-              <ChevronDown
-                size={20}
-                strokeWidth={2}
-                className="shrink-0 mt-1"
-                style={{ color: "var(--muted-foreground)" }}
-              />
-            </button>
-
-            <div className="flex items-center gap-2 mt-3">
-              <span
-                className="h-1.5 w-1.5 rounded-full shrink-0"
-                style={{ background: hasSystem ? "var(--accent)" : "var(--muted-foreground)" }}
-                aria-hidden="true"
-              />
-              <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
-                {hasSystem
-                  ? `Sistema optimizado · ${tops.reduce((n, t) => n + (t.quantity ?? 1), 0)} tops · ${subs.reduce((n, x) => n + (x.quantity ?? 1), 0)} subs`
-                  : "Cargá un recinto para ver los vitales del sistema"}
-              </p>
-            </div>
-          </motion.div>
-
-          {/* ── 2. Métricas sin caja ────────────────────────────────────── */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
-            className="mt-9 md:mt-11"
-          >
-            <MetricRow testId="home-metrics">
-              <Metric
-                value={pa ? `${Math.round(pa.arraySpl)}` : "—"}
-                unit="dB" label="Max SPL" testId="metric-spl"
-              />
-              <Metric
-                value={coverage ? `${Math.round(coverage.uniformityPct)}` : "—"}
-                unit="%" label="Cobertura" testId="metric-coverage"
-              />
-              <Metric
-                value={roomInfo ? roomInfo.rt60Audience.toFixed(2) : "—"}
-                unit="s" label="RT60 mid" testId="metric-rt60"
-              />
-              <Metric
-                value={pa ? `${pa.headroomDb > 0 ? "+" : ""}${pa.headroomDb}` : "—"}
-                unit="dB" label="Headroom"
-                tone={!pa ? "default" : pa.headroomDb >= 3 ? "accent" : "warning"}
-                testId="metric-headroom"
-              />
-            </MetricRow>
-          </motion.div>
-
-          {/* ── 3. La visualización como protagonista ───────────────────── */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.16, ease: [0.22, 1, 0.36, 1] }}
-            className="mt-8 md:mt-10"
-          >
-            {grid ? (
-              <button
-                onClick={() => { feedback("tap"); navigate("/stage-map"); }}
-                data-testid="home-heatmap"
-                className="group block w-full cursor-pointer"
-                aria-label="Abrir mapa 3D del escenario"
-              >
-                <div
-                  className="relative overflow-hidden"
-                  style={{
-                    borderRadius: "var(--radius-card)",
-                    background: "var(--surface-1)",
-                    boxShadow: "var(--elev-1)",
-                  }}
-                >
-                  <SplHeatmap2D grid={grid} className="w-full h-[280px] md:h-[380px]" />
-                  <div className="absolute left-4 top-4 flex items-center gap-2">
-                    <span
-                      className="px-2 py-1 text-[10px] font-medium uppercase tracking-[0.14em]"
-                      style={{
-                        borderRadius: "var(--radius-chip)",
-                        background: "rgba(0,0,0,0.55)",
-                        color: "var(--muted-foreground)",
-                        backdropFilter: "blur(8px)",
-                      }}
-                    >
-                      SPL · dB
-                    </span>
-                  </div>
-                </div>
-              </button>
-            ) : (
-              <div
-                className="flex flex-col items-center justify-center h-[240px] md:h-[300px] px-6 text-center"
-                style={{
-                  borderRadius: "var(--radius-card)",
-                  background: "var(--surface-1)",
-                  boxShadow: "var(--elev-1)",
-                }}
-                data-testid="home-heatmap-empty"
-              >
-                <p className="text-[14px] text-foreground font-medium">Sin cobertura que mostrar</p>
-                <p className="text-[12px] mt-1.5 max-w-xs leading-relaxed" style={{ color: "var(--muted-foreground)" }}>
-                  Definí el recinto y elegí las cajas: el mapa de SPL se calcula solo.
-                </p>
-                <button
-                  onClick={() => { feedback("select"); loadDemoVenue(); }}
-                  data-testid="home-load-demo"
-                  className="mt-5 h-9 px-4 text-[12px] font-medium cursor-pointer"
-                  style={{
-                    borderRadius: "var(--radius-control)",
-                    background: "var(--surface-3)",
-                    color: "var(--foreground)",
-                  }}
-                >
-                  Cargar recinto de demo
-                </button>
-              </div>
-            )}
-          </motion.div>
-
-          {/* ── 4. Una acción primaria, dos secundarias ─────────────────── */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.24, ease: [0.22, 1, 0.36, 1] }}
-            className="mt-6 flex flex-col sm:flex-row gap-2.5"
-          >
-            <button
-              onClick={() => { feedback("select"); navigate("/design"); }}
-              data-testid="home-primary-cta"
-              className="group flex-1 sm:flex-none sm:min-w-[220px] h-11 px-5 inline-flex items-center justify-center gap-2 text-[13px] font-medium cursor-pointer"
+              onClick={() => { feedback("select"); loadDemoVenue(); }}
+              data-testid="home-load-demo"
+              className="mt-5 h-8 px-4 text-[12px] font-medium cursor-pointer"
               style={{
-                borderRadius: "var(--radius-pill)",
-                background: "var(--accent)",
-                color: "var(--accent-foreground)",
-                transition: "opacity var(--dur-fast) var(--ease)",
+                borderRadius: "var(--radius-control)",
+                background: "var(--surface-2)",
+                boxShadow: "0 0 0 1px var(--border)",
+                color: "var(--foreground)",
               }}
             >
-              {hasSystem ? "Continuar diseño" : "Empezar diseño"}
-              <ArrowRight size={14} strokeWidth={2.25} className="group-hover:translate-x-0.5" style={{ transition: "transform var(--dur) var(--ease)" }} />
+              Cargar recinto de demo
             </button>
+          </div>
+        )}
 
-            {[
-              { label: "Perform", icon: Radio, to: "/perform", testId: "home-goto-perform" },
-              { label: "Analizar", icon: BarChart3, to: "/compare", testId: "home-goto-analyze" },
-            ].map(({ label, icon: Icon, to, testId }) => (
-              <button
-                key={to}
-                onClick={() => { feedback("tap"); navigate(to); }}
-                data-testid={testId}
-                className="h-11 px-5 inline-flex items-center justify-center gap-2 text-[13px] font-medium cursor-pointer"
-                style={{
-                  borderRadius: "var(--radius-pill)",
-                  background: "transparent",
-                  boxShadow: "0 0 0 1px var(--border)",
-                  color: "var(--foreground)",
-                  transition: "box-shadow var(--dur-fast) var(--ease)",
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 0 0 1px var(--border-strong)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 0 0 1px var(--border)"; }}
-              >
-                <Icon size={14} strokeWidth={1.75} />
-                {label}
-              </button>
-            ))}
-          </motion.div>
-
-          {/* ── 5. Escenas recientes como lista ─────────────────────────── */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.32 }}
-            className="mt-12 md:mt-14"
+        {/* CTAs: en escritorio flotan sobre el heatmap; en móvil van debajo. */}
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
+          className="flex flex-wrap gap-2.5 px-5 md:px-7 py-4 md:py-0 md:absolute md:bottom-5 md:left-0 md:z-10"
+        >
+          <button
+            onClick={() => { feedback("select"); navigate("/design"); }}
+            data-testid="home-primary-cta"
+            className="group inline-flex items-center gap-2 px-5 h-10 text-[13px] font-semibold cursor-pointer"
+            style={{
+              borderRadius: "var(--radius-control)",
+              background: "var(--accent)",
+              color: "var(--accent-foreground)",
+            }}
           >
-            <SectionLabel
-              action={
-                <button
-                  onClick={() => { feedback("tap"); navigate("/scenes"); }}
-                  data-testid="home-all-scenes"
-                  className="text-[12px] cursor-pointer"
-                  style={{ color: "var(--muted-foreground)" }}
-                >
-                  Ver todas
-                </button>
-              }
+            {hasSystem ? "Continuar diseño" : "Empezar diseño"}
+            <ArrowRight size={14} strokeWidth={1.75} className="group-hover:translate-x-0.5" style={{ transition: "transform var(--dur) var(--ease)" }} />
+          </button>
+
+          {[
+            { label: "Perform", icon: Play, to: "/perform", testId: "home-goto-perform" },
+            { label: "Analizar", icon: Activity, to: "/pa", testId: "home-goto-analyze" },
+          ].map(({ label, icon: Icon, to, testId }) => (
+            <button
+              key={to}
+              onClick={() => { feedback("tap"); navigate(to); }}
+              data-testid={testId}
+              className="inline-flex items-center gap-2 px-5 h-10 text-[13px] cursor-pointer"
+              style={{
+                borderRadius: "var(--radius-control)",
+                background: "var(--surface-2)",
+                boxShadow: "0 0 0 1px var(--border)",
+                color: "var(--foreground)",
+              }}
             >
-              Escenas recientes
-            </SectionLabel>
+              <Icon size={14} strokeWidth={1.5} />
+              {label}
+            </button>
+          ))}
+        </motion.div>
+      </div>
 
-            <Divider />
+      {/* ── Escenas recientes ───────────────────────────────────────────── */}
+      <div
+        className="shrink-0 px-5 md:px-7 py-3.5"
+        style={{ borderTop: "1px solid var(--border)", background: "var(--background)" }}
+        data-testid="home-recent"
+      >
+        <div className="flex items-center justify-between mb-2.5">
+          <span className="text-[12px] font-medium" style={{ color: "var(--secondary-foreground)" }}>
+            Escenas recientes
+          </span>
+          <button
+            onClick={() => { feedback("tap"); navigate("/scenes"); }}
+            data-testid="home-all-scenes"
+            className="text-[11px] cursor-pointer"
+            style={{ color: "var(--muted-foreground)" }}
+          >
+            Ver todas
+          </button>
+        </div>
 
-            {recent.length === 0 ? (
-              <button
-                onClick={() => { feedback("tap"); navigate("/design?step=room"); }}
-                data-testid="home-new-scene"
-                className="w-full flex items-center gap-3 py-4 cursor-pointer text-left"
-              >
-                <span
-                  className="h-8 w-8 flex items-center justify-center shrink-0"
-                  style={{ borderRadius: "var(--radius-chip)", background: "var(--surface-2)", color: "var(--muted-foreground)" }}
-                >
-                  <Plus size={14} strokeWidth={2} />
+        <div className="flex gap-2.5 overflow-x-auto no-scrollbar">
+          {recent.map((sc) => (
+            <button
+              key={sc.id}
+              onClick={() => { feedback("tap"); navigate("/scenes"); }}
+              data-testid={`home-scene-${sc.id}`}
+              className="flex-1 min-w-[150px] px-3.5 py-2.5 text-left cursor-pointer"
+              style={{
+                borderRadius: "var(--radius-control)",
+                background: "var(--surface-1)",
+                boxShadow: "0 0 0 1px var(--border)",
+              }}
+            >
+              <p className="text-[13px] font-medium text-foreground truncate leading-tight">{sc.name}</p>
+              <p className="text-[11px] truncate mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                {sc.room?.name ?? "—"}
+              </p>
+              <div className="flex items-center justify-between mt-1.5">
+                <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+                  {new Date(sc.updatedAt ?? Date.now()).toLocaleDateString("es-AR", { day: "numeric", month: "short" })}
                 </span>
-                <span className="text-[13px]" style={{ color: "var(--muted-foreground)" }}>
-                  Todavía no guardaste ninguna escena
+                <span className="t-mono text-[12px] font-semibold" style={{ color: "var(--accent)" }}>
+                  {sc.acoustics?.rt60Audience != null ? `${sc.acoustics.rt60Audience}s` : ""}
                 </span>
-              </button>
-            ) : (
-              recent.map((sc) => (
-                <div key={sc.id}>
-                  <button
-                    onClick={() => { feedback("tap"); navigate("/scenes"); }}
-                    data-testid={`home-scene-${sc.id}`}
-                    className="group w-full flex items-center gap-4 py-3.5 cursor-pointer text-left"
-                  >
-                    <span
-                      className="h-8 w-8 flex items-center justify-center shrink-0"
-                      style={{ borderRadius: "var(--radius-chip)", background: "var(--surface-2)", color: "var(--muted-foreground)" }}
-                    >
-                      <Check size={13} strokeWidth={2} />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[13px] font-medium text-foreground truncate leading-tight">{sc.name}</p>
-                      <p className="text-[11px] mt-0.5 truncate" style={{ color: "var(--muted-foreground)" }}>
-                        {new Date(sc.updatedAt ?? Date.now()).toLocaleDateString("es-AR", { day: "numeric", month: "short" })}
-                        {sc.room?.name ? ` · ${sc.room.name}` : ""}
-                      </p>
-                    </div>
-                    <ArrowRight
-                      size={13}
-                      strokeWidth={1.75}
-                      className="shrink-0 opacity-0 group-hover:opacity-100"
-                      style={{ color: "var(--muted-foreground)", transition: "opacity var(--dur) var(--ease)" }}
-                    />
-                  </button>
-                  <Divider />
-                </div>
-              ))
-            )}
-          </motion.div>
+              </div>
+            </button>
+          ))}
+
+          <button
+            onClick={() => { feedback("tap"); navigate("/design?step=room"); }}
+            data-testid="home-new-scene"
+            className="shrink-0 w-[130px] flex items-center justify-center gap-1.5 text-[12px] cursor-pointer py-2.5"
+            style={{
+              borderRadius: "var(--radius-control)",
+              border: "1px dashed var(--border-strong)",
+              color: "var(--muted-foreground)",
+            }}
+          >
+            <Plus size={13} strokeWidth={1.5} />
+            Nueva escena
+          </button>
         </div>
       </div>
 
       <span data-testid="ai-home-question" className="sr-only">¿Qué querés hacer hoy?</span>
-      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
-    </>
+    </div>
   );
 }

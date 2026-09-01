@@ -189,6 +189,15 @@ function AdvisorPanel({ onClose }: { onClose: () => void }) {
 export function AdvisorWidget() {
   const [open, setOpen] = useState(false);
 
+  // La cabecera de la Home V6 tiene un botón "AI Advisor". El advisor todavía
+  // es un widget flotante (se convierte en pantalla en la Fase 11), así que se
+  // abre por evento en vez de duplicar el estado o levantarlo al shell.
+  useEffect(() => {
+    const openAdvisor = () => setOpen(true);
+    window.addEventListener("soundmap:openadvisor", openAdvisor);
+    return () => window.removeEventListener("soundmap:openadvisor", openAdvisor);
+  }, []);
+
   return (
     <>
       <AnimatePresence>
