@@ -35,12 +35,12 @@
      sola fuente de verdad.
      Los valores por defecto de Tailwind (xl 12 / 2xl 16 / 3xl 24) leían como
      app de consumo. Estos son los del rediseño. */
-  --radius-sm: var(--radius-chip);       /*  8px */
-  --radius-md: var(--radius-control);    /* 10px */
-  --radius-lg: var(--radius);            /* 12px */
-  --radius-xl: var(--radius-control);    /* 10px — era 16 */
-  --radius-2xl: var(--radius-card);      /* 14px — era 16 */
-  --radius-3xl: var(--radius-card);      /* 14px — era 24 */
+  --radius-sm: var(--radius-chip);       /*  4px */
+  --radius-md: var(--radius-control);    /*  6px */
+  --radius-lg: var(--radius);            /*  6px */
+  --radius-xl: var(--radius-control);    /*  6px */
+  --radius-2xl: var(--radius-card);      /* 10px */
+  --radius-3xl: var(--radius-card);      /* 10px */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -96,6 +96,7 @@
      Escala de 4 pasos. La jerarquía la da la superficie, no la sombra:
      en dark plano una sombra pesada ensucia más de lo que separa. */
   --background: #08090A;          /* Canvas raíz */
+  --bg-secondary: #0A0A0A;        /* Canvas alterno (V6 --bg-secondary) */
   --surface-1: #101010;           /* Paneles, listas */
   --surface-2: #141414;           /* Tarjetas sobre panel */
   --surface-3: #181818;           /* Hover, seleccionado, inputs */
@@ -106,15 +107,15 @@
   --popover: var(--surface-1);
   --popover-foreground: #F5F5F5;
   --secondary: var(--surface-2);
-  --secondary-foreground: #A3A3A3;
+  --secondary-foreground: #A0A0A0;   /* V6 --text-secondary */
   --muted: var(--surface-1);
-  --muted-foreground: #737373;
+  --muted-foreground: #666666;       /* V6 --text-muted */
   --input: var(--surface-3);
 
   /* ── Bordes: blanco al 5-10 %, nunca líneas duras ──────────────────── */
-  --border: rgba(255, 255, 255, 0.07);
-  --border-strong: rgba(255, 255, 255, 0.11);
-  --border-subtle: rgba(255, 255, 255, 0.045);
+  --border: rgba(255, 255, 255, 0.06);        /* V6 */
+  --border-strong: rgba(255, 255, 255, 0.10); /* V6 */
+  --border-subtle: rgba(255, 255, 255, 0.04); /* V6 */
 
   /* ── Acento: lime, con extrema moderación ───────────────────────────────
      Significa activo · seleccionado · correcto · señal · acción primaria.
@@ -122,6 +123,7 @@
   --accent: #C9F03E;
   --accent-foreground: #08090A;
   --accent-dim: rgba(201, 240, 62, 0.12);
+  --accent-dim2: rgba(201, 240, 62, 0.06);  /* V6 — fondo del nav activo */
   --accent-ring: rgba(201, 240, 62, 0.35);
   --primary: var(--accent);
   --primary-foreground: var(--accent-foreground);
@@ -142,7 +144,7 @@
   --chart-5: #737373;
 
   /* ── Sidebar ────────────────────────────────────────────────────────── */
-  --sidebar: #0B0C0D;
+  --sidebar: var(--bg-secondary);  /* V6: la sidebar usa el canvas alterno */
   --sidebar-foreground: #F5F5F5;
   --sidebar-primary: var(--accent);
   --sidebar-primary-foreground: var(--accent-foreground);
@@ -150,7 +152,12 @@
   --sidebar-accent-foreground: #F5F5F5;
   --sidebar-border: var(--border-subtle);
   --sidebar-ring: var(--accent-ring);
-  --sidebar-w: 232px;
+  /* 200px es el ancho del mockup V6. Consumidores verificados:
+     `desktop-sidebar` (el propio ancho) y la action bar del wizard
+     (`md:left-[var(--sidebar-w)]`), que se realinea sola.
+     `components/ui/sidebar.tsx` de shadcn usa `--sidebar-width`, otra
+     variable, y no está en uso: sin impacto. */
+  --sidebar-w: 200px;
   --sidebar-w-collapsed: 64px;
 
   /* ── Alias --sm-* (compatibilidad con el código existente) ───────────── */
@@ -165,13 +172,17 @@
   --sm-hairline: var(--border);
   --sm-muted: var(--muted-foreground);
 
-  /* ── Radios ─────────────────────────────────────────────────────────────
-     Bajados de la escala 18-24 px anterior. Los radios grandes leen como
-     app de consumo; un instrumento técnico usa esquinas contenidas. */
-  --radius: 12px;
-  --radius-card: 14px;      /* paneles, tarjetas, modales */
-  --radius-control: 10px;   /* inputs, selects, botones */
-  --radius-chip: 8px;       /* chips, badges, celdas */
+  /* ── Radios — escala V6 ─────────────────────────────────────────────────
+     Fuente: el mockup de Figma (--radius-sm 4 / --radius 6 / --radius-lg 10).
+     Es menos de la mitad de la escala anterior (8/10/14) y es el cambio con
+     más impacto visual de toda la migración: las esquinas cerradas son lo que
+     hace que la interfaz se lea como instrumento de precisión en vez de app
+     de consumo.
+     `--radius-pill` NO cambia: 999px no es una esquina, es una forma. */
+  --radius: 6px;
+  --radius-card: 10px;      /* paneles, tarjetas, modales   (V6 --radius-lg) */
+  --radius-control: 6px;    /* inputs, selects, botones     (V6 --radius)    */
+  --radius-chip: 4px;       /* chips, badges, celdas        (V6 --radius-sm) */
   --radius-pill: 999px;     /* sólo la acción primaria y el FAB */
 
   /* ── Espaciado — base 4px, escala completa ──────────────────────────── */
