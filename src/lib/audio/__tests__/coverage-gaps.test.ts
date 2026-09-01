@@ -7,7 +7,9 @@
 // lógica que sale por pantalla, no texto.
 import { describe, it, expect } from "vitest";
 import { gearMatchScore, calculatePARecommendation } from "../pa-engine.ts";
+import { computeSplGrid } from "../spl-grid.ts";
 import {
+  sceneToSources,
   logFreqPoints,
   eqCurveFromBands,
   eqBucketed,
@@ -241,5 +243,52 @@ describe("system-vitals — resúmenes de sala y cobertura", () => {
 
   it("coverageByZone devuelve null sin equipo, en vez de inventar zonas", () => {
     expect(coverageByZone(room(), [], [])).toBeNull();
+  });
+});
+
+describe("computeSplGrid — rango dinámico para la visualización", () => {
+  // Guardarraíl del QA de Fase 4: el heatmap usaba umbrales ABSOLUTOS fijos
+  // (>108 rojo, >102 naranja...). Un PA bien dimensionado entrega 100-115 dB en
+  // toda la platea, así que todas las celdas caían en el tramo rojo y el mapa
+  // quedaba saturado. La escala pasó a ser relativa al min/max del grid; estos
+  // tests confirman que ese rango existe y es utilizable.
+  const r = room();
+  const sources = sceneToSources(r, [gear({ quantity: 4 })], [gear({ id: "s", category: "subs", quantity: 2 })]);
+
+  it("expone min y max coherentes", () => {
+    const g = computeSplGrid(r, sources, { cols: 20, rows: 14 });
+    expect(Number.isFinite(g.min)).toBe(true);
+    expect(Number.isFinite(g.max)).toBe(true);
+    expect(g.max).toBeGreaterThanOrEqual(g.min);
+  });
+
+  it("un recinto real produce variación espacial, no un valor plano", () => {
+    // Si el grid fuese plano no habría nada que visualizar: el fondo de sala
+    // SIEMPRE recibe menos nivel que el frente por ley de cuadrado inverso.
+    const g = computeSplGrid(r, sources, { cols: 20, rows: 14 });
+    expect(g.max - g.min).toBeGreaterThan(3);
+  });
+
+  it("todas las celdas caen dentro de min..max", () => {
+    // `min`/`max` se redondean a 1 decimal en el motor, las celdas no: la
+    // tolerancia tiene que absorber ese redondeo (0.05 dB), no 0.001.
+    const g = computeSplGrid(r, sources, { cols: 20, rows: 14 });
+    for (const c of g.cells) {
+      expect(c).toBeGreaterThanOrEqual(g.min - 0.05);
+      expect(c).toBeLessThanOrEqual(g.max + 0.05);
+      expect(Number.isFinite(c)).toBe(true);
+    }
+  });
+
+  it("la normalización relativa reparte las celdas por la rampa completa", () => {
+    // Reproduce el mapeo del heatmap: t = (spl - floor) / span.
+    const g = computeSplGrid(r, sources, { cols: 24, rows: 16 });
+    const span = Math.max(6, g.max - g.min);
+    const floor = g.max - span;
+    const ts = g.cells.map((c) => Math.min(1, Math.max(0, (c - floor) / span)));
+    // Con umbrales absolutos, el 100 % caía en un solo tramo. Ahora tiene que
+    // haber celdas tanto en la mitad baja como en la alta de la rampa.
+    expect(ts.some((t) => t < 0.4)).toBe(true);
+    expect(ts.some((t) => t > 0.6)).toBe(true);
   });
 });

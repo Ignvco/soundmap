@@ -14,16 +14,46 @@ interface Props {
   "data-testid"?: string;
 }
 
-/** Discrete SPL palette matching the Stage3D 3D map. */
-function absoluteColor(spl: number): string {
-  if (spl > 108) return "var(--destructive)";
-  if (spl > 102) return "var(--sm-warm)";
-  if (spl > 96)  return "var(--warning)";
-  if (spl > 90)  return "var(--accent)";
-  if (spl > 84)  return "var(--info)";
-  if (spl > 78)  return "var(--sm-blue)";
-  return "#2A3A55";
+/**
+ * Color por SPL, en escala RELATIVA al rango del propio grid.
+ *
+ * Antes esto usaba umbrales absolutos fijos (>108 rojo, >102 naranja, >96
+ * ámbar…). El problema es que un PA bien dimensionado entrega 100-115 dB en
+ * toda la platea: **todas las celdas caían en el tramo naranja/rojo** y el mapa
+ * quedaba saturado, sin distinguir nada.
+ *
+ * Un mapa de cobertura no responde "¿cuántos dB hay acá?" — para eso está la
+ * lectura numérica. Responde "¿dónde hay MÁS y dónde MENOS?". Por eso la escala
+ * se normaliza contra el `min`/`max` reales del grid: el contraste aparece
+ * donde de verdad hay variación.
+ *
+ * Los datos no se tocan: `computeSplGrid` entrega los mismos valores. Lo único
+ * que cambia es cómo se mapean a color.
+ *
+ * `span` es el rango real en dB. Si es muy chico (sistema homogéneo), se aplica
+ * un piso para no amplificar ruido numérico y pintar diferencias inexistentes.
+ */
+function absoluteColor(spl: number, min: number, span: number): string {
+  // t ∈ [0,1] — 0 es la zona más floja del recinto, 1 la más caliente.
+  const t = span > 0 ? Math.min(1, Math.max(0, (spl - min) / span)) : 0.5;
+
+  // Rampa fría → acento → cálida. El lime marca la zona bien cubierta; el
+  // naranja/rojo queda reservado al 15 % superior, para que signifique algo.
+  if (t > 0.85) return "var(--destructive)";
+  if (t > 0.70) return "var(--sm-warm)";
+  if (t > 0.55) return "var(--warning)";
+  if (t > 0.38) return "var(--accent)";
+  if (t > 0.24) return "var(--info)";
+  if (t > 0.12) return "var(--sm-blue)";
+  return "#1E2A3D";
 }
+
+/**
+ * Rango mínimo (dB) sobre el que se normaliza.
+ * Por debajo de esto el sistema es homogéneo de verdad y estirar la escala sólo
+ * inventaría contraste donde no lo hay.
+ */
+const MIN_SPAN_DB = 6;
 
 /** Diverging palette: red (delta > 0), blue (delta < 0), grey (~0). */
 function deltaColor(delta: number): string {
@@ -37,6 +67,9 @@ function deltaColor(delta: number): string {
 
 export function SplHeatmap2D({ grid, mode = "absolute", className, ...rest }: Props) {
   const { cols, rows, cells } = grid;
+  // Rango real del grid, con piso para no amplificar diferencias irrelevantes.
+  const span = Math.max(MIN_SPAN_DB, grid.max - grid.min);
+  const floor = grid.max - span;
   // Aspect ratio: preserve grid proportions.
   const cellW = 100 / cols;
   const cellH = 100 / rows;
@@ -53,7 +86,7 @@ export function SplHeatmap2D({ grid, mode = "absolute", className, ...rest }: Pr
       {cells.map((v, i) => {
         const r = Math.floor(i / cols);
         const c = i % cols;
-        const fill = mode === "delta" ? deltaColor(v) : absoluteColor(v);
+        const fill = mode === "delta" ? deltaColor(v) : absoluteColor(v, floor, span);
         return (
           <rect
             key={i}
