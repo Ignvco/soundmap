@@ -11,15 +11,15 @@
 //   5. Escenas recientes como lista, no como grilla de tarjetas
 //
 // La capa de datos NO cambió: los mismos motores, los mismos hooks.
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { motion } from "motion/react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, ChevronDown, Radio, BarChart3, Plus, Check } from "lucide-react";
 import { useAppStore } from "@/store/app.ts";
 import { feedback } from "@/lib/feedback.ts";
-import { CommandPalette } from "@/components/soundmap/command-palette.tsx";
+
 import { Metric, MetricRow, SectionLabel, Divider } from "@/components/soundmap/vitals/metric.tsx";
-import { SplHeatmap2D } from "@/components/soundmap/spl-heatmap-2d.tsx";
+import { VenuePreview } from "@/components/soundmap/venue-preview.tsx";
 import { computeSplGrid } from "@/lib/audio/spl-grid.ts";
 import {
   paSummary, coverageByZone, roomSummary, sceneToSources,
@@ -28,7 +28,7 @@ import {
 export default function AIHome() {
   const navigate = useNavigate();
   const { room, acoustics, tops, subs, monitors, scenes, loadDemoVenue } = useAppStore();
-  const [paletteOpen, setPaletteOpen] = useState(false);
+
 
   const hasSystem = !!room && (tops.length > 0 || subs.length > 0);
 
@@ -58,8 +58,8 @@ export default function AIHome() {
 
   return (
     <>
-      <div className="px-5 md:px-10 pt-10 md:pt-12">
-        <div className="max-w-[1180px] mx-auto">
+      <div className="v6-workspace">
+        <div className="max-w-[1440px] mx-auto">
 
           {/* ── 1. Encabezado editorial ─────────────────────────────────── */}
           <motion.div
@@ -75,7 +75,7 @@ export default function AIHome() {
               data-testid="home-venue"
               className="group mt-1.5 flex items-center gap-2.5 cursor-pointer text-left"
             >
-              <h1 className="text-[30px] md:text-[42px] font-semibold tracking-[-0.035em] leading-[1.05] text-foreground truncate">
+              <h1 className="v6-heading text-foreground truncate">
                 {hasSystem && roomInfo ? roomInfo.name : "Sin sistema cargado"}
               </h1>
               <ChevronDown
@@ -94,7 +94,7 @@ export default function AIHome() {
               />
               <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
                 {hasSystem
-                  ? `Sistema optimizado · ${tops.reduce((n, t) => n + (t.quantity ?? 1), 0)} tops · ${subs.reduce((n, x) => n + (x.quantity ?? 1), 0)} subs`
+                  ? `Sistema configurado · ${tops.reduce((n, t) => n + (t.quantity ?? 1), 0)} tops · ${subs.reduce((n, x) => n + (x.quantity ?? 1), 0)} subs`
                   : "Cargá un recinto para ver los vitales del sistema"}
               </p>
             </div>
@@ -105,7 +105,7 @@ export default function AIHome() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
-            className="mt-9 md:mt-11"
+            className="mt-6 py-5 border-y border-border"
           >
             <MetricRow testId="home-metrics">
               <Metric
@@ -118,7 +118,7 @@ export default function AIHome() {
               />
               <Metric
                 value={roomInfo ? roomInfo.rt60Audience.toFixed(2) : "—"}
-                unit="s" label="RT60 mid" testId="metric-rt60"
+                unit="s" label="RT60 estimado" testId="metric-rt60"
               />
               <Metric
                 value={pa ? `${pa.headroomDb > 0 ? "+" : ""}${pa.headroomDb}` : "—"}
@@ -134,39 +134,16 @@ export default function AIHome() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.16, ease: [0.22, 1, 0.36, 1] }}
-            className="mt-8 md:mt-10"
+            className="mt-5"
           >
-            {grid ? (
-              <button
-                onClick={() => { feedback("tap"); navigate("/stage-map"); }}
-                data-testid="home-heatmap"
-                className="group block w-full cursor-pointer"
-                aria-label="Abrir mapa 3D del escenario"
-              >
-                <div
-                  className="relative overflow-hidden"
-                  style={{
-                    borderRadius: "var(--radius-card)",
-                    background: "var(--surface-1)",
-                    boxShadow: "var(--elev-1)",
-                  }}
-                >
-                  <SplHeatmap2D grid={grid} className="w-full h-[280px] md:h-[380px]" />
-                  <div className="absolute left-4 top-4 flex items-center gap-2">
-                    <span
-                      className="px-2 py-1 text-[10px] font-medium uppercase tracking-[0.14em]"
-                      style={{
-                        borderRadius: "var(--radius-chip)",
-                        background: "rgba(0,0,0,0.55)",
-                        color: "var(--muted-foreground)",
-                        backdropFilter: "blur(8px)",
-                      }}
-                    >
-                      SPL · dB
-                    </span>
-                  </div>
+            {room ? (
+              <div data-testid="home-heatmap">
+                <VenuePreview room={room} tops={tops} subs={subs} monitors={monitors} grid={grid ?? undefined} />
+                <div className="flex justify-between items-center mt-3 text-xs text-muted-foreground">
+                  <span>Recinto y cobertura del sistema</span>
+                  <button className="v6-button" onClick={() => navigate("/stage-map")}>Abrir Stage Map <ArrowRight size={13} /></button>
                 </div>
-              </button>
+              </div>
             ) : (
               <div
                 className="flex flex-col items-center justify-center h-[240px] md:h-[300px] px-6 text-center"
@@ -249,7 +226,7 @@ export default function AIHome() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.32 }}
-            className="mt-12 md:mt-14"
+            className="mt-8"
           >
             <SectionLabel
               action={
@@ -321,7 +298,7 @@ export default function AIHome() {
       </div>
 
       <span data-testid="ai-home-question" className="sr-only">¿Qué querés hacer hoy?</span>
-      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+
     </>
   );
 }

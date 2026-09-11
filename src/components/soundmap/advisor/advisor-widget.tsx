@@ -31,7 +31,7 @@ function TypingDots() {
   );
 }
 
-function AdvisorPanel({ onClose }: { onClose: () => void }) {
+export function AdvisorPanel({ onClose, embedded = false }: { onClose?: () => void; embedded?: boolean }) {
   const { messages, isStreaming, error, send, stop, reset } = useAdvisorChat();
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -55,9 +55,7 @@ function AdvisorPanel({ onClose }: { onClose: () => void }) {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 24, scale: 0.96 }}
       transition={{ duration: 0.28, ease: [0.25, 0.1, 0.25, 1] as const }}
-      className="fixed z-[70] flex flex-col overflow-hidden bg-[#050706] text-zinc-100 shadow-[0_24px_80px_rgba(0,0,0,0.5)]
-        inset-x-0 bottom-0 top-0 rounded-none
-        sm:inset-auto sm:bottom-6 sm:right-6 sm:top-auto sm:h-[640px] sm:max-h-[85vh] sm:w-[420px] sm:rounded-xl sm:border sm:border-[var(--border)]"
+      className={embedded ? "flex flex-col overflow-hidden v6-panel h-[min(760px,75dvh)] min-h-[420px]" : "fixed z-[70] flex flex-col overflow-hidden bg-background text-foreground shadow-xl inset-0 sm:inset-auto sm:bottom-6 sm:right-6 sm:h-[640px] sm:max-h-[85vh] sm:w-[420px] sm:rounded-lg sm:border sm:border-border"}
     >
       {/* Header */}
       <div className="relative flex items-center justify-between border-b border-[var(--border)] px-5 py-4">
@@ -87,13 +85,13 @@ function AdvisorPanel({ onClose }: { onClose: () => void }) {
               <RotateCcw size={15} />
             </button>
           )}
-          <button
+          {onClose && <button
             onClick={onClose}
             className="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
             aria-label="Cerrar"
           >
             <X size={17} />
-          </button>
+          </button>}
         </div>
       </div>
 

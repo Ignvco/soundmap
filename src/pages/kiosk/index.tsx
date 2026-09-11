@@ -300,19 +300,20 @@ export default function KioskPage() {
   const displayLeq = spl.state === "running" ? spl.reading.leq : 0;
 
   return (
-    <div className="fixed inset-0 z-40 overflow-hidden select-none touch-none"
-      style={{ background: "#000" }}
+    <div className="fixed inset-0 z-40 overflow-y-auto select-none flex flex-col"
+      style={{ background: "var(--background)" }}
       data-testid="kiosk-root">
       {/* Grain */}
-      <div className="grain-overlay" aria-hidden="true" />
+
 
       {/* Header */}
-      <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-4 py-2 bg-gradient-to-b from-black/80 to-transparent pt-safe">
+      <div className="sticky top-0 z-20 flex items-center justify-between px-5 py-3 bg-background border-b border-border pt-safe">
         <div className="flex items-center gap-2">
           <button
             onClick={() => { feedback("tap"); navigate(-1); }}
             data-testid="kiosk-exit"
-            className="h-9 w-9 rounded-full bg-secondary/70 border border-border flex items-center justify-center cursor-pointer active:scale-90"
+            aria-label="Salir de Kiosk"
+            className="h-9 w-9 rounded-md bg-secondary/70 border border-border flex items-center justify-center cursor-pointer active:scale-90"
           >
             <X size={14} />
           </button>
@@ -330,15 +331,16 @@ export default function KioskPage() {
             onClick={toggleFullscreen}
             aria-label={fullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
             data-testid="kiosk-fullscreen"
-            className="h-9 w-9 rounded-full bg-secondary/70 border border-border flex items-center justify-center cursor-pointer active:scale-90"
+            className="h-9 w-9 rounded-md bg-secondary/70 border border-border flex items-center justify-center cursor-pointer active:scale-90"
           >
             {fullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
           </button>}
         </div>
       </div>
 
+      <div className="kiosk-workspace">
       {/* SPL centerpiece */}
-      <div className="absolute top-14 left-1/2 -translate-x-1/2 flex flex-col items-center">
+      <div className="flex flex-col items-center justify-center py-6 min-w-0">
         <button
           onClick={() => { feedback("tap"); if (spl.state === "running") spl.stop(); else spl.start(); }}
           data-testid="kiosk-spl-toggle"
@@ -379,7 +381,7 @@ export default function KioskPage() {
       </div>
 
       {/* Faders row */}
-      <div className="absolute inset-x-0 bottom-24 px-4 flex justify-center gap-3 overflow-x-auto no-scrollbar" data-testid="kiosk-faders">
+      <div className="px-4 py-6 flex justify-start md:justify-center gap-3 overflow-x-auto items-end no-scrollbar" data-testid="kiosk-faders">
         {outputs.length === 0 ? (
           <div className="text-center py-14 px-6">
             <p className="text-[13px] text-foreground font-medium">Sin sistema cargado</p>
@@ -410,9 +412,10 @@ export default function KioskPage() {
           ))
         )}
       </div>
+      </div>
       {outputs.length > MAX_VISIBLE_FADERS && (
         <p
-          className="absolute bottom-[4.5rem] left-4 text-[10px] text-muted-foreground"
+          className="px-5 pb-3 text-[11px] text-muted-foreground"
           data-testid="kiosk-faders-overflow"
         >
           +{outputs.length - MAX_VISIBLE_FADERS} salidas más — ver en DSP
@@ -420,7 +423,7 @@ export default function KioskPage() {
       )}
 
       {/* Barra inferior — aviso de alcance + marcar momento */}
-      <div className="absolute bottom-0 inset-x-0 px-4 pb-safe pb-3 flex items-center gap-2.5 bg-gradient-to-t from-black/85 to-transparent">
+      <div className="mt-auto sticky bottom-0 px-4 pt-3 pb-safe pb-3 flex items-center gap-2.5 bg-background border-t border-border">
         <div
           className="flex-1 flex items-center gap-2 px-3 h-11 rounded-2xl min-w-0"
           style={{ background: "rgba(245,182,46,0.10)", boxShadow: "0 0 0 1px rgba(245,182,46,0.30)" }}

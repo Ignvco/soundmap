@@ -60,8 +60,8 @@ export default function Settings() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground px-6 md:px-12 pt-10 md:pt-16 pb-24">
-      <div className="max-w-3xl mx-auto">
+    <div className="v6-workspace">
+      <div className="max-w-[1000px] mx-auto">
         {/* Whisper header + title */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
@@ -72,12 +72,12 @@ export default function Settings() {
             Ajustes
           </p>
           <h1
-            className="text-[2rem] md:text-[2.8rem] leading-[1.05] tracking-[-0.03em] font-medium mb-3"
+            className="v6-heading mb-3"
             data-testid="settings-title"
           >
             Preferencias
           </h1>
-          <p className="text-[15px] text-muted-foreground max-w-lg leading-relaxed mb-12 md:mb-16">
+          <p className="text-[15px] text-muted-foreground max-w-lg leading-relaxed mb-6">
             Ajustá cómo suena, se siente y se mide SoundMap.
             Los cambios se guardan solos.
           </p>

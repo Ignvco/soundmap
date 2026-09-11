@@ -1,514 +1,497 @@
-// SoundMap — Stage Map 3D (Three.js / R3F)
-// Cinematic 3D visualization of the stage deployment.
-//
-// Isolated as a .jsx (no TypeScript syntax) so that R3F v9's ambient JSX
-// augmentation from @react-three/fiber does not leak into the main app's
-// compilation unit. The public shape is declared in `stage-3d.d.ts`.
-//
-// REFACTOR ATTEMPTED (Feb 2026): converting this to .tsx cascades type
-// errors across ~15 unrelated files (lucide-react icons compiled against
-// ThreeElements namespace). Keeping .jsx + .d.ts isolation until R3F ships
-// a fix (see https://github.com/pmndrs/react-three-fiber/issues around
-// React 19 JSX namespace pollution).
-import { Suspense, useRef, useMemo } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
-import { OrbitControls, Environment, Grid, Html, Text } from "@react-three/drei";
+// R3F stays isolated from the application's TypeScript JSX namespace.
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Canvas, useThree } from "@react-three/fiber";
+import { Edges, Html, OrbitControls } from "@react-three/drei";
+import {
+  Box,
+  Eye,
+  EyeOff,
+  Minus,
+  Plus,
+  RotateCcw,
+  Layers3,
+} from "lucide-react";
 import * as THREE from "three";
+import {
+  coverageVertices,
+  SPL_STOPS,
+  venueSpeakers,
+} from "@/lib/venue-visual.ts";
 
-const COLORS = {
-  accent: "#00FF9E",
-  info: "#5EEAD4",
-  dsp: "#B794F6",
-  live: "#FF3EA5",
-  warning: "#FFB84D",
-  destructive: "#FF4D6D",
-};
-
-// ── Room shell (transparent walls, floor grid) ──────────────────────────────
-function Room({ room }) {
-  const w = room.width;
-  const l = room.length;
-  const h = room.height;
+function Block({
+  position,
+  size,
+  color = "#151719",
+  edge = "#3a3d3f",
+  opacity = 1,
+  rotation,
+}) {
   return (
-    <group>
-      <mesh position={[0, -0.005, 0]} receiveShadow>
-        <boxGeometry args={[w, 0.01, l]} />
-        <meshStandardMaterial color="#0A0D10" roughness={0.9} metalness={0.05} />
-      </mesh>
-      <Grid
-        position={[0, 0.005, 0]}
-        args={[w * 1.4, l * 1.4]}
-        cellSize={1}
-        cellThickness={0.5}
-        cellColor="#1F2429"
-        sectionSize={5}
-        sectionThickness={1.2}
-        sectionColor="#3A4048"
-        fadeDistance={Math.max(w, l) * 1.2}
-        fadeStrength={1}
-        infiniteGrid={false}
+    <mesh position={position} rotation={rotation}>
+      <boxGeometry args={size} />
+      <meshStandardMaterial
+        color={color}
+        roughness={0.9}
+        transparent={opacity < 1}
+        opacity={opacity}
+        depthWrite={opacity === 1}
       />
-      {[
-        { pos: [0, h / 2, -l / 2], size: [w, h, 0.05] },
-        { pos: [0, h / 2, l / 2], size: [w, h, 0.05] },
-        { pos: [-w / 2, h / 2, 0], size: [0.05, h, l] },
-        { pos: [w / 2, h / 2, 0], size: [0.05, h, l] },
-      ].map((wall, i) => (
-        <mesh key={i} position={wall.pos}>
-          <boxGeometry args={wall.size} />
-          <meshStandardMaterial
-            color="#5EEAD4"
-            transparent
-            opacity={0.03}
-            roughness={0.4}
-            emissive="#5EEAD4"
-            emissiveIntensity={0.02}
-          />
-        </mesh>
-      ))}
-      <lineSegments position={[0, 0, 0]}>
-        <edgesGeometry args={[new THREE.BoxGeometry(w, h, l)]} />
-        <lineBasicMaterial color="#3A4048" />
-      </lineSegments>
-    </group>
+      <Edges color={edge} transparent opacity={0.6} />
+    </mesh>
   );
 }
 
-function Stage({ room }) {
-  const stageDepth = room.length * 0.12;
-  const stageHeight = 0.6;
+function Architecture({ room }) {
+  const { width: w, length: l, height: h } = room;
+  const stageDepth = l * 0.12;
+  const ribs = Math.min(16, Math.max(4, Math.round(l / 2)));
   return (
     <group>
-      <mesh
-        position={[0, stageHeight / 2, -room.length / 2 + stageDepth / 2]}
-        castShadow
-        receiveShadow
-      >
-        <boxGeometry args={[room.width * 0.9, stageHeight, stageDepth]} />
-        <meshStandardMaterial color="#111417" roughness={0.7} metalness={0.15} />
-      </mesh>
-      <Text
-        position={[0, stageHeight + 0.05, -room.length / 2 + stageDepth / 2]}
-        rotation={[-Math.PI / 2, 0, 0]}
-        fontSize={0.6}
-        color="#3A4048"
-        anchorX="center"
-        anchorY="middle"
-        letterSpacing={0.2}
-      >
-        ESCENARIO
-      </Text>
-    </group>
-  );
-}
-
-function TopCluster({ position, count, model, color, coverageH = 90, throwDist }) {
-  const ref = useRef(null);
-  useFrame(({ clock }) => {
-    if (ref.current) {
-      ref.current.rotation.z = Math.sin(clock.elapsedTime * 0.5) * 0.005;
-    }
-  });
-  const coneRadius = throwDist * Math.tan((coverageH / 2) * (Math.PI / 180));
-  const coneHeight = throwDist;
-  return (
-    <group ref={ref} position={position}>
-      {Array.from({ length: count }).map((_, i) => (
-        <mesh key={i} position={[0, -i * 0.42, 0]} castShadow>
-          <boxGeometry args={[0.7, 0.4, 0.55]} />
-          <meshStandardMaterial
-            color={color}
-            emissive={color}
-            emissiveIntensity={0.35}
-            roughness={0.4}
-            metalness={0.6}
+      <Block
+        position={[0, -0.13, 0]}
+        size={[w, 0.24, l]}
+        color="#111314"
+        edge="#666a6b"
+      />
+      <Block position={[0, h / 2, -l / 2]} size={[w, h, 0.1]} />
+      {[-1, 1].map((side) => (
+        <group key={side}>
+          <Block
+            position={[(side * w) / 2, h / 2, 0]}
+            size={[0.035, h, l]}
+            opacity={0.08}
           />
-        </mesh>
+          {[0.04, h * 0.5, h].map((y) => (
+            <Block
+              key={y}
+              position={[(side * w) / 2, y, 0]}
+              size={[0.035, 0.035, l]}
+              color="#45484a"
+            />
+          ))}
+          {Array.from({ length: ribs + 1 }, (_, i) => (
+            <Block
+              key={i}
+              position={[(side * w) / 2, h / 2, -l / 2 + (i * l) / ribs]}
+              size={[0.035, h, 0.035]}
+              color="#383b3c"
+            />
+          ))}
+        </group>
       ))}
-      <mesh position={[0, 0, coneHeight / 2]} rotation={[Math.PI / 2, 0, 0]}>
-        <coneGeometry args={[coneRadius, coneHeight, 32, 1, true]} />
-        <meshBasicMaterial
-          color={color}
-          transparent
-          opacity={0.06}
-          side={THREE.DoubleSide}
-          depthWrite={false}
-        />
-      </mesh>
-      <pointLight position={[0, 0, 0.5]} color={color} intensity={0.6} distance={8} />
-      <Html position={[0, 0.5, 0]} center distanceFactor={12} occlude={false}>
-        <div
-          className="pointer-events-none rounded-full px-2 py-0.5 font-mono text-[9px] font-medium uppercase tracking-[0.28em] whitespace-nowrap"
-          style={{ background: `${color}22`, color, border: `1px solid ${color}55` }}
-        >
-          {model}
-        </div>
-      </Html>
-    </group>
-  );
-}
-
-function SubArray({ position, count, color, model }) {
-  return (
-    <group position={position}>
-      {Array.from({ length: count }).map((_, i) => (
-        <mesh
+      <gridHelper
+        args={[1, 20, "#343738", "#242728"]}
+        scale={[w, 1, l]}
+        position={[0, 0.005, 0]}
+      />
+      <Block
+        position={[0, 0.3, -l / 2 + stageDepth / 2]}
+        size={[w * 0.87, 0.6, stageDepth]}
+        color="#232527"
+        edge="#696d70"
+      />
+      <Block
+        position={[0, 0.605, -l / 2 + stageDepth]}
+        size={[w * 0.86, 0.025, 0.035]}
+        color="#C9F03E"
+        edge="#C9F03E"
+      />
+      <Block
+        position={[0, h * 0.89, -l / 2 + stageDepth]}
+        size={[w * 0.86, 0.12, 0.12]}
+        color="#373a3c"
+      />
+      {Array.from({ length: 7 }, (_, i) => (
+        <Block
           key={i}
-          position={[i * 0.85 - ((count - 1) * 0.85) / 2, 0.4, 0]}
-          castShadow
-        >
-          <boxGeometry args={[0.75, 0.8, 0.7]} />
-          <meshStandardMaterial
-            color={color}
-            emissive={color}
-            emissiveIntensity={0.35}
-            roughness={0.35}
-            metalness={0.7}
-          />
-        </mesh>
-      ))}
-      <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[1.5, 3.5, 48]} />
-        <meshBasicMaterial
-          color={color}
-          transparent
-          opacity={0.12}
-          depthWrite={false}
-          side={THREE.DoubleSide}
+          position={[(i / 6 - 0.5) * w * 0.78, h * 0.88, -l / 2 + stageDepth]}
+          size={[0.14, 0.22, 0.2]}
+          color="#7b823a"
+          edge="#C9F03E"
         />
-      </mesh>
-      <pointLight position={[0, 0.4, 0]} color={color} intensity={0.9} distance={5} />
-      <Html position={[0, -0.05, 0]} center distanceFactor={12} occlude={false}>
-        <div
-          className="pointer-events-none rounded-full px-2 py-0.5 font-mono text-[9px] font-medium uppercase tracking-[0.28em] whitespace-nowrap"
-          style={{ background: `${color}22`, color, border: `1px solid ${color}55` }}
-        >
-          {model}
-        </div>
-      </Html>
-    </group>
-  );
-}
-
-function Monitor({ position, color }) {
-  return (
-    <group position={position} rotation={[Math.PI / 8, 0, 0]}>
-      <mesh castShadow>
-        <boxGeometry args={[0.45, 0.28, 0.35]} />
-        <meshStandardMaterial
-          color={color}
-          emissive={color}
-          emissiveIntensity={0.35}
-          roughness={0.45}
-        />
-      </mesh>
-    </group>
-  );
-}
-
-function DelayTower({ position, color }) {
-  return (
-    <group position={position}>
-      {[-0.4, 0.4].map((x, i) => (
-        <mesh key={i} position={[x, position[1] > 0 ? -position[1] / 2 : 0, 0]}>
-          <cylinderGeometry
-            args={[0.03, 0.03, position[1] > 0 ? position[1] : 4, 8]}
-          />
-          <meshStandardMaterial color="#666" metalness={0.9} roughness={0.3} />
-        </mesh>
       ))}
-      {[0, -0.5, -1].map((y, i) => (
-        <mesh key={i} position={[0, y, 0]} castShadow>
-          <boxGeometry args={[0.55, 0.35, 0.45]} />
-          <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.35} />
-        </mesh>
-      ))}
-      <pointLight color={color} intensity={0.5} distance={6} />
     </group>
   );
 }
 
-function AudienceHeatmap({ room, splFront, splRear, splGrid }) {
-  const geometry = useMemo(() => {
-    const w = room.width;
-    const l = room.length * 0.85;
-    const gridW = 40;
-    const gridL = 60;
-    const geom = new THREE.PlaneGeometry(w, l, gridW, gridL);
-    const colors = [];
-    const pos = geom.attributes.position;
-
-    // If we have a real SPL grid, use it (bilinear sample). Otherwise fallback
-    // to the front→rear linear interpolation the previous implementation had.
-    const hasGrid = splGrid && splGrid.rows > 0 && splGrid.cols > 0 && Array.isArray(splGrid.cells);
-
-    for (let i = 0; i < pos.count; i++) {
-      const x = pos.getX(i);
-      const y = pos.getY(i);
-      let spl;
-      if (hasGrid) {
-        // Map plane coords (x in [-w/2, w/2], y in [-l/2, l/2]) → grid uv
-        const u = (x + w / 2) / w; // 0..1 left→right
-        const v = (y + l / 2) / l; // 0..1 front(stage)→rear(audience)
-        const cu = Math.min(splGrid.cols - 1, Math.max(0, u * (splGrid.cols - 1)));
-        const cv = Math.min(splGrid.rows - 1, Math.max(0, v * (splGrid.rows - 1)));
-        const c0 = Math.floor(cu);
-        const c1 = Math.min(splGrid.cols - 1, c0 + 1);
-        const r0 = Math.floor(cv);
-        const r1 = Math.min(splGrid.rows - 1, r0 + 1);
-        const fx = cu - c0;
-        const fy = cv - r0;
-        const a = splGrid.cells[r0 * splGrid.cols + c0];
-        const b = splGrid.cells[r0 * splGrid.cols + c1];
-        const c = splGrid.cells[r1 * splGrid.cols + c0];
-        const d = splGrid.cells[r1 * splGrid.cols + c1];
-        spl = a * (1 - fx) * (1 - fy) + b * fx * (1 - fy) + c * (1 - fx) * fy + d * fx * fy;
-      } else {
-        const t = (y + l / 2) / l;
-        spl = splFront + (splRear - splFront) * t;
-      }
-
-      const col = new THREE.Color();
-      if (spl > 105) col.set("#FF3EA5");
-      else if (spl > 98) col.set("#FFB84D");
-      else if (spl > 92) col.set("#00FF9E");
-      else col.set("#5EEAD4");
-      const edgeFalloff = 1 - Math.pow(Math.abs(x) / (w / 2), 2.5) * 0.5;
-      col.multiplyScalar(edgeFalloff);
-      colors.push(col.r, col.g, col.b);
+function Audience({ room }) {
+  const seats = useRef(),
+    backs = useRef();
+  const layout = useMemo(() => {
+    const cols = Math.min(30, Math.max(2, Math.floor(room.width / 0.85)));
+    const rows = Math.min(
+      32,
+      Math.max(2, Math.floor((room.length * 0.64) / 1.05)),
+    );
+    const count = Math.min(cols * rows, Math.max(0, Math.round(room.capacity)));
+    return { cols, rows: Math.ceil(count / cols), count };
+  }, [room.width, room.length, room.capacity]);
+  useLayoutEffect(() => {
+    const object = new THREE.Object3D();
+    for (let i = 0; i < layout.count; i++) {
+      const col = i % layout.cols,
+        row = Math.floor(i / layout.cols);
+      const x = ((col + 0.5) / layout.cols - 0.5) * room.width * 0.8;
+      const z =
+        -room.length * 0.22 +
+        (row / Math.max(1, layout.rows - 1)) * room.length * 0.63;
+      object.position.set(x + Math.sign(x) * room.width * 0.025, 0.3, z);
+      object.updateMatrix();
+      seats.current.setMatrixAt(i, object.matrix);
+      object.position.y = 0.55;
+      object.position.z += 0.2;
+      object.updateMatrix();
+      backs.current.setMatrixAt(i, object.matrix);
     }
-    geom.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
-    return geom;
-  }, [room.width, room.length, splFront, splRear, splGrid]);
-
-  const zOffset = room.length * 0.075;
+    for (const mesh of [seats.current, backs.current]) {
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.computeBoundingSphere();
+    }
+  }, [layout, room.width, room.length]);
   return (
-    <mesh
-      geometry={geometry}
-      position={[0, 0.02, zOffset]}
-      rotation={[-Math.PI / 2, 0, 0]}
-    >
+    <group>
+      <instancedMesh ref={seats} args={[undefined, undefined, layout.count]}>
+        <boxGeometry args={[0.45, 0.12, 0.43]} />
+        <meshStandardMaterial color="#343735" roughness={0.95} />
+      </instancedMesh>
+      <instancedMesh ref={backs} args={[undefined, undefined, layout.count]}>
+        <boxGeometry args={[0.45, 0.46, 0.085]} />
+        <meshStandardMaterial color="#41443e" roughness={0.95} />
+      </instancedMesh>
+    </group>
+  );
+}
+
+function splColor(db) {
+  const hi = SPL_STOPS.findIndex((s) => s.db >= db);
+  if (hi === 0) return new THREE.Color(SPL_STOPS[0].color);
+  if (hi < 0) return new THREE.Color(SPL_STOPS.at(-1).color);
+  const a = SPL_STOPS[hi - 1],
+    b = SPL_STOPS[hi];
+  return new THREE.Color(a.color).lerp(
+    new THREE.Color(b.color),
+    (db - a.db) / (b.db - a.db),
+  );
+}
+
+function Coverage({ grid }) {
+  const geometry = useMemo(() => {
+    const g = new THREE.BufferGeometry(),
+      positions = [],
+      colors = [],
+      indices = [];
+    coverageVertices(grid).forEach((p) => {
+      positions.push(p.x, 0.085, p.z);
+      const c = splColor(p.db);
+      colors.push(c.r, c.g, c.b);
+    });
+    for (let r = 0; r < grid.rows - 1; r++)
+      for (let c = 0; c < grid.cols - 1; c++) {
+        const i = r * grid.cols + c;
+        indices.push(
+          i,
+          i + grid.cols,
+          i + 1,
+          i + 1,
+          i + grid.cols,
+          i + grid.cols + 1,
+        );
+      }
+    g.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+    g.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+    g.setIndex(indices);
+    g.computeVertexNormals();
+    return g;
+  }, [grid]);
+  useEffect(() => () => geometry.dispose(), [geometry]);
+  return (
+    <mesh geometry={geometry}>
       <meshBasicMaterial
         vertexColors
         transparent
-        opacity={0.28}
-        depthWrite={false}
+        opacity={0.63}
         side={THREE.DoubleSide}
+        depthWrite={false}
       />
     </mesh>
   );
 }
 
-function Scene3D({ room, config, tops, subs, monitors, splGrid }) {
-  const stageDepthFrac = 0.12;
-  const stageZ = -room.length / 2 + (room.length * stageDepthFrac) / 2;
-
-  const topCount = tops.reduce((s, g) => s + (g.quantity ?? 1), 0);
-  const subCount = subs.reduce((s, g) => s + (g.quantity ?? 1), 0);
-  const monCount = Math.min(6, monitors.reduce((s, g) => s + (g.quantity ?? 1), 0));
-  const topModel = tops[0]?.model ?? "Top";
-  const subModel = subs[0]?.model ?? "Sub";
-  const coverageH = tops[0]?.coverageH ?? 90;
-  const throwDist = room.length * 0.7;
-  const topsPerSide = Math.ceil(topCount / 2);
-  const deployMode = config.deploymentMode;
-
+function Speaker({ speaker, labels, onSelect, selected }) {
+  const sub = speaker.kind === "subs",
+    monitor = speaker.kind === "monitors";
+  const count = Math.max(1, Math.min(16, speaker.count));
   return (
-    <>
-      <color attach="background" args={["#04060A"]} />
-      <fog attach="fog" args={["#04060A", 15, 60]} />
-
-      <ambientLight intensity={0.35} />
-      <directionalLight
-        position={[10, 20, 10]}
-        intensity={0.6}
-        castShadow
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
-      />
-      <pointLight position={[0, room.height * 0.9, 0]} intensity={0.4} color="#5EEAD4" />
-
-      <Room room={room} />
-      <Stage room={room} />
-
-      <AudienceHeatmap
-        room={room}
-        splFront={config.splFront}
-        splRear={config.splRear}
-        splGrid={splGrid}
-      />
-
-      {topCount > 0 && (
-        <>
-          <TopCluster
-            position={[-room.width * 0.32, room.height * 0.75, stageZ + 0.6]}
-            count={topsPerSide}
-            model={topModel}
-            color={COLORS.info}
-            coverageH={coverageH}
-            throwDist={throwDist}
-          />
-          {topCount > 1 && (
-            <TopCluster
-              position={[room.width * 0.32, room.height * 0.75, stageZ + 0.6]}
-              count={topCount - topsPerSide}
-              model={topModel}
-              color={COLORS.info}
-              coverageH={coverageH}
-              throwDist={throwDist}
-            />
-          )}
-        </>
-      )}
-
-      {subCount > 0 &&
-        (() => {
-          if (deployMode === "center-cluster" || subCount <= 2) {
-            return (
-              <SubArray
-                position={[0, 0, stageZ + 1.2]}
-                count={subCount}
-                color={COLORS.dsp}
-                model={subModel}
-              />
-            );
+    <group
+      position={[speaker.x, speaker.y, speaker.z]}
+      onClick={(e) => {
+        e.stopPropagation();
+        onSelect?.(speaker.id);
+      }}
+    >
+      {Array.from({ length: count }, (_, i) => (
+        <group
+          key={i}
+          position={
+            sub
+              ? [(i - (count - 1) / 2) * 0.84, 0, 0]
+              : [0, -i * 0.36, i * 0.015]
           }
-          if (deployMode === "distributed" || deployMode === "wide-stereo") {
-            const halfL = Math.ceil(subCount / 2);
-            return (
-              <>
-                <SubArray
-                  position={[-room.width * 0.28, 0, stageZ + 1.2]}
-                  count={halfL}
-                  color={COLORS.dsp}
-                  model={subModel}
-                />
-                <SubArray
-                  position={[room.width * 0.28, 0, stageZ + 1.2]}
-                  count={subCount - halfL}
-                  color={COLORS.dsp}
-                  model={subModel}
-                />
-              </>
-            );
-          }
-          return (
-            <SubArray
-              position={[0, 0, stageZ + 1.2]}
-              count={subCount}
-              color={COLORS.dsp}
-              model={subModel}
+          rotation={monitor ? [-0.35, Math.PI, 0] : [0.1, 0, 0]}
+        >
+          <Block
+            size={sub ? [0.76, 0.76, 0.68] : [0.72, 0.32, 0.46]}
+            color="#171b1b"
+            edge={selected ? "#C9F03E" : "#545b44"}
+          />
+          <mesh
+            position={[0, 0, sub ? 0.345 : 0.235]}
+            rotation={[Math.PI / 2, 0, 0]}
+          >
+            <cylinderGeometry
+              args={[sub ? 0.24 : 0.095, sub ? 0.24 : 0.095, 0.012, 16]}
             />
-          );
-        })()}
-
-      {Array.from({ length: monCount }).map((_, i) => {
-        const t =
-          monCount === 1
-            ? 0
-            : (i - (monCount - 1) / 2) / Math.max(1, monCount - 1);
-        return (
-          <Monitor
-            key={i}
-            position={[t * room.width * 0.6, 0.65, stageZ + 0.4]}
-            color={COLORS.accent}
-          />
-        );
-      })}
-
-      {config.needsDelayTowers && (
-        <>
-          <DelayTower
-            position={[
-              -room.width * 0.35,
-              room.height * 0.6,
-              -room.length / 2 + config.delayTowerDistance,
-            ]}
-            color={COLORS.warning}
-          />
-          <DelayTower
-            position={[
-              room.width * 0.35,
-              room.height * 0.6,
-              -room.length / 2 + config.delayTowerDistance,
-            ]}
-            color={COLORS.warning}
-          />
-        </>
+            <meshBasicMaterial color="#A5BD51" />
+          </mesh>
+        </group>
+      ))}
+      {labels && (
+        <Html position={[0, 0.7, 0]} center style={{ pointerEvents: "none" }}>
+          <span className="venue-label">
+            {speaker.label}
+            {speaker.count > 1 ? ` ×${speaker.count}` : ""}
+          </span>
+        </Html>
       )}
-
-      <Environment preset="night" background={false} />
-    </>
+    </group>
   );
 }
 
-export function Stage3D(props) {
-  const { room } = props;
-  const cameraPos = [
-    room.width * 0.55,
-    room.height * 0.9,
-    room.length * 0.65,
-  ];
-  const target = [0, room.height * 0.3, -room.length / 3];
-
+function CameraRig({ room, command, interactive }) {
+  const controls = useRef();
+  const { camera, size, invalidate } = useThree();
+  useEffect(() => {
+    if (!controls.current) return;
+    const radius = Math.hypot(room.width, room.length, room.height) / 2;
+    const vFov = THREE.MathUtils.degToRad(camera.fov);
+    const hFov =
+      2 *
+      Math.atan((Math.tan(vFov / 2) * size.width) / Math.max(1, size.height));
+    const distance = (radius / Math.sin(Math.min(vFov, hFov) / 2)) * 0.95;
+    const target = new THREE.Vector3(0, room.height * 0.23, 0);
+    camera.position
+      .copy(target)
+      .add(
+        new THREE.Vector3(0.7, 0.67, 1).normalize().multiplyScalar(distance),
+      );
+    camera.near = 0.05;
+    camera.far = Math.max(500, distance * 5);
+    camera.updateProjectionMatrix();
+    controls.current.target.copy(target);
+    controls.current.minDistance = Math.max(1, radius * 0.4);
+    controls.current.maxDistance = distance * 2;
+    controls.current.update();
+    controls.current.saveState();
+    invalidate();
+  }, [
+    room.width,
+    room.length,
+    room.height,
+    size.width,
+    size.height,
+    camera,
+    invalidate,
+  ]);
+  useEffect(() => {
+    if (!controls.current || !command) return;
+    if (command.type === "reset") controls.current.reset();
+    else {
+      const delta = camera.position.clone().sub(controls.current.target);
+      const distance = THREE.MathUtils.clamp(
+        delta.length() * (command.type === "in" ? 0.8 : 1.25),
+        controls.current.minDistance,
+        controls.current.maxDistance,
+      );
+      camera.position
+        .copy(controls.current.target)
+        .add(delta.setLength(distance));
+      controls.current.update();
+    }
+    invalidate();
+  }, [command, camera, invalidate]);
   return (
-    <div className="relative w-full aspect-[4/3] rounded-3xl overflow-hidden border border-border bg-[#04060A]">
-      <Canvas
-        shadows
-        camera={{ position: cameraPos, fov: 45, near: 0.1, far: 200 }}
-        dpr={[1, 2]}
-        gl={{ antialias: true, powerPreference: "high-performance" }}
-        data-testid="stage-3d-canvas"
-      >
-        <Suspense fallback={null}>
-          <Scene3D {...props} />
-          <OrbitControls
-            target={target}
-            enablePan
-            enableZoom
-            enableRotate
-            minDistance={5}
-            maxDistance={Math.max(room.width, room.length) * 2.2}
-            maxPolarAngle={Math.PI / 2 - 0.05}
-            dampingFactor={0.08}
-          />
-        </Suspense>
-      </Canvas>
+    <OrbitControls
+      ref={controls}
+      enabled={interactive}
+      enableDamping
+      maxPolarAngle={Math.PI / 2 - 0.02}
+    />
+  );
+}
 
-      <div className="absolute top-3 left-3 rounded-2xl bg-black/60 border border-border backdrop-blur-md px-3 py-2 pointer-events-none">
-        <p className="text-[9px] font-medium uppercase tracking-[0.28em] text-info">
-          Vista 3D
-        </p>
-        <p className="text-[10px] font-mono text-muted-foreground mt-0.5">
-          {room.length}×{room.width}×{room.height}m · {room.capacity} pax
-        </p>
+export function Stage3D({
+  room,
+  tops = [],
+  subs = [],
+  monitors = [],
+  splGrid,
+  speakers,
+  className = "",
+  compact = false,
+  interactive = true,
+  selectedId,
+  onSelect,
+}) {
+  const [webgl, setWebgl] = useState(null);
+  const [labels, setLabels] = useState(!compact),
+    [coverage, setCoverage] = useState(true),
+    [command, setCommand] = useState(null);
+  useEffect(() => {
+    try {
+      const probe = document.createElement("canvas").getContext("webgl2");
+      setWebgl(Boolean(probe));
+      probe?.getExtension("WEBGL_lose_context")?.loseContext();
+    } catch {
+      setWebgl(false);
+    }
+  }, []);
+  const units = useMemo(
+    () => speakers ?? venueSpeakers(room, tops, subs, monitors),
+    [speakers, room, tops, subs, monitors],
+  );
+  const action = (type) => setCommand({ type, time: performance.now() });
+  return (
+    <section
+      className={`venue-view ${compact ? "venue-view-compact" : ""} ${className}`}
+      aria-label={`Escenario 3D · ${room.name || "Recinto"}`}
+      data-testid="venue-3d"
+    >
+      <div className="venue-canvas">
+        {webgl === true ? (
+          <Canvas
+            frameloop="demand"
+            dpr={[1, 1.5]}
+            camera={{ fov: 38 }}
+            gl={{ antialias: true, powerPreference: "default" }}
+            data-testid="stage-3d-canvas"
+            onCreated={({ gl }) => {
+              gl.domElement.addEventListener(
+                "webglcontextlost",
+                () => setWebgl(false),
+                { once: true },
+              );
+            }}
+          >
+            <color attach="background" args={["#0a0b0c"]} />
+            <ambientLight intensity={1.5} />
+            <directionalLight
+              position={[4, 14, 8]}
+              intensity={2.5}
+              color="#f1f2e7"
+            />
+            <directionalLight
+              position={[-8, 7, -10]}
+              intensity={1.3}
+              color="#b4b99e"
+            />
+            <Architecture room={room} />
+            <Audience room={room} />
+            {coverage && splGrid && <Coverage grid={splGrid} />}
+            {units.map((s) => (
+              <Speaker
+                key={s.id}
+                speaker={s}
+                labels={labels}
+                selected={selectedId === s.id}
+                onSelect={onSelect}
+              />
+            ))}
+            <CameraRig
+              room={room}
+              command={command}
+              interactive={interactive}
+            />
+          </Canvas>
+        ) : (
+          <div
+            className="h-full flex flex-col items-center justify-center gap-3 px-8 text-center"
+            role="status"
+          >
+            <Box size={28} className="text-muted-foreground" />
+            <p className="text-sm">
+              {webgl === null
+                ? "Preparando escenario 3D…"
+                : "WebGL no está disponible en este navegador"}
+            </p>
+            {webgl === false && (
+              <p className="text-xs text-muted-foreground max-w-sm leading-relaxed">
+                Abrí SoundMap en un navegador con WebGL 2 para explorar el
+                recinto. El plano de Stage Map y los cálculos siguen
+                disponibles.
+              </p>
+            )}
+          </div>
+        )}
       </div>
-      <div className="absolute top-3 right-3 rounded-2xl bg-black/60 border border-border backdrop-blur-md px-3 py-2 pointer-events-none">
-        <p className="text-[9px] font-medium uppercase tracking-[0.28em] text-muted-foreground">
-          Arrastrá · Zoom · Rotá
-        </p>
+      <div className="venue-topline">
+        <span>
+          <Box size={13} /> {room.name || "Recinto"}
+        </span>
+        <span className="font-mono">
+          3D · {room.width} × {room.length} × {room.height} m
+        </span>
       </div>
-
-      <div className="absolute bottom-3 left-3 rounded-2xl bg-black/70 border border-border backdrop-blur-md px-3 py-2 pointer-events-none">
-        <p className="text-[9px] font-medium uppercase tracking-[0.28em] text-muted-foreground mb-1.5">
-          SPL Audiencia
-        </p>
-        <div className="flex items-center gap-1.5">
-          {[
-            { color: "#5EEAD4", label: "<92" },
-            { color: "#00FF9E", label: "92-98" },
-            { color: "#FFB84D", label: "98-105" },
-            { color: "#FF3EA5", label: ">105" },
-          ].map((step) => (
-            <div key={step.label} className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full" style={{ background: step.color }} />
-              <span className="text-[9px] font-mono text-muted-foreground">
-                {step.label}
-              </span>
-            </div>
-          ))}
+      {interactive && webgl === true && (
+        <div
+          className="venue-tools"
+          role="toolbar"
+          aria-label="Controles del escenario 3D"
+        >
+          <button onClick={() => action("in")} aria-label="Acercar">
+            <Plus size={15} />
+          </button>
+          <button onClick={() => action("out")} aria-label="Alejar">
+            <Minus size={15} />
+          </button>
+          <button
+            onClick={() => action("reset")}
+            aria-label="Restablecer cámara"
+          >
+            <RotateCcw size={14} />
+          </button>
+          <button
+            onClick={() => setLabels((v) => !v)}
+            aria-label="Etiquetas de equipos"
+            aria-pressed={labels}
+          >
+            {labels ? <Eye size={14} /> : <EyeOff size={14} />}
+          </button>
+          {splGrid && (
+            <button
+              onClick={() => setCoverage((v) => !v)}
+              aria-label="Cobertura SPL"
+              aria-pressed={coverage}
+            >
+              <Layers3 size={14} />
+            </button>
+          )}
         </div>
+      )}
+      <div className="venue-footer">
+        {coverage && splGrid ? (
+          <div className="venue-legend">
+            <span>SPL estimado</span>
+            <span className="venue-ramp" />
+            <span className="font-mono">70—150+ dB</span>
+          </div>
+        ) : (
+          <span>Geometría del recinto</span>
+        )}
+        <span className="hidden sm:inline">
+          {interactive && webgl ? "Arrastrá para orbitar · " : ""}Audiencia
+          esquemática
+        </span>
       </div>
-    </div>
+    </section>
   );
 }

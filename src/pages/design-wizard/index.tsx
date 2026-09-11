@@ -92,13 +92,13 @@ export default function DesignWizard() {
     <div className="bg-background text-foreground pb-32">
       {/* Progress bar */}
       <div
-        className="sticky top-0 z-20 px-5 md:px-10 pt-7 md:pt-9 pb-4"
+        className="sticky top-14 z-20 px-5 md:px-7 pt-4 pb-3 border-b border-border"
         style={{
           background: "linear-gradient(180deg, var(--background) 62%, rgba(8,9,10,0.88) 100%)",
           backdropFilter: "blur(20px)",
         }}
       >
-        <div className="max-w-[1180px] mx-auto">
+        <div className="max-w-[1400px] mx-auto">
           {/* Barra de pasos: "01 Room · 02 PA · 03 DSP…". El activo se marca con
               el acento; los demás quedan disponibles pero secundarios. Antes
               cada paso era un chip con fondo propio — cinco cápsulas compitiendo
@@ -158,7 +158,7 @@ export default function DesignWizard() {
           data-testid={`wizard-body-${currentStep}`}
         >
           {blocker ? (
-            <div className="max-w-[1180px] mx-auto px-5 md:px-10 pt-10" data-testid="wizard-blocked">
+            <div className="max-w-[1400px] mx-auto px-5 md:px-10 pt-10" data-testid="wizard-blocked">
               <div
                 className="p-6 text-center max-w-md"
                 style={{
@@ -198,7 +198,7 @@ export default function DesignWizard() {
             borderTop: "1px solid var(--border-subtle)",
           }}
         />
-        <div className="max-w-[1180px] mx-auto flex items-center justify-between gap-3">
+        <div className="max-w-[1400px] mx-auto flex items-center justify-between gap-3">
           <button
             onClick={goPrev}
             disabled={idx === 0}

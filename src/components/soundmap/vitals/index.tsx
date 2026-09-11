@@ -123,7 +123,7 @@ export function TimeRangeTabs({
             onClick={() => onChange(opt.value)}
             data-testid={`${testId}-${opt.value}`}
             className={cn(
-              "rounded-full px-4 py-2 text-[13px] font-medium cursor-pointer",
+              "rounded-md px-4 py-2 text-[13px] font-medium cursor-pointer",
               on ? "text-[#09090b]" : "text-muted-foreground hover:text-foreground",
             )}
             style={{
@@ -186,7 +186,7 @@ export function PersonaGreeting({
         Hola{wave ? " 👋" : ""}
       </p>
       <h1
-        className="text-[2rem] md:text-[2.6rem] leading-[1.05] tracking-[-0.03em] font-medium text-foreground"
+        className="v6-heading"
         data-testid="persona-name"
       >
         {name}

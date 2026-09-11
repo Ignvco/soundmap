@@ -33,7 +33,7 @@ const TONE: Record<NonNullable<MetricProps["tone"]>, string> = {
 };
 
 export function Metric({ value, unit, label, tone = "default", size = "lg", testId }: MetricProps) {
-  const valueSize = size === "lg" ? "text-[30px] md:text-[34px]" : "text-[22px] md:text-[24px]";
+  const valueSize = size === "lg" ? "text-[26px] md:text-[28px]" : "text-[22px] md:text-[24px]";
   return (
     <div data-testid={testId} className="min-w-0">
       <p
@@ -73,7 +73,7 @@ export function MetricRow({
   return (
     <div
       data-testid={testId}
-      className={cn("grid grid-cols-2 sm:grid-cols-4 gap-y-6", className)}
+      className={cn("grid grid-cols-2 sm:grid-cols-4 gap-y-6 [&>div]:px-4 [&>div]:border-l [&>div]:border-border [&>div:first-child]:border-l-0", className)}
     >
       {children}
     </div>

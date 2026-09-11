@@ -16,6 +16,9 @@ interface CommandItem {
 }
 
 const COMMANDS: CommandItem[] = [
+  { id: "spl-analysis", label: "SPL Analysis · 3D", section: "Analizar", path: "/spl-analysis", keywords: ["cobertura", "frecuencia"] },
+  { id: "acoustic-analysis", label: "Acoustic Analysis", section: "Analizar", path: "/acoustic-analysis", keywords: ["rt60", "modos"] },
+  { id: "ai-advisor", label: "AI Advisor", section: "Analizar", path: "/ai-advisor", keywords: ["ia", "intelligence"] },
   { id: "design", label: "Diseño del sistema", hint: "Wizard · Recinto → PA → DSP → Patch → Guardar", section: "Diseñar", path: "/design", keywords: ["recinto", "escaneo", "pa", "dsp", "stage", "canales", "wizard"] },
   { id: "design-room", label: "Wizard · Recinto", section: "Diseñar", path: "/design?step=room", keywords: ["dimensiones", "rt60", "materiales", "ar"] },
   { id: "design-pa", label: "Wizard · PA & Inventario", section: "Diseñar", path: "/design?step=pa", keywords: ["equipo", "tops", "subs", "amps"] },

@@ -16,7 +16,7 @@ interface PremiumShellProps {
   right?: ReactNode;
   /** Page body. */
   children: ReactNode;
-  /** Tailwind class for the max-width wrapper (default max-w-4xl). */
+  /** Tailwind class for the max-width wrapper (default max-w-[1400px]). */
   wrapperClassName?: string;
   "data-testid"?: string;
 }
@@ -26,10 +26,10 @@ export function PremiumShell({
 }: PremiumShellProps) {
   return (
     <div
-      className="min-h-screen bg-background text-foreground px-6 md:px-12 pt-10 md:pt-16 pb-24"
+      className="v6-workspace"
       data-testid={rest["data-testid"]}
     >
-      <div className={cn("mx-auto", wrapperClassName ?? "max-w-4xl")}>
+      <div className={cn("mx-auto", wrapperClassName ?? "max-w-[1400px]")}>
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -42,7 +42,7 @@ export function PremiumShell({
           )}
           <div className="flex items-end justify-between gap-6 mb-3 flex-wrap">
             <h1
-              className="text-[2rem] md:text-[2.8rem] leading-[1.05] tracking-[-0.03em] font-medium"
+              className="v6-heading"
               data-testid="premium-title"
             >
               {title}
@@ -50,11 +50,11 @@ export function PremiumShell({
             {right && <div className="shrink-0">{right}</div>}
           </div>
           {subtitle && (
-            <p className="text-[15px] text-muted-foreground max-w-xl leading-relaxed mb-10 md:mb-14">
+            <p className="text-[15px] text-muted-foreground max-w-xl leading-relaxed mb-6">
               {subtitle}
             </p>
           )}
-          {!subtitle && <div className="mb-10 md:mb-12" />}
+          {!subtitle && <div className="mb-6" />}
         </motion.div>
         {children}
       </div>
@@ -123,7 +123,7 @@ export function QuietButton({
       disabled={disabled}
       data-testid={rest["data-testid"]}
       className={cn(
-        "inline-flex items-center gap-2 rounded-full font-medium cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed",
+        "inline-flex items-center gap-2 rounded-md font-medium cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed",
         pad,
         className,
       )}

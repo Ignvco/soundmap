@@ -1,3 +1,4 @@
+import { ANALYSIS_LINKS } from "@/components/soundmap/analysis-nav.tsx";
 // Sidebar de escritorio.
 //
 // El shell v5 la había eliminado ("The sidebar is GONE") y movido toda la
@@ -13,7 +14,7 @@
 //   Settings · cuenta
 import { NavLink, useLocation } from "react-router-dom";
 import {
-  Home, Compass, Radio, BarChart3, Layers, LayoutTemplate,
+  Home, Compass, Radio, BarChart3, Layers, LayoutTemplate, Sparkles,
   Calculator, Users, Settings as SettingsIcon, PanelLeftClose, PanelLeft,
 } from "lucide-react";
 import { useState, type ComponentType } from "react";
@@ -32,10 +33,11 @@ const PRIMARY: Item[] = [
   { to: "/",        label: "Home",    icon: Home },
   { to: "/design",  label: "Design",  icon: Compass, match: ["/room-scan", "/gear-builder", "/dsp", "/channels"] },
   { to: "/perform", label: "Perform", icon: Radio,   match: ["/live", "/kiosk", "/pa"] },
-  { to: "/compare", label: "Analyze", icon: BarChart3, match: ["/stage-map", "/export"] },
+  { to: "/compare", label: "Analyze", icon: BarChart3, match: ["/stage-map", "/export", "/spl-analysis", "/acoustic-analysis"] },
 ];
 
 const WORKSPACE: Item[] = [
+  { to: "/ai-advisor", label: "AI Advisor", icon: Sparkles },
   { to: "/scenes",    label: "Scenes",    icon: Layers },
   { to: "/templates", label: "Templates", icon: LayoutTemplate },
   { to: "/toolkit",   label: "Toolkit",   icon: Calculator },
@@ -127,6 +129,9 @@ export function DesktopSidebar() {
           ))}
         </div>
 
+        {!collapsed && <div className="mt-2 ml-4 border-l border-border pl-2 space-y-1">
+          {ANALYSIS_LINKS.map(item => <NavLink key={item.to} to={item.to} className={({ isActive }) => `block px-2 py-2 rounded text-[11px] ${isActive ? "text-accent bg-accent/5" : "text-muted-foreground hover:text-foreground"}`}>{item.label}</NavLink>)}
+        </div>}
         <div className="my-4 px-2.5">
           {collapsed ? (
             <div className="h-px" style={{ background: "var(--border-subtle)" }} />

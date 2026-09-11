@@ -1,3 +1,4 @@
+import { VenuePreview } from "@/components/soundmap/venue-preview.tsx";
 // Perform Hub v7 — SoundMap Vitals show-time dashboard, app-native.
 // Charts are driven by real system state:
 //   • PA frequency response — from real crossover + speaker HPF/LPF
@@ -43,8 +44,8 @@ export default function PerformHub() {
   const deltaPeak = latestArraySpl - previousArraySpl;
 
   return (
-    <div className="min-h-screen bg-background text-foreground px-5 md:px-8 pt-10 md:pt-14 pb-24">
-      <div className="max-w-3xl mx-auto">
+    <div className="v6-workspace">
+      <div className="max-w-[1400px] mx-auto">
         {/* Persona greeting + streak */}
         <div className="flex items-start justify-between gap-4 mb-8 md:mb-10">
           <PersonaGreeting
@@ -69,6 +70,7 @@ export default function PerformHub() {
         </div>
         <span data-testid="perform-hub-title" className="sr-only">{room?.name ?? "Show time"}</span>
 
+        {room && <div className="mb-6"><VenuePreview room={room} tops={tops} subs={subs} monitors={monitors} /></div>}
         {/* ── Estado del sistema, en grande ──────────────────────────────
             El mockup pone el SPL como dato dominante: abrís Perform y sabés al
             instante si el sistema está listo. Antes lo primero era un banner
@@ -87,7 +89,7 @@ export default function PerformHub() {
               aria-hidden="true"
             />
             <p className="text-[11px] font-medium uppercase tracking-[0.16em]" style={{ color: "var(--muted-foreground)" }}>
-              {hasSystem ? "Sistema en línea" : "Sin sistema"}
+              {hasSystem ? "Sistema configurado" : "Sin sistema"}
             </p>
           </div>
 
@@ -102,7 +104,7 @@ export default function PerformHub() {
             </span>
           </p>
           <p className="mt-2 text-[11px] font-medium uppercase tracking-[0.16em]" style={{ color: "var(--muted-foreground)" }}>
-            SPL máximo del sistema
+            SPL máximo estimado del sistema
           </p>
 
           <div className="mt-7">

@@ -1,3 +1,4 @@
+import { VenuePreview } from "@/components/soundmap/venue-preview.tsx";
 // SoundMap — Room Scan — Dark premium professional acoustic tool
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
@@ -433,7 +434,8 @@ export default function RoomScan() {
   const [measuredRt60, setMeasuredRt60] = useState<number | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [form, setForm] = useState<RoomScanInput>({
+  const savedRoom = useAppStore(s => s.room);
+  const [form, setForm] = useState<RoomScanInput>(() => savedRoom ?? {
     name: "",
     length: 20,
     width: 15,
@@ -487,6 +489,9 @@ export default function RoomScan() {
 
   return (
     <ScreenShell compact={inWizard}>
+      <div className={step < 4 ? "grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_380px] gap-6" : ""}>
+      {step < 4 && <div className="xl:sticky xl:top-20 self-start"><VenuePreview room={form} geometryOnly compact={false} /></div>}
+      <div className="min-w-0">
       {/* Header — hidden inside wizard (wizard owns the title) */}
       {!inWizard && (
         <div className="mb-8">
@@ -965,6 +970,6 @@ export default function RoomScan() {
           feedback("success");
         }}
       />
-    </ScreenShell>
+    </div></div></ScreenShell>
   );
 }
