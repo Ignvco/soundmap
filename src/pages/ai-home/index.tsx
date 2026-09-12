@@ -27,7 +27,7 @@ import {
 
 export default function AIHome() {
   const navigate = useNavigate();
-  const { room, acoustics, tops, subs, monitors, scenes, loadDemoVenue } = useAppStore();
+  const { stageLayout, room, acoustics, tops, subs, monitors, scenes, loadDemoVenue } = useAppStore();
 
 
   const hasSystem = !!room && (tops.length > 0 || subs.length > 0);
@@ -37,14 +37,14 @@ export default function AIHome() {
     if (!hasSystem || !room || !acoustics) {
       return { pa: null, coverage: null, roomInfo: null, grid: null };
     }
-    const sources = sceneToSources(room, tops, subs);
+    const sources = sceneToSources(room, tops, subs, stageLayout);
     return {
       pa: paSummary(tops, subs, monitors),
-      coverage: coverageByZone(room, tops, subs),
+      coverage: coverageByZone(room, tops, subs, stageLayout),
       roomInfo: roomSummary(room, acoustics),
       grid: sources.length > 0 ? computeSplGrid(room, sources, { cols: 30, rows: 20 }) : null,
     };
-  }, [hasSystem, room, acoustics, tops, subs, monitors]);
+  }, [hasSystem, room, acoustics, tops, subs, monitors, stageLayout]);
 
   const greeting = useMemo(() => {
     const h = new Date().getHours();
@@ -138,7 +138,7 @@ export default function AIHome() {
           >
             {room ? (
               <div data-testid="home-heatmap">
-                <VenuePreview room={room} tops={tops} subs={subs} monitors={monitors} grid={grid ?? undefined} />
+                <VenuePreview layout={stageLayout} room={room} tops={tops} subs={subs} monitors={monitors} grid={grid ?? undefined} />
                 <div className="flex justify-between items-center mt-3 text-xs text-muted-foreground">
                   <span>Recinto y cobertura del sistema</span>
                   <button className="v6-button" onClick={() => navigate("/stage-map")}>Abrir Stage Map <ArrowRight size={13} /></button>

@@ -3,7 +3,7 @@ import { VenuePreview } from "@/components/soundmap/venue-preview.tsx";
 import { useAppStore } from "@/store/app.ts";
 
 export default function AIAdvisor() {
-  const { room, tops, subs, monitors } = useAppStore();
+  const { stageLayout, room, tops, subs, monitors } = useAppStore();
   return (
     <div className="v6-workspace">
       <header className="mb-6">
@@ -22,6 +22,7 @@ export default function AIAdvisor() {
         <AdvisorPanel embedded />
         {room && (
           <VenuePreview
+          layout={stageLayout}
             room={room}
             tops={tops}
             subs={subs}

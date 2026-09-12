@@ -668,9 +668,9 @@ export default function RoomScan() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
                   <p className="text-[13px] font-medium text-foreground">Escaneo AR</p>
-                  <span className="text-[9px] font-medium uppercase tracking-[0.24em] px-1.5 py-0.5 rounded-full" style={{ background: "rgba(201,240,62,0.15)", color: "var(--sm-accent)" }}>β</span>
+                  <span className="text-[9px] font-medium uppercase tracking-[0.24em] px-1.5 py-0.5 rounded-full" style={{ background: "rgba(201,240,62,0.15)", color: "var(--sm-accent)" }}>Asistido</span>
                 </div>
-                <p className="text-[11px] text-muted-foreground mt-0.5">Medí dimensiones apuntando esquinas con la cámara</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Capturá, revisá y ajustá largo, ancho y altura</p>
               </div>
               <ChevronRight size={13} className="text-muted-foreground shrink-0" strokeWidth={1.75} />
             </button>

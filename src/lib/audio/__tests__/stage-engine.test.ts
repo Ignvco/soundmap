@@ -185,13 +185,13 @@ describe("system-vitals — sceneToSources", () => {
     expect(sceneToSources(room(), [], [])).toHaveLength(0);
   });
 
-  it("reparte los tops en dos lados y agrupa los subs en uno", () => {
+  it("conserva una fuente por caja al distribuir tops y subs", () => {
     const src = sceneToSources(room(), [gear({ quantity: 4 })], [gear({ id: "s", category: "subs", quantity: 2 })]);
     const izq = src.filter(s => s.x < 0);
     const der = src.filter(s => s.x > 0);
     expect(izq.length).toBeGreaterThan(0);
     expect(der.length).toBeGreaterThan(0);
-    expect(src.some(s => s.x === 0)).toBe(true); // el cluster de subs
+    expect(src).toHaveLength(6); // cuatro tops y dos subs editables por separado
   });
 
   it("mantiene todas las fuentes dentro del recinto", () => {
@@ -204,12 +204,14 @@ describe("system-vitals — sceneToSources", () => {
     }
   });
 
-  it("los subs acoplan más que los tops para la misma cantidad", () => {
+  it("no presupone acoplamiento de subs que pueden estar separados", () => {
     const conSubs = sceneToSources(room(), [], [gear({ id: "s", category: "subs", splMax: 138, quantity: 4 })]);
     const conTops = sceneToSources(room(), [gear({ splMax: 138, quantity: 4 })], []);
     const subSpl = conSubs[0].spl1m;
     const topSpl = Math.max(...conTops.map(s => s.spl1m));
-    expect(subSpl).toBeGreaterThan(topSpl);
+    expect(subSpl).toBe(topSpl);
+    expect(conSubs).toHaveLength(4);
+    expect(new Set(conSubs.map(s => s.x)).size).toBe(4);
   });
 });
 

@@ -73,13 +73,13 @@ export default function SceneCompare() {
 
   const gridA = useMemo(() => {
     if (!a) return null;
-    const sources = sceneToSources(a.room, a.tops, a.subs);
+    const sources = sceneToSources(a.room, a.tops, a.subs, a.stageLayout);
     if (sources.length === 0) return null;
     return computeSplGrid(a.room, sources, { cols: 16, rows: 22 });
   }, [a]);
   const gridB = useMemo(() => {
     if (!b) return null;
-    const sources = sceneToSources(b.room, b.tops, b.subs);
+    const sources = sceneToSources(b.room, b.tops, b.subs, b.stageLayout);
     if (sources.length === 0) return null;
     return computeSplGrid(b.room, sources, { cols: 16, rows: 22 });
   }, [b]);
@@ -518,7 +518,7 @@ function HeatmapHero({ grid, scene, label, hue, testId }: {
 
       {grid ? (
         <>
-          <VenuePreview room={scene.room} tops={scene.tops} subs={scene.subs} monitors={scene.monitors} grid={grid} />
+          <VenuePreview layout={scene.stageLayout} room={scene.room} tops={scene.tops} subs={scene.subs} monitors={scene.monitors} grid={grid} />
           <div className="grid grid-cols-3 gap-4 mt-4">
             <MicroStat label="Uniformidad" value={`${grid.uniformityPct}%`} />
             <MicroStat label="Media" value={`${grid.mean} dB`} />
@@ -526,7 +526,7 @@ function HeatmapHero({ grid, scene, label, hue, testId }: {
           </div>
         </>
       ) : (
-        <VenuePreview room={scene.room} geometryOnly />
+        <VenuePreview layout={scene.stageLayout} room={scene.room} geometryOnly />
       )}
     </div>
   );

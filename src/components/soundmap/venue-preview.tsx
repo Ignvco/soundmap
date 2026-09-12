@@ -1,3 +1,5 @@
+import { venueSpeakers } from "@/lib/venue-visual.ts";
+import type { SpeakerLayout } from "@/lib/speaker-layout.ts";
 import { Component, lazy, Suspense, useMemo, type ReactNode } from "react";
 import type { RoomScanInput } from "@/lib/audio/acoustics.ts";
 import type { GearItem } from "@/lib/audio/pa-engine.ts";
@@ -35,6 +37,7 @@ export function VenuePreview({
   subs = EMPTY,
   monitors = EMPTY,
   grid,
+  layout,
   className,
   geometryOnly = false,
   compact = true,
@@ -44,6 +47,7 @@ export function VenuePreview({
   subs?: GearItem[];
   monitors?: GearItem[];
   grid?: SplGrid;
+  layout?: SpeakerLayout;
   className?: string;
   geometryOnly?: boolean;
   compact?: boolean;
@@ -51,7 +55,7 @@ export function VenuePreview({
   const coverage = useMemo(() => {
     if (geometryOnly) return undefined;
     if (grid) return grid;
-    const sources = sceneToSources(room, tops, subs);
+    const sources = sceneToSources(room, tops, subs, layout);
     return sources.length
       ? computeSplGrid(room, sources, {
           cols: 28,
@@ -60,7 +64,7 @@ export function VenuePreview({
           humidity: room.humidity,
         })
       : undefined;
-  }, [room, tops, subs, grid, geometryOnly]);
+  }, [room, tops, subs, grid, geometryOnly, layout]);
   return (
     <VenueBoundary>
       <Suspense
@@ -79,6 +83,7 @@ export function VenuePreview({
           subs={subs}
           monitors={monitors}
           splGrid={coverage}
+          speakers={geometryOnly ? [] : venueSpeakers(room, tops, subs, monitors, layout)}
           className={className}
           compact={compact}
         />

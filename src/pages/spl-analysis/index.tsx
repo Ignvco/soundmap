@@ -8,11 +8,11 @@ import { computeSplGrid } from "@/lib/audio/spl-grid.ts";
 import { sceneToSources } from "@/lib/audio/system-vitals.ts";
 
 export default function SPLAnalysis() {
-  const { room, tops, subs, monitors } = useAppStore();
+  const { stageLayout, room, tops, subs, monitors } = useAppStore();
   const [frequency, setFrequency] = useState(1000);
   const grid = useMemo(() => {
     if (!room) return undefined;
-    const sources = sceneToSources(room, tops, subs);
+    const sources = sceneToSources(room, tops, subs, stageLayout);
     return sources.length
       ? computeSplGrid(room, sources, {
           cols: 32,
@@ -22,7 +22,7 @@ export default function SPLAnalysis() {
           humidity: room.humidity,
         })
       : undefined;
-  }, [room, tops, subs, frequency]);
+  }, [stageLayout, room, tops, subs, frequency]);
   return (
     <div className="v6-workspace">
       <AnalysisNav />
@@ -51,6 +51,7 @@ export default function SPLAnalysis() {
       </header>
       {room ? (
         <VenuePreview
+          layout={stageLayout}
           room={room}
           tops={tops}
           subs={subs}

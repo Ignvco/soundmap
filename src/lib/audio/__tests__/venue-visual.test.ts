@@ -29,13 +29,13 @@ const top: GearItem = {
 };
 
 describe("3D venue and acoustic coordinate contract", () => {
-  it("places the illustrated arrays at the same sources used for coverage, preserving odd quantities", () => {
+  it("places the illustrated arrays at the same sources used for coverage, preserving every physical unit", () => {
     const speakers = venueSpeakers(room, [top], [], []);
     const sources = sceneToSources(room, [top], []);
     expect(speakers.map((s) => [s.x, s.y, s.z])).toEqual(
       sources.map((s) => [s.x, s.y, s.z]),
     );
-    expect(speakers.map((s) => s.count)).toEqual([2, 1]);
+    expect(speakers.map((s) => s.count)).toEqual([1, 1, 1]);
   });
   it("maps stage-side samples to negative Z without flipping or stretching the audience grid", () => {
     const grid = computeSplGrid(room, sceneToSources(room, [top], []), {

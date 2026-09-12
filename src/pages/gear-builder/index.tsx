@@ -266,7 +266,7 @@ function GearCard({
 }
 
 export default function GearBuilder() {
-  const { tops, subs, monitors, dspUnits, amps, mixers, mics, acoustics, room, toggleGearItem, setGearItemQuantity } = useAppStore();
+  const { stageLayout, tops, subs, monitors, dspUnits, amps, mixers, mics, acoustics, room, toggleGearItem, setGearItemQuantity } = useAppStore();
   const inWizard = useInWizard();
   const [activeTab, setActiveTab] = useState<GearTab>("tops");
   const [searchQuery, setSearchQuery] = useState("");
@@ -335,7 +335,7 @@ export default function GearBuilder() {
         />
       )}
 
-      {room && <div className="mb-5"><VenuePreview room={room} tops={tops} subs={subs} monitors={monitors} /></div>}
+      {room && <div className="mb-5"><VenuePreview layout={stageLayout} room={room} tops={tops} subs={subs} monitors={monitors} /></div>}
       {!room && (
         <div className="px-4 mb-4">
           <WarningBanner message="Hacé un Escaneo de Sala primero para obtener puntajes y recomendaciones optimizadas." type="info" />

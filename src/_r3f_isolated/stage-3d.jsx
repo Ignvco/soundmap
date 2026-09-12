@@ -1,3 +1,4 @@
+import { SPEAKER_COLORS } from "@/lib/speaker-layout.ts";
 // R3F stays isolated from the application's TypeScript JSX namespace.
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
@@ -220,6 +221,8 @@ function Coverage({ grid }) {
 function Speaker({ speaker, labels, onSelect, selected }) {
   const sub = speaker.kind === "subs",
     monitor = speaker.kind === "monitors";
+  const color = SPEAKER_COLORS[speaker.kind];
+  const array = speaker.cabinetType === "line-array";
   const count = Math.max(1, Math.min(16, speaker.count));
   return (
     <group
@@ -240,9 +243,9 @@ function Speaker({ speaker, labels, onSelect, selected }) {
           rotation={monitor ? [-0.35, Math.PI, 0] : [0.1, 0, 0]}
         >
           <Block
-            size={sub ? [0.76, 0.76, 0.68] : [0.72, 0.32, 0.46]}
+            size={sub ? [0.76, 0.76, 0.68] : array ? [0.72, 0.32, 0.46] : monitor ? [0.5, 0.32, 0.46] : [0.46, 0.72, 0.46]}
             color="#171b1b"
-            edge={selected ? "#C9F03E" : "#545b44"}
+            edge={selected ? "#FFFFFF" : color}
           />
           <mesh
             position={[0, 0, sub ? 0.345 : 0.235]}
@@ -251,14 +254,14 @@ function Speaker({ speaker, labels, onSelect, selected }) {
             <cylinderGeometry
               args={[sub ? 0.24 : 0.095, sub ? 0.24 : 0.095, 0.012, 16]}
             />
-            <meshBasicMaterial color="#A5BD51" />
+            <meshBasicMaterial color={color} />
           </mesh>
         </group>
       ))}
       {labels && (
         <Html position={[0, 0.7, 0]} center style={{ pointerEvents: "none" }}>
-          <span className="venue-label">
-            {speaker.label}
+          <span className="venue-label" style={{ borderColor: color, color }}>
+            {speaker.label} · {speaker.y.toFixed(2)} m
             {speaker.count > 1 ? ` ×${speaker.count}` : ""}
           </span>
         </Html>

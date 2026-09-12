@@ -287,7 +287,7 @@ export default function Scenes() {
         </div>
       }
     >
-      {preview && <div className="mb-6"><VenuePreview room={preview.room} tops={preview.tops} subs={preview.subs} monitors={preview.monitors} /><p className="text-xs text-muted-foreground mt-2">Vista previa · {preview.name}</p></div>}
+      {preview && <div className="mb-6"><VenuePreview layout={preview.stageLayout} room={preview.room} tops={preview.tops} subs={preview.subs} monitors={preview.monitors} /><p className="text-xs text-muted-foreground mt-2">Vista previa · {preview.name}</p></div>}
       {scenes.length > 0 && <input className="v6-panel w-full px-3 py-2 text-sm mb-4" aria-label="Buscar escenas" placeholder="Buscar escenas…" value={query} onChange={e => setQuery(e.target.value)} />}
       {/* Empty */}
       {sorted.length === 0 && (

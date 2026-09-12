@@ -1,4 +1,5 @@
 // SoundMap Global Store — Zustand
+import { sanitizeLayout, type SpeakerLayout, type SpeakerPlacement } from "@/lib/speaker-layout.ts";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { RoomScanInput, AcousticsResult } from "@/lib/audio/acoustics.ts";
@@ -7,6 +8,7 @@ import type { GearItem } from "@/lib/audio/pa-engine.ts";
 import type { Template } from "@/lib/audio/templates.ts";
 
 export interface Scene {
+  stageLayout?: SpeakerLayout;
   id: string;
   /** Stable client identifier used for cloud sync idempotency. */
   clientId?: string;
@@ -82,6 +84,11 @@ export interface AppState {
   mixers: GearItem[];
   mics: GearItem[];
 
+  stageLayout: SpeakerLayout;
+  activeSceneId: string | null;
+  updateSpeakerPlacement: (id: string, placement: SpeakerPlacement) => void;
+  resetSpeakerLayout: () => void;
+
   // Scenes
   scenes: Scene[];
 
@@ -129,6 +136,8 @@ export const useAppStore = create<AppState>()(
       amps: [],
       mixers: [],
       mics: [],
+      stageLayout: {},
+      activeSceneId: null,
       scenes: [],
       isDemoMode: false,
       hasSeenOnboarding: false,
@@ -136,13 +145,24 @@ export const useAppStore = create<AppState>()(
       tourActive: false,
       lastWizardStep: null,
 
+      updateSpeakerPlacement: (id, placement) => {
+        const state = get();
+        const stageLayout = sanitizeLayout({ ...state.stageLayout, [id]: { ...state.stageLayout[id], ...placement } });
+        set({ stageLayout, scenes: state.scenes.map(scene => sceneMatches(scene, state.activeSceneId ?? "")
+          ? { ...scene, stageLayout, updatedAt: Date.now() } : scene) });
+      },
+      resetSpeakerLayout: () => {
+        set(s => ({ stageLayout: {}, scenes: s.scenes.map(scene => sceneMatches(scene, s.activeSceneId ?? "")
+          ? { ...scene, stageLayout: {}, updatedAt: Date.now() } : scene) }));
+      },
+
       applyRoomScan: (room, acoustics, opts) => {
         // Antes esto vaciaba SIEMPRE las 7 categorías de equipo: volver al paso
         // "Recinto" del wizard y re-escanear borraba en silencio todo el rig.
         const clearedGear = opts?.resetGear
           ? { tops: [], subs: [], monitors: [], dspUnits: [], amps: [], mixers: [], mics: [] }
           : {};
-        set({ room, acoustics, isDemoMode: false, ...clearedGear });
+        set({ room, acoustics, isDemoMode: false, ...clearedGear, ...(opts?.resetGear ? { stageLayout: {}, activeSceneId: null } : {}) });
       },
 
       setGear: (category, items) => {
@@ -217,6 +237,7 @@ export const useAppStore = create<AppState>()(
           name,
           createdAt: new Date().toISOString(),
           updatedAt: now,
+          stageLayout: state.stageLayout,
           room: state.room,
           acoustics: state.acoustics,
           tops: state.tops,
@@ -227,7 +248,7 @@ export const useAppStore = create<AppState>()(
           mixers: state.mixers,
           mics: state.mics,
         };
-        set(s => ({ scenes: [scene, ...s.scenes], isDemoMode: false }));
+        set(s => ({ scenes: [scene, ...s.scenes], activeSceneId: id, isDemoMode: false }));
       },
 
       upsertScene: (scene) => {
@@ -254,6 +275,8 @@ export const useAppStore = create<AppState>()(
         const scene = get().scenes.find(s => sceneMatches(s, id));
         if (!scene) return;
         set({
+          stageLayout: sanitizeLayout(scene.stageLayout),
+          activeSceneId: scene.clientId ?? scene.id,
           room: scene.room,
           acoustics: scene.acoustics,
           tops: scene.tops,
@@ -268,11 +291,13 @@ export const useAppStore = create<AppState>()(
       },
 
       deleteScene: (id) => {
-        set(s => ({ scenes: s.scenes.filter(sc => !sceneMatches(sc, id)) }));
+        set(s => ({ scenes: s.scenes.filter(sc => !sceneMatches(sc, id)), activeSceneId: s.scenes.some(sc => sceneMatches(sc, id) && sceneMatches(sc, s.activeSceneId ?? "")) ? null : s.activeSceneId }));
       },
 
       resetSystem: () => {
         set({
+          stageLayout: {},
+          activeSceneId: null,
           room: null,
           acoustics: null,
           tops: [],
@@ -289,6 +314,8 @@ export const useAppStore = create<AppState>()(
       loadDemoVenue: () => {
         const acoustics = calculateAcoustics(DEMO_ROOM);
         set({
+          stageLayout: {},
+          activeSceneId: null,
           room: DEMO_ROOM,
           acoustics,
           tops: DEMO_TOPS,
@@ -305,6 +332,8 @@ export const useAppStore = create<AppState>()(
       applyTemplate: (tpl) => {
         const acoustics = calculateAcoustics(tpl.room);
         set({
+          stageLayout: {},
+          activeSceneId: null,
           room: tpl.room,
           acoustics,
           tops: tpl.tops,
@@ -336,13 +365,15 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: "soundmap-store",
-      version: 2,
+      version: 3,
       migrate: (persistedState: unknown, version: number) => {
-        // v0/v1 → v2: ensure new fields exist, drop unknown legacy fields.
+        // v0/v1/v2 → v3: preserve scenes and add shared speaker layout.
         const s = (persistedState ?? {}) as Partial<AppState>;
-        if (version < 2) {
+        if (version < 3) {
           return {
             ...s,
+            stageLayout: sanitizeLayout(s.stageLayout),
+            activeSceneId: s.activeSceneId ?? null,
             tops: Array.isArray(s.tops) ? s.tops : [],
             subs: Array.isArray(s.subs) ? s.subs : [],
             monitors: Array.isArray(s.monitors) ? s.monitors : [],

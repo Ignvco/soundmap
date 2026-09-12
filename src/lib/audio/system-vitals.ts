@@ -1,3 +1,4 @@
+import { layoutSpeakers, layoutSources, type SpeakerLayout } from "../speaker-layout.ts";
 // SoundMap Vitals — compute REAL system state for the AI Home dashboard.
 // Turns the Zustand store state into chart-ready data structures.
 //
@@ -10,7 +11,7 @@ import type { DSPBand } from "./dsp-engine.ts";
 import type { GearItem } from "./pa-engine.ts";
 import type { RoomScanInput, AcousticsResult } from "./acoustics.ts";
 import { computeSplGrid, type Source, type SplGrid } from "./spl-grid.ts";
-import { arrayGainDb, combinedSplMax } from "./array-gain.ts";
+import { combinedSplMax } from "./array-gain.ts";
 
 // ── EQ curve builder ────────────────────────────────────────────────────────
 /** Log-spaced sample points across 20 Hz–20 kHz (default 48 points). */
@@ -135,41 +136,8 @@ export interface CoverageZones {
  * `20·log10` — la fórmula vieja — así que los deltas entre escenas salían de
  * un modelo distinto al de la home y del optimizador.
  */
-export function sceneToSources(room: RoomScanInput, tops: GearItem[], subs: GearItem[]): Source[] {
-  const stageDepth = room.length * 0.12;
-  const stageZ = -room.length / 2 + stageDepth;
-  const sources: Source[] = [];
-  const totalTops = tops.reduce((s, g) => s + (g.quantity ?? 1), 0);
-  const topBox = tops[0];
-  if (totalTops > 0 && topBox) {
-    const perSide = Math.ceil(totalTops / 2);
-    for (let side = 0; side < 2; side++) {
-      const sign = side === 0 ? -1 : 1;
-      const count = side === 0 ? perSide : totalTops - perSide;
-      if (count <= 0) continue;
-      sources.push({
-        x: sign * room.width * 0.32,
-        y: room.height * 0.75,
-        z: stageZ + 0.6,
-        spl1m: topBox.splMax + arrayGainDb(count, "incoherent"),
-        aimDx: 0, aimDy: -0.35, aimDz: 1,
-        coverageH: topBox.coverageH ?? 90,
-        coverageV: topBox.coverageV ?? 40,
-      });
-    }
-  }
-  const totalSubs = subs.reduce((s, g) => s + (g.quantity ?? 1), 0);
-  const subBox = subs[0];
-  if (totalSubs > 0 && subBox) {
-    sources.push({
-      x: 0, y: 0.5, z: stageZ + 1.2,
-      // Los subs sí acoplan: a 40 Hz λ ≈ 8.6 m, un stack de 4 es un punto único.
-      spl1m: subBox.splMax + arrayGainDb(totalSubs, "coupled"),
-      aimDx: 0, aimDy: 0, aimDz: 1,
-      coverageH: 180, coverageV: 180,
-    });
-  }
-  return sources;
+export function sceneToSources(room: RoomScanInput, tops: GearItem[], subs: GearItem[], layout?: SpeakerLayout): Source[] {
+  return layoutSources(layoutSpeakers(room, tops, subs, [], layout));
 }
 
 /** Average SPL across a rectangular slice of the grid (row range, col range). */
@@ -186,9 +154,9 @@ function avgSpl(grid: SplGrid, r0: number, r1: number, c0: number, c1: number): 
 }
 
 export function coverageByZone(
-  room: RoomScanInput, tops: GearItem[], subs: GearItem[],
+  room: RoomScanInput, tops: GearItem[], subs: GearItem[], layout?: SpeakerLayout,
 ): CoverageZones | null {
-  const sources = sceneToSources(room, tops, subs);
+  const sources = sceneToSources(room, tops, subs, layout);
   if (sources.length === 0) return null;
   const grid = computeSplGrid(room, sources, { cols: 12, rows: 18 });
   const rows = grid.rows;

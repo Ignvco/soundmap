@@ -21,7 +21,7 @@ import { paSummary, paFrequencyResponse, sessionsPeakSeries } from "@/lib/audio/
 import { Metric, MetricRow } from "@/components/soundmap/vitals/metric.tsx";
 
 export default function PerformHub() {
-  const { room, tops, subs, monitors, dspUnits, scenes } = useAppStore();
+  const { stageLayout, room, tops, subs, monitors, dspUnits, scenes } = useAppStore();
 
   const hasSystem = tops.length > 0 || subs.length > 0;
   const hasDsp = dspUnits.length > 0;
@@ -70,7 +70,7 @@ export default function PerformHub() {
         </div>
         <span data-testid="perform-hub-title" className="sr-only">{room?.name ?? "Show time"}</span>
 
-        {room && <div className="mb-6"><VenuePreview room={room} tops={tops} subs={subs} monitors={monitors} /></div>}
+        {room && <div className="mb-6"><VenuePreview layout={stageLayout} room={room} tops={tops} subs={subs} monitors={monitors} /></div>}
         {/* ── Estado del sistema, en grande ──────────────────────────────
             El mockup pone el SPL como dato dominante: abrís Perform y sabés al
             instante si el sistema está listo. Antes lo primero era un banner
