@@ -104,7 +104,7 @@ export function AppShellV5({ children }: Props) {
         </ErrorBoundary>
       </main>
 
-      <AdvisorWidget />
+      {location.pathname !== "/ai-advisor" && <AdvisorWidget />}
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
       <div className="md:hidden">
         <BottomNav />

@@ -240,7 +240,7 @@ interface ProButtonProps {
   "data-testid"?: string;
 }
 export function ProButton({ children, onClick, variant = "primary", size = "md", className, disabled, type = "button", fullWidth, ...rest }: ProButtonProps) {
-  const base = "inline-flex items-center justify-center gap-2 rounded-full font-medium cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed";
+  const base = "inline-flex items-center justify-center gap-2 rounded-md font-medium cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed";
   const variants = {
     primary: "bg-white text-[#09090b] hover:bg-white/90",
     ghost: "text-foreground hover:text-foreground",
@@ -418,11 +418,11 @@ export function ScreenShell({ children, className, compact }: ScreenShellProps) 
       className={cn(
         compact
           ? "bg-background text-foreground px-5 md:px-8 pt-2 pb-4"
-          : "min-h-screen bg-background text-foreground px-6 md:px-12 pt-10 md:pt-16 pb-24",
+          : "v6-workspace",
         className,
       )}
     >
-      <div className={compact ? "max-w-3xl mx-auto" : "max-w-4xl mx-auto"}>
+      <div className={compact ? "max-w-[1400px] mx-auto" : "max-w-[1400px] mx-auto"}>
         {children}
       </div>
     </div>

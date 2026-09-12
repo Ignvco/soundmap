@@ -1,3 +1,4 @@
+import { VenuePreview } from "@/components/soundmap/venue-preview.tsx";
 // SoundMap — Armador de Equipo (Gear Builder) — Dark premium configurator
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
@@ -334,6 +335,7 @@ export default function GearBuilder() {
         />
       )}
 
+      {room && <div className="mb-5"><VenuePreview room={room} tops={tops} subs={subs} monitors={monitors} /></div>}
       {!room && (
         <div className="px-4 mb-4">
           <WarningBanner message="Hacé un Escaneo de Sala primero para obtener puntajes y recomendaciones optimizadas." type="info" />

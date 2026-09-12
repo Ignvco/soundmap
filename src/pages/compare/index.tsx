@@ -1,3 +1,5 @@
+import { AnalysisNav } from "@/components/soundmap/analysis-nav.tsx";
+import { VenuePreview } from "@/components/soundmap/venue-preview.tsx";
 // Compare Hub v5 — Premium A/B diff for pro audio designers.
 // Redesigned with the Apple/Linear/Arc aesthetic: typography-first hierarchy,
 // no permanent chrome, heatmaps as the hero, progressive disclosure for
@@ -110,8 +112,8 @@ export default function SceneCompare() {
   // ── Empty state ──────────────────────────────────────────────────────────
   if (scenes.length < 2) {
     return (
-      <div className="min-h-screen bg-background text-foreground px-6 md:px-12 pt-10 md:pt-16 pb-24">
-        <div className="max-w-4xl mx-auto">
+      <div className="v6-workspace">
+        <div className="max-w-[1400px] mx-auto"><AnalysisNav />
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -121,7 +123,7 @@ export default function SceneCompare() {
               Compare A / B
             </p>
             <h1
-              className="text-[2rem] md:text-[2.8rem] leading-[1.05] tracking-[-0.03em] font-medium mb-3"
+              className="v6-heading mb-3"
               data-testid="compare-hub-title"
             >
               Necesitás dos escenas
@@ -147,8 +149,8 @@ export default function SceneCompare() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground px-6 md:px-12 pt-10 md:pt-16 pb-24">
-      <div className="max-w-5xl mx-auto">
+    <div className="v6-workspace">
+      <div className="max-w-[1400px] mx-auto"><AnalysisNav />
         {/* Whisper header + title */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
@@ -159,7 +161,7 @@ export default function SceneCompare() {
             Compare A / B
           </p>
           <h1
-            className="text-[2rem] md:text-[2.8rem] leading-[1.05] tracking-[-0.03em] font-medium mb-3"
+            className="v6-heading mb-3"
             data-testid="compare-hub-title"
           >
             Diff físico entre escenas
@@ -516,7 +518,7 @@ function HeatmapHero({ grid, scene, label, hue, testId }: {
 
       {grid ? (
         <>
-          <SplHeatmap2D grid={grid} className="w-full aspect-[3/4] overflow-hidden r-card" />
+          <VenuePreview room={scene.room} tops={scene.tops} subs={scene.subs} monitors={scene.monitors} grid={grid} />
           <div className="grid grid-cols-3 gap-4 mt-4">
             <MicroStat label="Uniformidad" value={`${grid.uniformityPct}%`} />
             <MicroStat label="Media" value={`${grid.mean} dB`} />
@@ -524,11 +526,7 @@ function HeatmapHero({ grid, scene, label, hue, testId }: {
           </div>
         </>
       ) : (
-        <div className="w-full aspect-[3/4] rounded-2xl flex items-center justify-center bg-white/[0.02]">
-          <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground font-medium">
-            Sin equipo cargado
-          </p>
-        </div>
+        <VenuePreview room={scene.room} geometryOnly />
       )}
     </div>
   );

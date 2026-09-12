@@ -11,9 +11,9 @@ import { feedback } from "@/lib/feedback.ts";
 
 const TABS = [
   { id: "home",    labelKey: "nav.tab_home",    icon: Home,    path: "/",         match: (p: string) => p === "/" },
-  { id: "design",  labelKey: "nav.tab_design",  icon: Compass, path: "/design",   match: (p: string) => p.startsWith("/design") || p.startsWith("/room-scan") || p.startsWith("/gear-builder") || p.startsWith("/dsp") || p.startsWith("/channels") || p.startsWith("/stage-map") || p.startsWith("/pa") || p.startsWith("/toolkit") || p.startsWith("/templates") },
+  { id: "design",  labelKey: "nav.tab_design",  icon: Compass, path: "/design",   match: (p: string) => p.startsWith("/design") || p.startsWith("/room-scan") || p.startsWith("/gear-builder") || p.startsWith("/dsp") || p.startsWith("/channels") || p.startsWith("/pa") || p.startsWith("/toolkit") || p.startsWith("/templates") },
   { id: "perform", labelKey: "nav.tab_perform", icon: Radio,   path: "/perform",  match: (p: string) => p.startsWith("/perform") || p.startsWith("/live") || p.startsWith("/kiosk") },
-  { id: "analyze", labelKey: "nav.tab_analyze", icon: GitCompareArrows, path: "/compare", match: (p: string) => p.startsWith("/compare") || p.startsWith("/analyze") || p.startsWith("/export") },
+  { id: "analyze", labelKey: "nav.tab_analyze", icon: GitCompareArrows, path: "/compare", match: (p: string) => p.startsWith("/compare") || p.startsWith("/analyze") || p.startsWith("/stage-map") || p.startsWith("/spl-analysis") || p.startsWith("/acoustic-analysis") || p.startsWith("/export") },
 ];
 
 const QUICK_ACTIONS = [

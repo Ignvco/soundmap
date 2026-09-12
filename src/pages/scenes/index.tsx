@@ -1,3 +1,4 @@
+import { VenuePreview } from "@/components/soundmap/venue-preview.tsx";
 // Scenes v5 — Premium archive of saved system configurations.
 // Notion-style list with typography-first cards, quiet sync badges and
 // progressive disclosure on delete confirms.
@@ -9,7 +10,7 @@ import { SyncIndicator } from "@/components/soundmap/sync-indicator.tsx";
 import { useSyncContext } from "@/components/providers/sync.tsx";
 import { feedback } from "@/lib/feedback.ts";
 import {
-  Archive, Trash2,
+  Archive, Trash2, Box,
   ChevronRight, AlertTriangle, Cloud, CloudUpload, HardDrive,
   ArrowLeftRight, Share2,
 } from "lucide-react";
@@ -17,7 +18,6 @@ import { ShareSceneModal } from "@/components/soundmap/share-scene-modal.tsx";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { format, formatDistanceToNow } from "date-fns";
-import { cn } from "@/lib/utils.ts";
 import type { Scene } from "@/store/app.ts";
 
 const HUE_DANGER = "var(--sm-warm)";
@@ -30,10 +30,10 @@ const RISK_META: Record<string, { label: string; hue: string }> = {
 
 // ── Scene card — quiet Notion-style row ─────────────────────────────────────
 function SceneCard({
-  scene, isSynced, canSync, onLoad, onDelete, onPush, onShare,
+  scene, isSynced, canSync, onLoad, onDelete, onPush, onShare, onPreview,
 }: {
   scene: Scene; isSynced: boolean; canSync: boolean;
-  onLoad: () => void; onDelete: () => void; onPush: () => void; onShare: () => void;
+  onPreview: () => void; onLoad: () => void; onDelete: () => void; onPush: () => void; onShare: () => void;
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const totalGear = scene.tops.length + scene.subs.length + scene.monitors.length + scene.amps.length;
@@ -62,7 +62,8 @@ function SceneCard({
           en grilla, timestamp y botonera — cinco bloques para un ítem de lista.
           Ahora todo entra en una fila escaneable y las acciones aparecen al
           pasar el mouse. */}
-      <div className="flex items-center gap-4 px-3 md:px-4 py-3.5">
+      <div className="flex flex-wrap items-center gap-3 px-3 md:px-4 py-3.5 border-b border-border">
+        <button className="v6-button" onClick={onPreview} aria-label={`Ver ${scene.name} en 3D`}><Box size={15} /></button>
         <button
           onClick={() => { feedback("success"); onLoad(); }}
           data-testid={`scene-load-btn-${id}`}
@@ -222,6 +223,8 @@ export default function Scenes() {
   const { scenes, loadScene, deleteScene } = useAppStore();
   const { isAuthenticated, deleteOne, pushOne, cloudCount } = useSyncContext();
   const navigate = useNavigate();
+  const [previewId, setPreviewId] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
   const [shareTarget, setShareTarget] = useState<Scene | null>(null);
 
   const handleLoad = (id: string, name: string) => {
@@ -247,6 +250,8 @@ export default function Scenes() {
     return bt - at;
   });
 
+  const preview = sorted.find(s => s.id === previewId) ?? sorted[0];
+  const visible = sorted.filter(s => `${s.name} ${s.room.name}`.toLowerCase().includes(query.toLowerCase()));
   const isSceneSynced = (s: Scene) => isAuthenticated && !!s.clientId;
 
   return (
@@ -282,31 +287,8 @@ export default function Scenes() {
         </div>
       }
     >
-      {/* Auth hint */}
-      {!isAuthenticated && (
-        <motion.div
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15, duration: 0.5 }}
-          className={cn(
-            "mb-8 rounded-xl px-5 py-4 flex items-start gap-3",
-          )}
-          style={{
-            background: "rgba(155,126,189,0.05)",
-            boxShadow: "0 0 0 1px rgba(155,126,189,0.20)",
-          }}
-          data-testid="scenes-auth-hint"
-        >
-          <Cloud size={14} strokeWidth={1.75} className="text-[#F5B62E] shrink-0 mt-0.5" />
-          <div>
-            <p className="text-[13px] font-medium text-foreground mb-1">Sincronizá en la nube</p>
-            <p className="text-[12px] text-muted-foreground leading-relaxed max-w-md">
-              Iniciá sesión para respaldar escenas y acceder desde cualquier dispositivo.
-            </p>
-          </div>
-        </motion.div>
-      )}
-
+      {preview && <div className="mb-6"><VenuePreview room={preview.room} tops={preview.tops} subs={preview.subs} monitors={preview.monitors} /><p className="text-xs text-muted-foreground mt-2">Vista previa · {preview.name}</p></div>}
+      {scenes.length > 0 && <input className="v6-panel w-full px-3 py-2 text-sm mb-4" aria-label="Buscar escenas" placeholder="Buscar escenas…" value={query} onChange={e => setQuery(e.target.value)} />}
       {/* Empty */}
       {sorted.length === 0 && (
         <motion.div
@@ -339,12 +321,13 @@ export default function Scenes() {
 
       {/* Grid */}
       {sorted.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 items-start" data-testid="scenes-grid">
+        <div className="flex flex-col" data-testid="scenes-grid">
           <AnimatePresence>
-            {sorted.map(scene => (
+            {visible.map(scene => (
               <SceneCard
                 key={scene.clientId ?? scene.id}
                 scene={scene}
+                onPreview={() => setPreviewId(scene.id)}
                 isSynced={isSceneSynced(scene)}
                 canSync={isAuthenticated}
                 onLoad={() => handleLoad(scene.clientId ?? scene.id, scene.name)}
@@ -357,6 +340,7 @@ export default function Scenes() {
         </div>
       )}
 
+      {sorted.length > 0 && visible.length === 0 && <p className="py-8 text-center text-sm text-muted-foreground">No hay escenas que coincidan.</p>}
       <ShareSceneModal
         open={!!shareTarget}
         scene={shareTarget}

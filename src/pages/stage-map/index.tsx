@@ -1,3 +1,4 @@
+import { VenueBoundary } from "@/components/soundmap/venue-preview.tsx";
 // SoundMap — Stage Map (Interactive Floor Plan + 3D View) — Premium Dark CAD
 // Drag speakers freely; get live placement feedback per unit and for the system.
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
@@ -737,7 +738,7 @@ export default function StageMap() {
   const [zoom, setZoom] = useState(1);
   const [showDetails, setShowDetails] = useState(false);
   const [overrides, setOverrides] = useState<Overrides>({});
-  const [viewMode, setViewMode] = useState<"2d" | "3d">("2d");
+  const [viewMode, setViewMode] = useState<"2d" | "3d">("3d");
   const [optimizerOpen, setOptimizerOpen] = useState(false);
 
   // Reset custom positions whenever the room changes
@@ -837,7 +838,7 @@ export default function StageMap() {
             {room.name}
           </h1>
           <p className="text-[13px] text-muted-foreground mt-1">
-            {DEPLOY_LABEL[stageConfig?.deploymentMode ?? "mono"]} · {tops.length} tops · {subs.length} subs
+            {DEPLOY_LABEL[stageConfig?.deploymentMode ?? "mono"]} · {tops.reduce((n, g) => n + (g.quantity ?? 1), 0)} tops · {subs.reduce((n, g) => n + (g.quantity ?? 1), 0)} subs
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -903,18 +904,27 @@ export default function StageMap() {
               tarjeta debajo: el brief pide "evitar paneles innecesarios
               alrededor" y que la visualización sea protagonista. */}
           <div className="relative">
-            <Stage3D
+            <VenueBoundary><Stage3D
               room={room}
               config={stageConfig}
               tops={tops}
               subs={subs}
               monitors={monitors}
               splGrid={splGrid}
-            />
+              speakers={pins.map(p => {
+                const n = pxToNorm(p.x, p.y, geo);
+                return { id: p.id, label: p.label, kind: p.type, count: 1,
+                  x: (n.normX / 100 - .5) * room.width,
+                  z: (n.normY / 100 - .5) * room.length,
+                  y: p.type === "tops" ? room.height * .75 : p.type === "delay" ? room.height * .6 : p.type === "monitors" ? .75 : .4 };
+              })}
+              selectedId={selectedPin}
+              onSelect={setSelectedPin}
+            /></VenueBoundary>
 
             {splGrid && (
               <div
-                className="absolute left-3 bottom-3 right-3 md:right-auto md:min-w-[380px] px-4 py-3 pointer-events-none"
+                className="mt-3 px-4 py-3"
                 style={{
                   borderRadius: "var(--radius-card)",
                   background: "rgba(8, 9, 10, 0.72)",

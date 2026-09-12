@@ -1,3 +1,4 @@
+import { VenuePreview } from "@/components/soundmap/venue-preview.tsx";
 // SoundMap — PA System Screen (Dark Premium)
 import { useMemo } from "react";
 import { motion } from "motion/react";
@@ -538,11 +539,7 @@ export default function PA() {
               <p className="text-[10px] text-muted-foreground uppercase tracking-[0.28em] font-semibold">Mapa de Cobertura SPL</p>
               <Badge color="gray">Vista del Público</Badge>
             </div>
-            <SPLHeatmap
-              splTarget={pa.splTarget}
-              headroom={pa.headroomDb}
-              coverageAngle={pa.coverageAngle}
-            />
+            <VenuePreview room={room} tops={tops} subs={subs} monitors={monitors} />
           </GlassCard>
         </div>
       )}
