@@ -32,12 +32,23 @@ const TONE: Record<NonNullable<MetricProps["tone"]>, string> = {
   danger: "var(--destructive)",
 };
 
-export function Metric({ value, unit, label, tone = "default", size = "lg", testId }: MetricProps) {
-  const valueSize = size === "lg" ? "text-[26px] md:text-[28px]" : "text-[22px] md:text-[24px]";
+export function Metric({
+  value,
+  unit,
+  label,
+  tone = "default",
+  size = "lg",
+  testId,
+}: MetricProps) {
+  const valueSize =
+    size === "lg" ? "text-[26px] md:text-[28px]" : "text-[22px] md:text-[24px]";
   return (
     <div data-testid={testId} className="min-w-0">
       <p
-        className={cn(valueSize, "font-mono tabular-nums leading-none tracking-[-0.03em] truncate")}
+        className={cn(
+          valueSize,
+          "font-mono tabular-nums leading-none tracking-[-0.03em] truncate",
+        )}
         style={{ color: TONE[tone] }}
       >
         {value}
@@ -46,7 +57,8 @@ export function Metric({ value, unit, label, tone = "default", size = "lg", test
             className="ml-1 font-sans font-normal tracking-normal"
             style={{
               fontSize: size === "lg" ? "0.44em" : "0.5em",
-              color: tone === "default" ? "var(--muted-foreground)" : TONE[tone],
+              color:
+                tone === "default" ? "var(--muted-foreground)" : TONE[tone],
             }}
           >
             {unit}
@@ -54,7 +66,7 @@ export function Metric({ value, unit, label, tone = "default", size = "lg", test
         )}
       </p>
       <p
-        className="mt-2 text-[10px] font-medium uppercase tracking-[0.16em] truncate"
+        className="mt-2 text-[10px] font-medium uppercase tracking-[0.1em] leading-relaxed"
         style={{ color: "var(--muted-foreground)" }}
       >
         {label}
@@ -68,13 +80,16 @@ export function Metric({ value, unit, label, tone = "default", size = "lg", test
  * Es el patrón del mockup: los números conviven en una banda, no en cajas.
  */
 export function MetricRow({
-  children, className, testId,
-}: { children: ReactNode; className?: string; testId?: string }) {
+  children,
+  className,
+  testId,
+}: {
+  children: ReactNode;
+  className?: string;
+  testId?: string;
+}) {
   return (
-    <div
-      data-testid={testId}
-      className={cn("grid grid-cols-2 sm:grid-cols-4 gap-y-6 [&>div]:px-4 [&>div]:border-l [&>div]:border-border [&>div:first-child]:border-l-0", className)}
-    >
+    <div data-testid={testId} className={cn("metric-row", className)}>
       {children}
     </div>
   );
@@ -82,10 +97,21 @@ export function MetricRow({
 
 /** Encabezado de sección: label discreto + acción opcional a la derecha. */
 export function SectionLabel({
-  children, action, className,
-}: { children: ReactNode; action?: ReactNode; className?: string }) {
+  children,
+  action,
+  className,
+}: {
+  children: ReactNode;
+  action?: ReactNode;
+  className?: string;
+}) {
   return (
-    <div className={cn("flex items-baseline justify-between gap-4 mb-4", className)}>
+    <div
+      className={cn(
+        "flex items-baseline justify-between gap-4 mb-4",
+        className,
+      )}
+    >
       <p
         className="text-[11px] font-medium uppercase tracking-[0.16em]"
         style={{ color: "var(--muted-foreground)" }}

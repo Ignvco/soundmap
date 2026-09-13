@@ -7,7 +7,7 @@ import { Metric, MetricRow } from "@/components/soundmap/vitals/metric.tsx";
 export default function AcousticAnalysis() {
   const { room, acoustics } = useAppStore();
   return (
-    <div className="v6-workspace">
+    <div className="v6-workspace acoustic-workspace">
       <AnalysisNav />
       <header className="mb-6">
         <h1 className="v6-heading">Acoustic Analysis</h1>
@@ -17,8 +17,29 @@ export default function AcousticAnalysis() {
       </header>
       {room && acoustics ? (
         <>
-          <div className="v6-split">
-            <VenuePreview room={room} geometryOnly compact={false} />
+          <MetricRow className="pb-6 mb-6 border-b border-border">
+            <Metric
+              label="RT60 con audiencia"
+              value={acoustics.rt60Audience.toFixed(2)}
+              unit="s"
+            />
+            <Metric
+              label="Volumen"
+              value={Math.round(acoustics.volume).toLocaleString()}
+              unit="m³"
+            />
+            <Metric
+              label="Schroeder"
+              value={Math.round(acoustics.schroederFreq).toString()}
+              unit="Hz"
+            />
+            <Metric
+              label="Distancia crítica"
+              value={acoustics.criticalDistance.toFixed(1)}
+              unit="m"
+            />
+          </MetricRow>
+          <div className="acoustic-overview">
             <aside className="v6-panel p-5 space-y-6">
               <h2 className="text-sm font-medium">Reverberación</h2>
               {[
@@ -50,29 +71,11 @@ export default function AcousticAnalysis() {
                 Recinto y medición RT60
               </Link>
             </aside>
+            <div className="acoustic-geometry">
+              <VenuePreview room={room} geometryOnly />
+            </div>
           </div>
-          <MetricRow className="py-6 border-b border-border">
-            <Metric
-              label="RT60 con audiencia"
-              value={acoustics.rt60Audience.toFixed(2)}
-              unit="s"
-            />
-            <Metric
-              label="Volumen"
-              value={Math.round(acoustics.volume).toLocaleString()}
-              unit="m³"
-            />
-            <Metric
-              label="Schroeder"
-              value={Math.round(acoustics.schroederFreq).toString()}
-              unit="Hz"
-            />
-            <Metric
-              label="Distancia crítica"
-              value={acoustics.criticalDistance.toFixed(1)}
-              unit="m"
-            />
-          </MetricRow>
+
           <div className="grid md:grid-cols-2 gap-6 mt-6">
             <section className="v6-panel p-5">
               <h2 className="text-sm font-medium mb-4">

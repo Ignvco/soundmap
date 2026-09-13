@@ -7,14 +7,45 @@ import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "motion/react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, AlertTriangle, Music, Tent, Drama, Mic2, Check, ArrowRight, RotateCcw, Cpu, ShieldCheck, ShieldAlert, ShieldOff, Mic, Compass, Download, Upload } from "lucide-react";
+import {
+  ChevronDown,
+  AlertTriangle,
+  Music,
+  Tent,
+  Drama,
+  Mic2,
+  Check,
+  ArrowRight,
+  RotateCcw,
+  Cpu,
+  ShieldCheck,
+  ShieldAlert,
+  ShieldOff,
+  Mic,
+  Compass,
+  Download,
+  Upload,
+} from "lucide-react";
 import { useAppStore } from "@/store/app.ts";
 import { useSettingsStore, type VenuePreset } from "@/store/settings.ts";
-import { useHardwareCapabilities, type MicStatus, type GyroStatus } from "@/hooks/use-hardware-capabilities.ts";
-import { exportBackupWithToast, importBackupWithToast, BACKUP_VERSION } from "@/lib/backup.ts";
+import {
+  useHardwareCapabilities,
+  type MicStatus,
+  type GyroStatus,
+} from "@/hooks/use-hardware-capabilities.ts";
+import {
+  exportBackupWithToast,
+  importBackupWithToast,
+  BACKUP_VERSION,
+} from "@/lib/backup.ts";
 import { cn } from "@/lib/utils.ts";
 import { toast } from "sonner";
-import { SUPPORTED_LOCALES_ARRAY, SUPPORTED_LOCALES, changeLocale, type SupportedLocale } from "@/i18n.ts";
+import {
+  SUPPORTED_LOCALES_ARRAY,
+  SUPPORTED_LOCALES,
+  changeLocale,
+  type SupportedLocale,
+} from "@/i18n.ts";
 import { feedback } from "@/lib/feedback.ts";
 
 // Quiet hue map. Sage=positive/on, amethyst=neutral toggle, warm=danger.
@@ -23,18 +54,49 @@ const HUE_DANGER = "var(--sm-warm)";
 const HUE_WARN = "var(--sm-amber)";
 const HUE_MUTED = "var(--sm-muted)";
 
-const VENUE_PRESETS: { value: VenuePreset; label: string; hint: string; icon: typeof Music }[] = [
-  { value: "club",       label: "Club",        hint: "Recintos íntimos, alta presión",            icon: Music },
-  { value: "festival",   label: "Festival",    hint: "Al aire libre, largo alcance",             icon: Tent },
-  { value: "theatre",    label: "Teatro",      hint: "Voz clara, reverberación controlada",       icon: Drama },
-  { value: "conference", label: "Conferencia", hint: "Inteligibilidad máxima de la voz",          icon: Mic2 },
+const VENUE_PRESETS: {
+  value: VenuePreset;
+  label: string;
+  hint: string;
+  icon: typeof Music;
+}[] = [
+  {
+    value: "club",
+    label: "Club",
+    hint: "Recintos íntimos, alta presión",
+    icon: Music,
+  },
+  {
+    value: "festival",
+    label: "Festival",
+    hint: "Al aire libre, largo alcance",
+    icon: Tent,
+  },
+  {
+    value: "theatre",
+    label: "Teatro",
+    hint: "Voz clara, reverberación controlada",
+    icon: Drama,
+  },
+  {
+    value: "conference",
+    label: "Conferencia",
+    hint: "Inteligibilidad máxima de la voz",
+    icon: Mic2,
+  },
 ];
 
 // ── Root ─────────────────────────────────────────────────────────────────────
 export default function Settings() {
   const {
-    units, defaultVenueType, soundEnabled, hapticsEnabled,
-    setUnits, setDefaultVenueType, setSoundEnabled, setHapticsEnabled,
+    units,
+    defaultVenueType,
+    soundEnabled,
+    hapticsEnabled,
+    setUnits,
+    setDefaultVenueType,
+    setSoundEnabled,
+    setHapticsEnabled,
   } = useSettingsStore();
   const resetSystem = useAppStore((s) => s.resetSystem);
   const startTour = useAppStore((s) => s.startTour);
@@ -44,7 +106,10 @@ export default function Settings() {
   const [openSection, setOpenSection] = useState<string>("measurement");
   const [showReset, setShowReset] = useState(false);
 
-  const toggle = (id: string) => { feedback("tap"); setOpenSection(o => o === id ? "" : id); };
+  const toggle = (id: string) => {
+    feedback("tap");
+    setOpenSection((o) => (o === id ? "" : id));
+  };
 
   const handleReset = () => {
     resetSystem();
@@ -60,7 +125,7 @@ export default function Settings() {
   };
 
   return (
-    <div className="v6-workspace">
+    <div className="v6-workspace settings-workspace">
       <div className="max-w-[1000px] mx-auto">
         {/* Whisper header + title */}
         <motion.div
@@ -68,18 +133,13 @@ export default function Settings() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
         >
-          <p className="text-[11px] uppercase tracking-[0.28em] font-medium text-muted-foreground mb-4">
-            Ajustes
-          </p>
-          <h1
-            className="v6-heading mb-3"
-            data-testid="settings-title"
-          >
+          <p className="hidden">Ajustes</p>
+          <h1 className="v6-heading mb-3" data-testid="settings-title">
             Preferencias
           </h1>
-          <p className="text-[15px] text-muted-foreground max-w-lg leading-relaxed mb-6">
-            Ajustá cómo suena, se siente y se mide SoundMap.
-            Los cambios se guardan solos.
+          <p className="text-sm text-muted-foreground max-w-lg leading-relaxed mb-5">
+            Ajustá cómo suena, se siente y se mide SoundMap. Los cambios se
+            guardan solos.
           </p>
         </motion.div>
 
@@ -88,7 +148,9 @@ export default function Settings() {
           <Section
             id="measurement"
             title="Medición"
-            summary={units === "metric" ? "Sistema métrico" : "Sistema imperial"}
+            summary={
+              units === "metric" ? "Sistema métrico" : "Sistema imperial"
+            }
             isOpen={openSection === "measurement"}
             onToggle={() => toggle("measurement")}
           >
@@ -111,7 +173,10 @@ export default function Settings() {
           <Section
             id="language"
             title={t("settings.language")}
-            summary={SUPPORTED_LOCALES[i18n.language as SupportedLocale]?.nativeName ?? "Español"}
+            summary={
+              SUPPORTED_LOCALES[i18n.language as SupportedLocale]?.nativeName ??
+              "Español"
+            }
             isOpen={openSection === "language"}
             onToggle={() => toggle("language")}
           >
@@ -120,10 +185,17 @@ export default function Settings() {
               hint={t("settings.language_desc")}
             >
               <SegmentControl
-                value={(SUPPORTED_LOCALES_ARRAY.includes(i18n.language as SupportedLocale)
-                  ? i18n.language
-                  : "es") as SupportedLocale}
-                onChange={(lng) => { feedback("tap"); void changeLocale(lng); }}
+                value={
+                  (SUPPORTED_LOCALES_ARRAY.includes(
+                    i18n.language as SupportedLocale,
+                  )
+                    ? i18n.language
+                    : "es") as SupportedLocale
+                }
+                onChange={(lng) => {
+                  feedback("tap");
+                  void changeLocale(lng);
+                }}
                 options={SUPPORTED_LOCALES_ARRAY.map((code) => ({
                   value: code,
                   label: SUPPORTED_LOCALES[code].nativeName,
@@ -136,7 +208,14 @@ export default function Settings() {
           <Section
             id="feedback"
             title="Feedback sensorial"
-            summary={[soundEnabled ? "Sonido" : null, hapticsEnabled ? "Vibración" : null].filter(Boolean).join(" · ") || "Silencio"}
+            summary={
+              [
+                soundEnabled ? "Sonido" : null,
+                hapticsEnabled ? "Vibración" : null,
+              ]
+                .filter(Boolean)
+                .join(" · ") || "Silencio"
+            }
             isOpen={openSection === "feedback"}
             onToggle={() => toggle("feedback")}
           >
@@ -171,37 +250,64 @@ export default function Settings() {
           <Section
             id="venue"
             title="Recinto por defecto"
-            summary={VENUE_PRESETS.find(v => v.value === defaultVenueType)?.label ?? "—"}
+            summary={
+              VENUE_PRESETS.find((v) => v.value === defaultVenueType)?.label ??
+              "—"
+            }
             isOpen={openSection === "venue"}
             onToggle={() => toggle("venue")}
           >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3" data-testid="venue-grid">
-              {VENUE_PRESETS.map(preset => {
+            <div
+              className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3"
+              data-testid="venue-grid"
+            >
+              {VENUE_PRESETS.map((preset) => {
                 const active = defaultVenueType === preset.value;
                 const Icon = preset.icon;
                 return (
                   <button
                     key={preset.value}
-                    onClick={() => { feedback("select"); setDefaultVenueType(preset.value); }}
+                    onClick={() => {
+                      feedback("select");
+                      setDefaultVenueType(preset.value);
+                    }}
                     data-testid={`venue-${preset.value}`}
                     className="text-left px-4 py-3.5 flex items-start gap-3 cursor-pointer r-control"
                     style={{
-                      background: active ? `${HUE_ON}12` : "rgba(255,255,255,0.02)",
+                      background: active
+                        ? `${HUE_ON}12`
+                        : "rgba(255,255,255,0.02)",
                       boxShadow: active
                         ? `0 0 0 1px ${HUE_ON}55`
                         : "0 0 0 1px rgba(255,255,255,0.05)",
-                      transition: "background-color 0.3s ease, box-shadow 0.3s ease",
+                      transition:
+                        "background-color 0.3s ease, box-shadow 0.3s ease",
                     }}
                   >
                     <div className="shrink-0 mt-0.5">
-                      <Icon size={15} strokeWidth={1.75} style={{ color: active ? HUE_ON : "var(--muted-foreground)" }} />
+                      <Icon
+                        size={15}
+                        strokeWidth={1.75}
+                        style={{
+                          color: active ? HUE_ON : "var(--muted-foreground)",
+                        }}
+                      />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[14px] font-medium text-foreground leading-tight">{preset.label}</p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{preset.hint}</p>
+                      <p className="text-[14px] font-medium text-foreground leading-tight">
+                        {preset.label}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+                        {preset.hint}
+                      </p>
                     </div>
                     {active && (
-                      <Check size={13} strokeWidth={2} style={{ color: HUE_ON }} className="shrink-0 mt-0.5" />
+                      <Check
+                        size={13}
+                        strokeWidth={2}
+                        style={{ color: HUE_ON }}
+                        className="shrink-0 mt-0.5"
+                      />
                     )}
                   </button>
                 );
@@ -240,7 +346,11 @@ export default function Settings() {
           <Section
             id="hardware"
             title="Hardware"
-            summary={summarizeHardware(capabilities.mic, capabilities.gyroscope, capabilities.isNativeApp)}
+            summary={summarizeHardware(
+              capabilities.mic,
+              capabilities.gyroscope,
+              capabilities.isNativeApp,
+            )}
             isOpen={openSection === "hardware"}
             onToggle={() => toggle("hardware")}
           >
@@ -249,14 +359,24 @@ export default function Settings() {
               hint="Necesario para el medidor SPL en vivo y para medir RT60"
             >
               <div className="flex items-center gap-2">
-                {(capabilities.mic === "prompt" || capabilities.mic === "unknown") && (
+                {(capabilities.mic === "prompt" ||
+                  capabilities.mic === "unknown") && (
                   <button
                     onClick={async () => {
                       feedback("tap");
                       const status = await capabilities.requestMic();
-                      if (status === "granted") { toast.success("Micrófono habilitado"); feedback("success"); }
-                      else if (status === "denied") { toast.error("Permiso denegado. Habilitalo desde el navegador."); feedback("error"); }
-                      else if (status === "unavailable") { toast.error("Este dispositivo no soporta micrófono."); feedback("error"); }
+                      if (status === "granted") {
+                        toast.success("Micrófono habilitado");
+                        feedback("success");
+                      } else if (status === "denied") {
+                        toast.error(
+                          "Permiso denegado. Habilitalo desde el navegador.",
+                        );
+                        feedback("error");
+                      } else if (status === "unavailable") {
+                        toast.error("Este dispositivo no soporta micrófono.");
+                        feedback("error");
+                      }
                     }}
                     data-testid="hw-mic-request"
                     className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium cursor-pointer"
@@ -271,7 +391,11 @@ export default function Settings() {
                     Habilitar
                   </button>
                 )}
-                <HardwareChip status={micLabel(capabilities.mic)} tone={micTone(capabilities.mic)} testId="hw-mic" />
+                <HardwareChip
+                  status={micLabel(capabilities.mic)}
+                  tone={micTone(capabilities.mic)}
+                  testId="hw-mic"
+                />
               </div>
             </Row>
             <Row
@@ -284,8 +408,13 @@ export default function Settings() {
                     onClick={async () => {
                       feedback("tap");
                       const status = await capabilities.requestGyro();
-                      if (status === "granted") { toast.success("Giroscopio habilitado"); feedback("success"); }
-                      else if (status === "denied") { toast.error("Permiso denegado."); feedback("error"); }
+                      if (status === "granted") {
+                        toast.success("Giroscopio habilitado");
+                        feedback("success");
+                      } else if (status === "denied") {
+                        toast.error("Permiso denegado.");
+                        feedback("error");
+                      }
                     }}
                     data-testid="hw-gyro-request"
                     className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium cursor-pointer"
@@ -300,7 +429,11 @@ export default function Settings() {
                     Habilitar
                   </button>
                 )}
-                <HardwareChip status={gyroLabel(capabilities.gyroscope)} tone={gyroTone(capabilities.gyroscope)} testId="hw-gyro" />
+                <HardwareChip
+                  status={gyroLabel(capabilities.gyroscope)}
+                  tone={gyroTone(capabilities.gyroscope)}
+                  testId="hw-gyro"
+                />
               </div>
             </Row>
             <Row
@@ -318,7 +451,9 @@ export default function Settings() {
               hint="Los sensores requieren HTTPS o localhost"
             >
               <HardwareChip
-                status={capabilities.isSecureContext ? "Habilitado" : "Sin HTTPS"}
+                status={
+                  capabilities.isSecureContext ? "Habilitado" : "Sin HTTPS"
+                }
                 tone={capabilities.isSecureContext ? "on" : "warn"}
                 testId="hw-secure"
               />
@@ -337,7 +472,10 @@ export default function Settings() {
               hint="Descargá un archivo JSON con escenas, preferencias y comunidad local"
             >
               <button
-                onClick={() => { feedback("success"); exportBackupWithToast(); }}
+                onClick={() => {
+                  feedback("success");
+                  exportBackupWithToast();
+                }}
                 data-testid="backup-export-btn"
                 className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[12px] font-medium cursor-pointer"
                 style={{
@@ -389,7 +527,9 @@ export default function Settings() {
               label="Guía"
               hint="El JSON funciona offline entre 2 dispositivos. Guardalo en Drive o Dropbox como respaldo remoto."
             >
-              <span className="text-[11px] text-muted-foreground font-mono">v{BACKUP_VERSION}</span>
+              <span className="text-[11px] text-muted-foreground font-mono">
+                v{BACKUP_VERSION}
+              </span>
             </Row>
           </Section>
 
@@ -401,13 +541,19 @@ export default function Settings() {
             onToggle={() => toggle("about")}
           >
             <Row label="Aplicación" hint="Consola profesional de audio en vivo">
-              <span className="text-[13px] font-medium text-foreground font-mono">SoundMap</span>
+              <span className="text-[13px] font-medium text-foreground font-mono">
+                SoundMap
+              </span>
             </Row>
             <Row label="Versión" hint="Design System v5 · Console Silenciosa">
-              <span className="text-[13px] font-mono text-muted-foreground tabular-nums">v5.0.0</span>
+              <span className="text-[13px] font-mono text-muted-foreground tabular-nums">
+                v5.0.0
+              </span>
             </Row>
             <Row label="Motor" hint="Físico acústico + DSP + Session Recorder">
-              <span className="text-[13px] font-mono text-muted-foreground">SoundMap Engine</span>
+              <span className="text-[13px] font-mono text-muted-foreground">
+                SoundMap Engine
+              </span>
             </Row>
           </Section>
 
@@ -445,7 +591,10 @@ export default function Settings() {
 
       <AnimatePresence>
         {showReset && (
-          <ResetConfirmDialog onConfirm={handleReset} onCancel={() => setShowReset(false)} />
+          <ResetConfirmDialog
+            onConfirm={handleReset}
+            onCancel={() => setShowReset(false)}
+          />
         )}
       </AnimatePresence>
     </div>
@@ -453,7 +602,15 @@ export default function Settings() {
 }
 
 // ── Section (progressive disclosure) ────────────────────────────────────────
-function Section({ id, title, summary, isOpen, onToggle, children, danger }: {
+function Section({
+  id,
+  title,
+  summary,
+  isOpen,
+  onToggle,
+  children,
+  danger,
+}: {
   id: string;
   title: string;
   summary: string;
@@ -472,7 +629,8 @@ function Section({ id, title, summary, isOpen, onToggle, children, danger }: {
         background: isOpen ? "var(--surface-1)" : "transparent",
         boxShadow: isOpen ? "var(--elev-1)" : "none",
         borderBottom: isOpen ? "none" : "1px solid var(--border-subtle)",
-        transition: "background-color var(--dur) var(--ease), border-radius var(--dur) var(--ease)",
+        transition:
+          "background-color var(--dur) var(--ease), border-radius var(--dur) var(--ease)",
       }}
     >
       <button
@@ -488,7 +646,9 @@ function Section({ id, title, summary, isOpen, onToggle, children, danger }: {
             {title}
           </p>
           {!isOpen && (
-            <p className="text-[12px] text-muted-foreground mt-1 truncate">{summary}</p>
+            <p className="text-[12px] text-muted-foreground mt-1 truncate">
+              {summary}
+            </p>
           )}
         </div>
         <ChevronDown
@@ -522,7 +682,12 @@ function Section({ id, title, summary, isOpen, onToggle, children, danger }: {
 }
 
 // ── Row (Notion-style label + control pair) ─────────────────────────────────
-function Row({ label, hint, children, danger }: {
+function Row({
+  label,
+  hint,
+  children,
+  danger,
+}: {
   label: string;
   hint?: string;
   children: ReactNode;
@@ -530,7 +695,7 @@ function Row({ label, hint, children, danger }: {
 }) {
   return (
     <div
-      className="flex items-start justify-between gap-6 py-4 first:pt-2"
+      className="settings-row flex items-start justify-between gap-6 py-4 first:pt-2"
       style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}
     >
       <div className="flex-1 min-w-0">
@@ -546,13 +711,18 @@ function Row({ label, hint, children, danger }: {
           </p>
         )}
       </div>
-      <div className="shrink-0 pt-0.5">{children}</div>
+      <div className="settings-row-control shrink-0 pt-0.5">{children}</div>
     </div>
   );
 }
 
 // ── Segment control ─────────────────────────────────────────────────────────
-function SegmentControl<T extends string>({ value, onChange, options, testId }: {
+function SegmentControl<T extends string>({
+  value,
+  onChange,
+  options,
+  testId,
+}: {
   value: T;
   onChange: (v: T) => void;
   options: { value: T; label: string }[];
@@ -567,16 +737,21 @@ function SegmentControl<T extends string>({ value, onChange, options, testId }: 
       }}
       data-testid={testId}
     >
-      {options.map(opt => {
+      {options.map((opt) => {
         const on = value === opt.value;
         return (
           <button
             key={opt.value}
-            onClick={() => { feedback("select"); onChange(opt.value); }}
+            onClick={() => {
+              feedback("select");
+              onChange(opt.value);
+            }}
             data-testid={`${testId}-${opt.value}`}
             className={cn(
               "rounded-full px-3.5 py-1.5 text-[12px] font-medium cursor-pointer",
-              on ? "text-[#09090b]" : "text-muted-foreground hover:text-foreground"
+              on
+                ? "text-[#09090b]"
+                : "text-muted-foreground hover:text-foreground",
             )}
             style={{
               background: on ? "var(--foreground)" : "transparent",
@@ -592,7 +767,15 @@ function SegmentControl<T extends string>({ value, onChange, options, testId }: 
 }
 
 // ── Toggle ──────────────────────────────────────────────────────────────────
-function Toggle({ value, onChange, testId }: { value: boolean; onChange: (v: boolean) => void; testId?: string }) {
+function Toggle({
+  value,
+  onChange,
+  testId,
+}: {
+  value: boolean;
+  onChange: (v: boolean) => void;
+  testId?: string;
+}) {
   return (
     <button
       onClick={() => onChange(!value)}
@@ -601,13 +784,18 @@ function Toggle({ value, onChange, testId }: { value: boolean; onChange: (v: boo
       className="relative h-6 w-11 rounded-full cursor-pointer"
       style={{
         background: value ? HUE_ON : "rgba(255,255,255,0.06)",
-        boxShadow: value ? `0 0 0 1px ${HUE_ON}55` : "0 0 0 1px rgba(255,255,255,0.06)",
-        transition: "background-color 0.35s cubic-bezier(0.22,1,0.36,1), box-shadow 0.35s cubic-bezier(0.22,1,0.36,1)",
+        boxShadow: value
+          ? `0 0 0 1px ${HUE_ON}55`
+          : "0 0 0 1px rgba(255,255,255,0.06)",
+        transition:
+          "background-color 0.35s cubic-bezier(0.22,1,0.36,1), box-shadow 0.35s cubic-bezier(0.22,1,0.36,1)",
       }}
     >
       <motion.div
         className="absolute top-[3px] h-[18px] w-[18px] rounded-full"
-        style={{ background: value ? "var(--background)" : "var(--foreground)" }}
+        style={{
+          background: value ? "var(--background)" : "var(--foreground)",
+        }}
         animate={{ left: value ? "20px" : "3px" }}
         transition={{ type: "spring", stiffness: 500, damping: 30 }}
       />
@@ -616,7 +804,13 @@ function Toggle({ value, onChange, testId }: { value: boolean; onChange: (v: boo
 }
 
 // ── Reset confirm dialog ────────────────────────────────────────────────────
-function ResetConfirmDialog({ onConfirm, onCancel }: { onConfirm: () => void; onCancel: () => void }) {
+function ResetConfirmDialog({
+  onConfirm,
+  onCancel,
+}: {
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -635,22 +829,32 @@ function ResetConfirmDialog({ onConfirm, onCancel }: { onConfirm: () => void; on
         className="w-full max-w-md rounded-2xl p-7"
         style={{
           background: "#121214",
-          boxShadow: "0 30px 80px -10px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.05)",
+          boxShadow:
+            "0 30px 80px -10px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.05)",
         }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start gap-4 mb-5">
           <div
             className="h-10 w-10 rounded-full flex items-center justify-center shrink-0"
-            style={{ background: `${HUE_DANGER}18`, boxShadow: `0 0 0 1px ${HUE_DANGER}44` }}
+            style={{
+              background: `${HUE_DANGER}18`,
+              boxShadow: `0 0 0 1px ${HUE_DANGER}44`,
+            }}
           >
-            <AlertTriangle size={16} strokeWidth={1.75} style={{ color: HUE_DANGER }} />
+            <AlertTriangle
+              size={16}
+              strokeWidth={1.75}
+              style={{ color: HUE_DANGER }}
+            />
           </div>
           <div className="min-w-0">
-            <h3 className="text-[16px] font-medium text-foreground leading-tight">¿Borrar todos los datos?</h3>
+            <h3 className="text-[16px] font-medium text-foreground leading-tight">
+              ¿Borrar todos los datos?
+            </h3>
             <p className="text-[12px] text-muted-foreground mt-1.5 leading-relaxed">
-              Se eliminarán recinto, equipos y escenas guardadas. Las preferencias se conservan.
-              Esta acción no se puede deshacer.
+              Se eliminarán recinto, equipos y escenas guardadas. Las
+              preferencias se conservan. Esta acción no se puede deshacer.
             </p>
           </div>
         </div>
@@ -686,32 +890,89 @@ function ResetConfirmDialog({ onConfirm, onCancel }: { onConfirm: () => void; on
   );
 }
 
-
 // ── Hardware helpers ────────────────────────────────────────────────────────
 function micLabel(s: MicStatus): string {
-  return { unknown: "Verificando…", unavailable: "No disponible", prompt: "Sin conceder", granted: "Concedido", denied: "Denegado" }[s];
+  return {
+    unknown: "Verificando…",
+    unavailable: "No disponible",
+    prompt: "Sin conceder",
+    granted: "Concedido",
+    denied: "Denegado",
+  }[s];
 }
 function micTone(s: MicStatus): ChipTone {
-  return { unknown: "muted", unavailable: "muted", prompt: "warn", granted: "on", denied: "danger" }[s] as ChipTone;
+  return {
+    unknown: "muted",
+    unavailable: "muted",
+    prompt: "warn",
+    granted: "on",
+    denied: "danger",
+  }[s] as ChipTone;
 }
 function gyroLabel(s: GyroStatus): string {
-  return { unavailable: "No disponible", supported: "Soportado", granted: "Concedido", denied: "Denegado" }[s];
+  return {
+    unavailable: "No disponible",
+    supported: "Soportado",
+    granted: "Concedido",
+    denied: "Denegado",
+  }[s];
 }
 function gyroTone(s: GyroStatus): ChipTone {
-  return { unavailable: "muted", supported: "warn", granted: "on", denied: "danger" }[s] as ChipTone;
+  return {
+    unavailable: "muted",
+    supported: "warn",
+    granted: "on",
+    denied: "danger",
+  }[s] as ChipTone;
 }
-function summarizeHardware(mic: MicStatus, gyro: GyroStatus, isNative: boolean): string {
+function summarizeHardware(
+  mic: MicStatus,
+  gyro: GyroStatus,
+  isNative: boolean,
+): string {
   const parts: string[] = [];
   if (isNative) parts.push("Nativo");
-  parts.push(mic === "granted" ? "Mic OK" : mic === "denied" ? "Mic denegado" : "Mic pendiente");
-  parts.push(gyro === "granted" || gyro === "supported" ? "Giro OK" : gyro === "denied" ? "Giro denegado" : "Sin giro");
+  parts.push(
+    mic === "granted"
+      ? "Mic OK"
+      : mic === "denied"
+        ? "Mic denegado"
+        : "Mic pendiente",
+  );
+  parts.push(
+    gyro === "granted" || gyro === "supported"
+      ? "Giro OK"
+      : gyro === "denied"
+        ? "Giro denegado"
+        : "Sin giro",
+  );
   return parts.join(" · ");
 }
 
 type ChipTone = "on" | "warn" | "danger" | "muted";
-function HardwareChip({ status, tone, testId }: { status: string; tone: ChipTone; testId?: string }) {
-  const hue = { on: HUE_ON, warn: HUE_WARN, danger: HUE_DANGER, muted: HUE_MUTED }[tone];
-  const Icon = tone === "on" ? ShieldCheck : tone === "danger" ? ShieldOff : tone === "warn" ? ShieldAlert : Cpu;
+function HardwareChip({
+  status,
+  tone,
+  testId,
+}: {
+  status: string;
+  tone: ChipTone;
+  testId?: string;
+}) {
+  const hue = {
+    on: HUE_ON,
+    warn: HUE_WARN,
+    danger: HUE_DANGER,
+    muted: HUE_MUTED,
+  }[tone];
+  const Icon =
+    tone === "on"
+      ? ShieldCheck
+      : tone === "danger"
+        ? ShieldOff
+        : tone === "warn"
+          ? ShieldAlert
+          : Cpu;
   return (
     <span
       data-testid={testId}

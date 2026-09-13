@@ -14,21 +14,44 @@
 import { useMemo } from "react";
 import { motion } from "motion/react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, ChevronDown, Radio, BarChart3, Plus, Check } from "lucide-react";
+import {
+  ArrowRight,
+  ChevronDown,
+  Radio,
+  BarChart3,
+  Plus,
+  Check,
+} from "lucide-react";
 import { useAppStore } from "@/store/app.ts";
 import { feedback } from "@/lib/feedback.ts";
 
-import { Metric, MetricRow, SectionLabel, Divider } from "@/components/soundmap/vitals/metric.tsx";
+import {
+  Metric,
+  MetricRow,
+  SectionLabel,
+  Divider,
+} from "@/components/soundmap/vitals/metric.tsx";
 import { VenuePreview } from "@/components/soundmap/venue-preview.tsx";
 import { computeSplGrid } from "@/lib/audio/spl-grid.ts";
 import {
-  paSummary, coverageByZone, roomSummary, sceneToSources,
+  paSummary,
+  coverageByZone,
+  roomSummary,
+  sceneToSources,
 } from "@/lib/audio/system-vitals.ts";
 
 export default function AIHome() {
   const navigate = useNavigate();
-  const { stageLayout, room, acoustics, tops, subs, monitors, scenes, loadDemoVenue } = useAppStore();
-
+  const {
+    stageLayout,
+    room,
+    acoustics,
+    tops,
+    subs,
+    monitors,
+    scenes,
+    loadDemoVenue,
+  } = useAppStore();
 
   const hasSystem = !!room && (tops.length > 0 || subs.length > 0);
 
@@ -42,7 +65,10 @@ export default function AIHome() {
       pa: paSummary(tops, subs, monitors),
       coverage: coverageByZone(room, tops, subs, stageLayout),
       roomInfo: roomSummary(room, acoustics),
-      grid: sources.length > 0 ? computeSplGrid(room, sources, { cols: 30, rows: 20 }) : null,
+      grid:
+        sources.length > 0
+          ? computeSplGrid(room, sources, { cols: 30, rows: 20 })
+          : null,
     };
   }, [hasSystem, room, acoustics, tops, subs, monitors, stageLayout]);
 
@@ -58,20 +84,25 @@ export default function AIHome() {
 
   return (
     <>
-      <div className="v6-workspace">
+      <div className="v6-workspace home-workspace">
         <div className="max-w-[1440px] mx-auto">
-
           {/* ── 1. Encabezado editorial ─────────────────────────────────── */}
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           >
-            <p className="text-[13px]" style={{ color: "var(--muted-foreground)" }}>
+            <p
+              className="text-[13px]"
+              style={{ color: "var(--muted-foreground)" }}
+            >
               {greeting}, LevelPro
             </p>
             <button
-              onClick={() => { feedback("tap"); navigate(hasSystem ? "/scenes" : "/design?step=room"); }}
+              onClick={() => {
+                feedback("tap");
+                navigate(hasSystem ? "/scenes" : "/design?step=room");
+              }}
               data-testid="home-venue"
               className="group mt-1.5 flex items-center gap-2.5 cursor-pointer text-left"
             >
@@ -89,10 +120,17 @@ export default function AIHome() {
             <div className="flex items-center gap-2 mt-3">
               <span
                 className="h-1.5 w-1.5 rounded-full shrink-0"
-                style={{ background: hasSystem ? "var(--accent)" : "var(--muted-foreground)" }}
+                style={{
+                  background: hasSystem
+                    ? "var(--accent)"
+                    : "var(--muted-foreground)",
+                }}
                 aria-hidden="true"
               />
-              <p className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+              <p
+                className="text-[12px]"
+                style={{ color: "var(--muted-foreground)" }}
+              >
                 {hasSystem
                   ? `Sistema configurado · ${tops.reduce((n, t) => n + (t.quantity ?? 1), 0)} tops · ${subs.reduce((n, x) => n + (x.quantity ?? 1), 0)} subs`
                   : "Cargá un recinto para ver los vitales del sistema"}
@@ -104,26 +142,41 @@ export default function AIHome() {
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
-            className="mt-6 py-5 border-y border-border"
+            transition={{
+              duration: 0.5,
+              delay: 0.08,
+              ease: [0.22, 1, 0.36, 1],
+            }}
+            className="home-vitals mt-6 py-5 border-y border-border"
           >
             <MetricRow testId="home-metrics">
               <Metric
                 value={pa ? `${Math.round(pa.arraySpl)}` : "—"}
-                unit="dB" label="Max SPL" testId="metric-spl"
+                unit="dB"
+                label="Max SPL"
+                testId="metric-spl"
               />
               <Metric
                 value={coverage ? `${Math.round(coverage.uniformityPct)}` : "—"}
-                unit="%" label="Cobertura" testId="metric-coverage"
+                unit="%"
+                label="Cobertura"
+                testId="metric-coverage"
               />
               <Metric
                 value={roomInfo ? roomInfo.rt60Audience.toFixed(2) : "—"}
-                unit="s" label="RT60 estimado" testId="metric-rt60"
+                unit="s"
+                label="RT60 estimado"
+                testId="metric-rt60"
               />
               <Metric
-                value={pa ? `${pa.headroomDb > 0 ? "+" : ""}${pa.headroomDb}` : "—"}
-                unit="dB" label="Headroom"
-                tone={!pa ? "default" : pa.headroomDb >= 3 ? "accent" : "warning"}
+                value={
+                  pa ? `${pa.headroomDb > 0 ? "+" : ""}${pa.headroomDb}` : "—"
+                }
+                unit="dB"
+                label="Headroom"
+                tone={
+                  !pa ? "default" : pa.headroomDb >= 3 ? "accent" : "warning"
+                }
                 testId="metric-headroom"
               />
             </MetricRow>
@@ -133,15 +186,31 @@ export default function AIHome() {
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.16, ease: [0.22, 1, 0.36, 1] }}
+            transition={{
+              duration: 0.6,
+              delay: 0.16,
+              ease: [0.22, 1, 0.36, 1],
+            }}
             className="mt-5"
           >
             {room ? (
               <div data-testid="home-heatmap">
-                <VenuePreview layout={stageLayout} room={room} tops={tops} subs={subs} monitors={monitors} grid={grid ?? undefined} />
-                <div className="flex justify-between items-center mt-3 text-xs text-muted-foreground">
-                  <span>Recinto y cobertura del sistema</span>
-                  <button className="v6-button" onClick={() => navigate("/stage-map")}>Abrir Stage Map <ArrowRight size={13} /></button>
+                <VenuePreview
+                  layout={stageLayout}
+                  room={room}
+                  tops={tops}
+                  subs={subs}
+                  monitors={monitors}
+                  grid={grid ?? undefined}
+                />
+                <div className="home-map-caption flex justify-between items-center mt-3 text-xs text-muted-foreground">
+                  <span>Recinto · Cobertura SPL</span>
+                  <button
+                    className="v6-button"
+                    onClick={() => navigate("/stage-map")}
+                  >
+                    Stage Map <ArrowRight size={13} />
+                  </button>
                 </div>
               </div>
             ) : (
@@ -154,12 +223,21 @@ export default function AIHome() {
                 }}
                 data-testid="home-heatmap-empty"
               >
-                <p className="text-[14px] text-foreground font-medium">Sin cobertura que mostrar</p>
-                <p className="text-[12px] mt-1.5 max-w-xs leading-relaxed" style={{ color: "var(--muted-foreground)" }}>
-                  Definí el recinto y elegí las cajas: el mapa de SPL se calcula solo.
+                <p className="text-[14px] text-foreground font-medium">
+                  Sin cobertura que mostrar
+                </p>
+                <p
+                  className="text-[12px] mt-1.5 max-w-xs leading-relaxed"
+                  style={{ color: "var(--muted-foreground)" }}
+                >
+                  Definí el recinto y elegí las cajas: el mapa de SPL se calcula
+                  solo.
                 </p>
                 <button
-                  onClick={() => { feedback("select"); loadDemoVenue(); }}
+                  onClick={() => {
+                    feedback("select");
+                    loadDemoVenue();
+                  }}
                   data-testid="home-load-demo"
                   className="mt-5 h-9 px-4 text-[12px] font-medium cursor-pointer"
                   style={{
@@ -174,46 +252,97 @@ export default function AIHome() {
             )}
           </motion.div>
 
+          <div className="home-secondary-metrics sm:hidden">
+            <Metric
+              size="md"
+              value={roomInfo ? roomInfo.rt60Audience.toFixed(2) : "—"}
+              unit="s"
+              label="RT60 estimado"
+            />
+            <Metric
+              size="md"
+              value={
+                pa ? `${pa.headroomDb > 0 ? "+" : ""}${pa.headroomDb}` : "—"
+              }
+              unit="dB"
+              label="Headroom"
+              tone={pa && pa.headroomDb >= 3 ? "accent" : "default"}
+            />
+          </div>
+
           {/* ── 4. Una acción primaria, dos secundarias ─────────────────── */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.24, ease: [0.22, 1, 0.36, 1] }}
-            className="mt-6 flex flex-col sm:flex-row gap-2.5"
+            transition={{
+              duration: 0.5,
+              delay: 0.24,
+              ease: [0.22, 1, 0.36, 1],
+            }}
+            className="home-actions mt-5"
           >
             <button
-              onClick={() => { feedback("select"); navigate("/design"); }}
+              onClick={() => {
+                feedback("select");
+                navigate("/design");
+              }}
               data-testid="home-primary-cta"
               className="group flex-1 sm:flex-none sm:min-w-[220px] h-11 px-5 inline-flex items-center justify-center gap-2 text-[13px] font-medium cursor-pointer"
               style={{
-                borderRadius: "var(--radius-pill)",
+                borderRadius: "var(--radius-control)",
                 background: "var(--accent)",
                 color: "var(--accent-foreground)",
                 transition: "opacity var(--dur-fast) var(--ease)",
               }}
             >
-              {hasSystem ? "Continuar diseño" : "Empezar diseño"}
-              <ArrowRight size={14} strokeWidth={2.25} className="group-hover:translate-x-0.5" style={{ transition: "transform var(--dur) var(--ease)" }} />
+              <span className="hidden sm:inline">
+                {hasSystem ? "Continuar diseño" : "Empezar diseño"}
+              </span>
+              <span className="sm:hidden">Diseñar</span>
+              <ArrowRight
+                size={14}
+                strokeWidth={2.25}
+                className="group-hover:translate-x-0.5"
+                style={{ transition: "transform var(--dur) var(--ease)" }}
+              />
             </button>
 
             {[
-              { label: "Perform", icon: Radio, to: "/perform", testId: "home-goto-perform" },
-              { label: "Analizar", icon: BarChart3, to: "/compare", testId: "home-goto-analyze" },
+              {
+                label: "Perform",
+                icon: Radio,
+                to: "/perform",
+                testId: "home-goto-perform",
+              },
+              {
+                label: "Analizar",
+                icon: BarChart3,
+                to: "/compare",
+                testId: "home-goto-analyze",
+              },
             ].map(({ label, icon: Icon, to, testId }) => (
               <button
                 key={to}
-                onClick={() => { feedback("tap"); navigate(to); }}
+                onClick={() => {
+                  feedback("tap");
+                  navigate(to);
+                }}
                 data-testid={testId}
                 className="h-11 px-5 inline-flex items-center justify-center gap-2 text-[13px] font-medium cursor-pointer"
                 style={{
-                  borderRadius: "var(--radius-pill)",
+                  borderRadius: "var(--radius-control)",
                   background: "transparent",
                   boxShadow: "0 0 0 1px var(--border)",
                   color: "var(--foreground)",
                   transition: "box-shadow var(--dur-fast) var(--ease)",
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 0 0 1px var(--border-strong)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 0 0 1px var(--border)"; }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.boxShadow =
+                    "0 0 0 1px var(--border-strong)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.boxShadow = "0 0 0 1px var(--border)";
+                }}
               >
                 <Icon size={14} strokeWidth={1.75} />
                 {label}
@@ -226,12 +355,15 @@ export default function AIHome() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.32 }}
-            className="mt-8"
+            className="mt-7"
           >
             <SectionLabel
               action={
                 <button
-                  onClick={() => { feedback("tap"); navigate("/scenes"); }}
+                  onClick={() => {
+                    feedback("tap");
+                    navigate("/scenes");
+                  }}
                   data-testid="home-all-scenes"
                   className="text-[12px] cursor-pointer"
                   style={{ color: "var(--muted-foreground)" }}
@@ -247,17 +379,27 @@ export default function AIHome() {
 
             {recent.length === 0 ? (
               <button
-                onClick={() => { feedback("tap"); navigate("/design?step=room"); }}
+                onClick={() => {
+                  feedback("tap");
+                  navigate("/design?step=room");
+                }}
                 data-testid="home-new-scene"
                 className="w-full flex items-center gap-3 py-4 cursor-pointer text-left"
               >
                 <span
                   className="h-8 w-8 flex items-center justify-center shrink-0"
-                  style={{ borderRadius: "var(--radius-chip)", background: "var(--surface-2)", color: "var(--muted-foreground)" }}
+                  style={{
+                    borderRadius: "var(--radius-chip)",
+                    background: "var(--surface-2)",
+                    color: "var(--muted-foreground)",
+                  }}
                 >
                   <Plus size={14} strokeWidth={2} />
                 </span>
-                <span className="text-[13px]" style={{ color: "var(--muted-foreground)" }}>
+                <span
+                  className="text-[13px]"
+                  style={{ color: "var(--muted-foreground)" }}
+                >
                   Todavía no guardaste ninguna escena
                 </span>
               </button>
@@ -265,20 +407,37 @@ export default function AIHome() {
               recent.map((sc) => (
                 <div key={sc.id}>
                   <button
-                    onClick={() => { feedback("tap"); navigate("/scenes"); }}
+                    onClick={() => {
+                      feedback("tap");
+                      navigate("/scenes");
+                    }}
                     data-testid={`home-scene-${sc.id}`}
                     className="group w-full flex items-center gap-4 py-3.5 cursor-pointer text-left"
                   >
                     <span
                       className="h-8 w-8 flex items-center justify-center shrink-0"
-                      style={{ borderRadius: "var(--radius-chip)", background: "var(--surface-2)", color: "var(--muted-foreground)" }}
+                      style={{
+                        borderRadius: "var(--radius-chip)",
+                        background: "var(--surface-2)",
+                        color: "var(--muted-foreground)",
+                      }}
                     >
                       <Check size={13} strokeWidth={2} />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-[13px] font-medium text-foreground truncate leading-tight">{sc.name}</p>
-                      <p className="text-[11px] mt-0.5 truncate" style={{ color: "var(--muted-foreground)" }}>
-                        {new Date(sc.updatedAt ?? Date.now()).toLocaleDateString("es-AR", { day: "numeric", month: "short" })}
+                      <p className="text-[13px] font-medium text-foreground truncate leading-tight">
+                        {sc.name}
+                      </p>
+                      <p
+                        className="text-[11px] mt-0.5 truncate"
+                        style={{ color: "var(--muted-foreground)" }}
+                      >
+                        {new Date(
+                          sc.updatedAt ?? Date.now(),
+                        ).toLocaleDateString("es-AR", {
+                          day: "numeric",
+                          month: "short",
+                        })}
                         {sc.room?.name ? ` · ${sc.room.name}` : ""}
                       </p>
                     </div>
@@ -286,7 +445,10 @@ export default function AIHome() {
                       size={13}
                       strokeWidth={1.75}
                       className="shrink-0 opacity-0 group-hover:opacity-100"
-                      style={{ color: "var(--muted-foreground)", transition: "opacity var(--dur) var(--ease)" }}
+                      style={{
+                        color: "var(--muted-foreground)",
+                        transition: "opacity var(--dur) var(--ease)",
+                      }}
                     />
                   </button>
                   <Divider />
@@ -297,8 +459,9 @@ export default function AIHome() {
         </div>
       </div>
 
-      <span data-testid="ai-home-question" className="sr-only">¿Qué querés hacer hoy?</span>
-
+      <span data-testid="ai-home-question" className="sr-only">
+        ¿Qué querés hacer hoy?
+      </span>
     </>
   );
 }

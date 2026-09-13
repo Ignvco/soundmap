@@ -1,27 +1,26 @@
 import { NavLink } from "react-router-dom";
 
 export const ANALYSIS_LINKS = [
-  { to: "/compare", label: "Compare A/B" },
-  { to: "/spl-analysis", label: "SPL Analysis" },
-  { to: "/acoustic-analysis", label: "Acoustic Analysis" },
-  { to: "/stage-map", label: "Stage Map · 3D" },
+  { to: "/compare", label: "Compare A/B", short: "Compare" },
+  { to: "/spl-analysis", label: "SPL Analysis", short: "SPL" },
+  { to: "/acoustic-analysis", label: "Acoustic Analysis", short: "Acústica" },
+  { to: "/stage-map", label: "Stage Map · 3D", short: "Stage Map" },
 ] as const;
 
 export function AnalysisNav() {
   return (
-    <nav
-      className="flex gap-1 overflow-x-auto border-b border-border mb-6 pb-2"
-      aria-label="Análisis"
-    >
+    <nav className="analysis-tabs" aria-label="Análisis">
       {ANALYSIS_LINKS.map((x) => (
         <NavLink
           key={x.to}
           to={x.to}
+          aria-label={x.label}
           className={({ isActive }) =>
-            `v6-button shrink-0 ${isActive ? "text-accent bg-accent/5" : ""}`
+            `analysis-tab ${isActive ? "is-active" : ""}`
           }
         >
-          {x.label}
+          <span className="sm:hidden">{x.short}</span>
+          <span className="hidden sm:inline">{x.label}</span>
         </NavLink>
       ))}
     </nav>

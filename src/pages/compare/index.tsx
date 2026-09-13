@@ -8,7 +8,17 @@ import { VenuePreview } from "@/components/soundmap/venue-preview.tsx";
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeftRight, ArrowRight, Check, ChevronDown, Layers, TrendingUp, TrendingDown, Minus, Sparkles } from "lucide-react";
+import {
+  ArrowLeftRight,
+  ArrowRight,
+  Check,
+  ChevronDown,
+  Layers,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  Sparkles,
+} from "lucide-react";
 import { useAppStore, type Scene } from "@/store/app.ts";
 import { computeSplGrid, type SplGrid } from "@/lib/audio/spl-grid.ts";
 import { sceneToSources } from "@/lib/audio/system-vitals.ts";
@@ -22,11 +32,19 @@ const A_HUE = "var(--sm-accent)"; // lime (Vitals accent)
 const B_HUE = "var(--sm-amber)"; // amber (Vitals secondary)
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
-function gearCount(scene: Scene, key: "tops" | "subs" | "monitors" | "amps" | "mics"): number {
+function gearCount(
+  scene: Scene,
+  key: "tops" | "subs" | "monitors" | "amps" | "mics",
+): number {
   return scene[key].reduce((s, g) => s + (g.quantity ?? 1), 0);
 }
 function totalGearCount(scene: Scene): number {
-  return gearCount(scene, "tops") + gearCount(scene, "subs") + gearCount(scene, "monitors") + gearCount(scene, "amps");
+  return (
+    gearCount(scene, "tops") +
+    gearCount(scene, "subs") +
+    gearCount(scene, "monitors") +
+    gearCount(scene, "amps")
+  );
 }
 
 // NOTA: acá vivía una copia de `sceneToSources` con `20·log10` (la ganancia
@@ -68,8 +86,14 @@ export default function SceneCompare() {
   const [bId, setBId] = useState<string | null>(scenes[1]?.id ?? null);
   const [showDetails, setShowDetails] = useState(false);
 
-  const a = useMemo(() => scenes.find(s => (s.clientId ?? s.id) === aId), [scenes, aId]);
-  const b = useMemo(() => scenes.find(s => (s.clientId ?? s.id) === bId), [scenes, bId]);
+  const a = useMemo(
+    () => scenes.find((s) => (s.clientId ?? s.id) === aId),
+    [scenes, aId],
+  );
+  const b = useMemo(
+    () => scenes.find((s) => (s.clientId ?? s.id) === bId),
+    [scenes, bId],
+  );
 
   const gridA = useMemo(() => {
     if (!a) return null;
@@ -85,15 +109,19 @@ export default function SceneCompare() {
   }, [b]);
 
   const canShowDelta = useMemo(
-    () => gridA !== null && gridB !== null && a !== undefined && b !== undefined &&
-          Math.abs(a.room.length - b.room.length) < 5 &&
-          Math.abs(a.room.width - b.room.width) < 5,
-    [gridA, gridB, a, b]
+    () =>
+      gridA !== null &&
+      gridB !== null &&
+      a !== undefined &&
+      b !== undefined &&
+      Math.abs(a.room.length - b.room.length) < 5 &&
+      Math.abs(a.room.width - b.room.width) < 5,
+    [gridA, gridB, a, b],
   );
 
   const gridDelta = useMemo(
     () => (canShowDelta && gridA && gridB ? deltaGrid(gridA, gridB) : null),
-    [canShowDelta, gridA, gridB]
+    [canShowDelta, gridA, gridB],
   );
 
   const handleLoad = (scene: Scene) => {
@@ -112,8 +140,9 @@ export default function SceneCompare() {
   // ── Empty state ──────────────────────────────────────────────────────────
   if (scenes.length < 2) {
     return (
-      <div className="v6-workspace">
-        <div className="max-w-[1400px] mx-auto"><AnalysisNav />
+      <div className="v6-workspace compare-workspace">
+        <div className="max-w-[1400px] mx-auto">
+          <AnalysisNav />
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -122,18 +151,18 @@ export default function SceneCompare() {
             <p className="text-[11px] uppercase tracking-[0.28em] font-medium text-muted-foreground mb-4">
               Compare A / B
             </p>
-            <h1
-              className="v6-heading mb-3"
-              data-testid="compare-hub-title"
-            >
+            <h1 className="v6-heading mb-3" data-testid="compare-hub-title">
               Necesitás dos escenas
             </h1>
             <p className="text-[15px] text-muted-foreground max-w-lg leading-relaxed mb-10">
-              Guardá al menos dos configuraciones para verlas lado a lado.
-              El diff físico compara la cobertura SPL celda a celda.
+              Guardá al menos dos configuraciones para verlas lado a lado. El
+              diff físico compara la cobertura SPL celda a celda.
             </p>
             <button
-              onClick={() => { feedback("tap"); navigate("/scenes"); }}
+              onClick={() => {
+                feedback("tap");
+                navigate("/scenes");
+              }}
               data-testid="compare-empty-cta"
               className="inline-flex items-center gap-2 rounded-full bg-white text-[#09090b] hover:bg-white/90 px-5 py-2.5 text-[13px] font-medium cursor-pointer"
               style={{ transition: "background-color 0.3s ease" }}
@@ -149,26 +178,20 @@ export default function SceneCompare() {
   }
 
   return (
-    <div className="v6-workspace">
-      <div className="max-w-[1400px] mx-auto"><AnalysisNav />
+    <div className="v6-workspace compare-workspace">
+      <div className="max-w-[1400px] mx-auto">
+        <AnalysisNav />
         {/* Whisper header + title */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
         >
-          <p className="text-[11px] uppercase tracking-[0.28em] font-medium text-muted-foreground mb-4">
-            Compare A / B
-          </p>
-          <h1
-            className="v6-heading mb-3"
-            data-testid="compare-hub-title"
-          >
-            Diff físico entre escenas
+          <h1 className="v6-heading mb-3" data-testid="compare-hub-title">
+            Compare A/B
           </h1>
-          <p className="text-[15px] text-muted-foreground max-w-xl leading-relaxed mb-10 md:mb-14">
-            Elegí dos configuraciones. La comparación calcula el mapa SPL de cada una
-            y su delta cell-by-cell — así se ve el impacto real de cambiar tops, subs o recinto.
+          <p className="text-sm text-muted-foreground max-w-xl leading-relaxed mb-6">
+            Compará la cobertura y el rendimiento de tus escenas.
           </p>
         </motion.div>
 
@@ -177,9 +200,16 @@ export default function SceneCompare() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-          className="grid grid-cols-[1fr_auto_1fr] gap-3 md:gap-4 items-stretch mb-10 md:mb-14"
+          className="compare-selectors grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-2 md:gap-4 items-stretch mb-6"
         >
-          <ScenePicker label="A" selectedId={aId} onSelect={setAId} scenes={scenes} hue={A_HUE} testId="picker-a" />
+          <ScenePicker
+            label="A"
+            selectedId={aId}
+            onSelect={setAId}
+            scenes={scenes}
+            hue={A_HUE}
+            testId="picker-a"
+          />
           <button
             onClick={swap}
             data-testid="compare-swap-btn"
@@ -192,9 +222,20 @@ export default function SceneCompare() {
             }}
             aria-label="Intercambiar A y B"
           >
-            <ArrowLeftRight size={14} strokeWidth={1.75} className="text-muted-foreground" />
+            <ArrowLeftRight
+              size={14}
+              strokeWidth={1.75}
+              className="text-muted-foreground"
+            />
           </button>
-          <ScenePicker label="B" selectedId={bId} onSelect={setBId} scenes={scenes} hue={B_HUE} testId="picker-b" />
+          <ScenePicker
+            label="B"
+            selectedId={bId}
+            onSelect={setBId}
+            scenes={scenes}
+            hue={B_HUE}
+            testId="picker-b"
+          />
         </motion.div>
 
         {a && b && (
@@ -203,14 +244,33 @@ export default function SceneCompare() {
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-              className="mb-10 md:mb-14"
+              transition={{
+                duration: 0.6,
+                delay: 0.2,
+                ease: [0.22, 1, 0.36, 1],
+              }}
+              className="mb-6"
               data-testid="compare-spl-grids"
             >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                <HeatmapHero grid={gridA} scene={a} label="A" hue={A_HUE} testId="compare-grid-a" />
-                <HeatmapHero grid={gridB} scene={b} label="B" hue={B_HUE} testId="compare-grid-b" />
+              <div className="compare-previews grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                <HeatmapHero
+                  grid={gridA}
+                  scene={a}
+                  label="A"
+                  hue={A_HUE}
+                  testId="compare-grid-a"
+                />
+                <HeatmapHero
+                  grid={gridB}
+                  scene={b}
+                  label="B"
+                  hue={B_HUE}
+                  testId="compare-grid-b"
+                />
               </div>
+              <p className="sm:hidden text-[11px] text-muted-foreground mt-3">
+                SPL estimado · Escala común de 70 a 150+ dB
+              </p>
             </motion.div>
 
             {/* Delta band — the "meaning" of the diff */}
@@ -218,7 +278,11 @@ export default function SceneCompare() {
               <motion.div
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                transition={{
+                  duration: 0.6,
+                  delay: 0.3,
+                  ease: [0.22, 1, 0.36, 1],
+                }}
                 className="mb-10 md:mb-14"
                 data-testid="compare-grid-delta"
               >
@@ -243,12 +307,18 @@ export default function SceneCompare() {
                       />
                       <div className="flex items-center justify-between mt-4 text-[11px] font-medium">
                         <span className="flex items-center gap-2 text-muted-foreground">
-                          <span className="h-2 w-2 rounded-full" style={{ background: "var(--sm-amber)" }} />
+                          <span
+                            className="h-2 w-2 rounded-full"
+                            style={{ background: "var(--sm-amber)" }}
+                          />
                           B más fuerte
                         </span>
                         <span className="flex items-center gap-2 text-muted-foreground">
                           A más fuerte
-                          <span className="h-2 w-2 rounded-full" style={{ background: "var(--sm-accent)" }} />
+                          <span
+                            className="h-2 w-2 rounded-full"
+                            style={{ background: "var(--sm-accent)" }}
+                          />
                         </span>
                       </div>
                     </div>
@@ -284,8 +354,9 @@ export default function SceneCompare() {
                 className="text-[13px] text-muted-foreground mb-10 max-w-lg leading-relaxed"
                 data-testid="compare-delta-nope"
               >
-                Los recintos tienen dimensiones muy distintas — el delta cell-by-cell
-                no se puede alinear. Compará los mapas SPL individuales arriba.
+                Los recintos tienen dimensiones muy distintas — el delta
+                cell-by-cell no se puede alinear. Compará los mapas SPL
+                individuales arriba.
               </p>
             )}
 
@@ -293,7 +364,11 @@ export default function SceneCompare() {
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
+              transition={{
+                duration: 0.6,
+                delay: 0.4,
+                ease: [0.22, 1, 0.36, 1],
+              }}
               className="mb-10 md:mb-14"
               data-testid="compare-key-metrics"
             >
@@ -301,10 +376,34 @@ export default function SceneCompare() {
                 Métricas clave
               </p>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
-                <MetricPair label="Uniformidad SPL" a={gridA?.uniformityPct ?? null} b={gridB?.uniformityPct ?? null} unit="%" higherIsBetter />
-                <MetricPair label="Spread SPL" a={gridA?.spread ?? null} b={gridB?.spread ?? null} unit="dB" higherIsBetter={false} />
-                <MetricPair label="Speech score" a={a.acoustics.speechScore} b={b.acoustics.speechScore} unit="/100" higherIsBetter />
-                <MetricPair label="Music score" a={a.acoustics.musicScore} b={b.acoustics.musicScore} unit="/100" higherIsBetter />
+                <MetricPair
+                  label="Uniformidad SPL"
+                  a={gridA?.uniformityPct ?? null}
+                  b={gridB?.uniformityPct ?? null}
+                  unit="%"
+                  higherIsBetter
+                />
+                <MetricPair
+                  label="Spread SPL"
+                  a={gridA?.spread ?? null}
+                  b={gridB?.spread ?? null}
+                  unit="dB"
+                  higherIsBetter={false}
+                />
+                <MetricPair
+                  label="Speech score"
+                  a={a.acoustics.speechScore}
+                  b={b.acoustics.speechScore}
+                  unit="/100"
+                  higherIsBetter
+                />
+                <MetricPair
+                  label="Music score"
+                  a={a.acoustics.musicScore}
+                  b={b.acoustics.musicScore}
+                  unit="/100"
+                  higherIsBetter
+                />
               </div>
             </motion.div>
 
@@ -312,11 +411,18 @@ export default function SceneCompare() {
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              transition={{
+                duration: 0.5,
+                delay: 0.5,
+                ease: [0.22, 1, 0.36, 1],
+              }}
               className="mb-10 md:mb-14"
             >
               <button
-                onClick={() => { feedback("tap"); setShowDetails(v => !v); }}
+                onClick={() => {
+                  feedback("tap");
+                  setShowDetails((v) => !v);
+                }}
                 data-testid="compare-toggle-details"
                 className="inline-flex items-center gap-2 text-[13px] text-muted-foreground hover:text-foreground cursor-pointer"
                 style={{ transition: "color 0.3s ease" }}
@@ -357,7 +463,11 @@ export default function SceneCompare() {
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.55, ease: [0.22, 1, 0.36, 1] }}
+              transition={{
+                duration: 0.6,
+                delay: 0.55,
+                ease: [0.22, 1, 0.36, 1],
+              }}
               className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3"
             >
               <button
@@ -395,7 +505,14 @@ export default function SceneCompare() {
 }
 
 // ── Scene picker — quiet card style ─────────────────────────────────────────
-function ScenePicker({ label, selectedId, onSelect, scenes, hue, testId }: {
+function ScenePicker({
+  label,
+  selectedId,
+  onSelect,
+  scenes,
+  hue,
+  testId,
+}: {
   label: string;
   selectedId: string | null;
   onSelect: (id: string) => void;
@@ -404,12 +521,15 @@ function ScenePicker({ label, selectedId, onSelect, scenes, hue, testId }: {
   testId?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const selected = scenes.find(s => (s.clientId ?? s.id) === selectedId);
+  const selected = scenes.find((s) => (s.clientId ?? s.id) === selectedId);
 
   return (
     <div className="relative min-w-0" data-testid={testId}>
       <button
-        onClick={() => { feedback("tap"); setOpen(o => !o); }}
+        onClick={() => {
+          feedback("tap");
+          setOpen((o) => !o);
+        }}
         className="w-full rounded-2xl px-4 md:px-5 py-3.5 md:py-4 text-left flex items-center gap-3 cursor-pointer group"
         style={{
           background: "rgba(255,255,255,0.02)",
@@ -419,7 +539,11 @@ function ScenePicker({ label, selectedId, onSelect, scenes, hue, testId }: {
       >
         <div
           className="h-8 w-8 rounded-full flex items-center justify-center text-[13px] font-medium shrink-0"
-          style={{ background: `${hue}22`, color: hue, boxShadow: `0 0 0 1px ${hue}44` }}
+          style={{
+            background: `${hue}22`,
+            color: hue,
+            boxShadow: `0 0 0 1px ${hue}44`,
+          }}
         >
           {label}
         </div>
@@ -452,28 +576,39 @@ function ScenePicker({ label, selectedId, onSelect, scenes, hue, testId }: {
             className="absolute top-full mt-2 left-0 right-0 z-40 rounded-2xl max-h-72 overflow-y-auto p-1.5"
             style={{
               background: "#121214",
-              boxShadow: "0 20px 60px -10px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.06)",
+              boxShadow:
+                "0 20px 60px -10px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.06)",
             }}
           >
-            {scenes.map(s => {
+            {scenes.map((s) => {
               const sid = s.clientId ?? s.id;
               const isSelected = sid === selectedId;
               return (
                 <button
                   key={sid}
-                  onClick={() => { onSelect(sid); setOpen(false); feedback("select"); }}
+                  onClick={() => {
+                    onSelect(sid);
+                    setOpen(false);
+                    feedback("select");
+                  }}
                   data-testid={`picker-option-${sid}`}
                   className={cn(
                     "w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left cursor-pointer",
-                    isSelected ? "bg-white/[0.04]" : "hover:bg-white/[0.03]"
+                    isSelected ? "bg-white/[0.04]" : "hover:bg-white/[0.03]",
                   )}
                   style={{ transition: "background-color 0.2s ease" }}
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-medium text-foreground truncate">{s.name}</p>
-                    <p className="text-[11px] text-muted-foreground truncate mt-0.5">{s.room.name}</p>
+                    <p className="text-[13px] font-medium text-foreground truncate">
+                      {s.name}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                      {s.room.name}
+                    </p>
                   </div>
-                  {isSelected && <Check size={13} strokeWidth={2} style={{ color: hue }} />}
+                  {isSelected && (
+                    <Check size={13} strokeWidth={2} style={{ color: hue }} />
+                  )}
                 </button>
               );
             })}
@@ -485,7 +620,13 @@ function ScenePicker({ label, selectedId, onSelect, scenes, hue, testId }: {
 }
 
 // ── Heatmap hero card ───────────────────────────────────────────────────────
-function HeatmapHero({ grid, scene, label, hue, testId }: {
+function HeatmapHero({
+  grid,
+  scene,
+  label,
+  hue,
+  testId,
+}: {
   grid: SplGrid | null;
   scene: Scene;
   label: string;
@@ -505,20 +646,36 @@ function HeatmapHero({ grid, scene, label, hue, testId }: {
         <div className="flex items-center gap-3 min-w-0">
           <div
             className="h-7 w-7 rounded-full flex items-center justify-center text-[12px] font-medium shrink-0"
-            style={{ background: `${hue}22`, color: hue, boxShadow: `0 0 0 1px ${hue}44` }}
+            style={{
+              background: `${hue}22`,
+              color: hue,
+              boxShadow: `0 0 0 1px ${hue}44`,
+            }}
           >
             {label}
           </div>
           <div className="min-w-0">
-            <p className="text-[13px] font-medium text-foreground truncate leading-tight">{scene.name}</p>
-            <p className="text-[11px] text-muted-foreground truncate mt-0.5">{scene.room.name}</p>
+            <p className="text-[13px] font-medium text-foreground truncate leading-tight">
+              {scene.name}
+            </p>
+            <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+              {scene.room.name}
+            </p>
           </div>
         </div>
       </div>
 
       {grid ? (
         <>
-          <VenuePreview layout={scene.stageLayout} room={scene.room} tops={scene.tops} subs={scene.subs} monitors={scene.monitors} grid={grid} />
+          <VenuePreview
+            interactive={false}
+            layout={scene.stageLayout}
+            room={scene.room}
+            tops={scene.tops}
+            subs={scene.subs}
+            monitors={scene.monitors}
+            grid={grid}
+          />
           <div className="grid grid-cols-3 gap-4 mt-4">
             <MicroStat label="Uniformidad" value={`${grid.uniformityPct}%`} />
             <MicroStat label="Media" value={`${grid.mean} dB`} />
@@ -526,7 +683,12 @@ function HeatmapHero({ grid, scene, label, hue, testId }: {
           </div>
         </>
       ) : (
-        <VenuePreview layout={scene.stageLayout} room={scene.room} geometryOnly />
+        <VenuePreview
+          interactive={false}
+          layout={scene.stageLayout}
+          room={scene.room}
+          geometryOnly
+        />
       )}
     </div>
   );
@@ -538,7 +700,10 @@ function MicroStat({ label, value }: { label: string; value: string }) {
       <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-medium mb-1">
         {label}
       </p>
-      <p className="font-mono text-[13px] tabular-nums text-foreground" style={{ letterSpacing: "-0.01em" }}>
+      <p
+        className="font-mono text-[13px] tabular-nums text-foreground"
+        style={{ letterSpacing: "-0.01em" }}
+      >
         {value}
       </p>
     </div>
@@ -546,8 +711,18 @@ function MicroStat({ label, value }: { label: string; value: string }) {
 }
 
 // ── Delta stat block — big number ───────────────────────────────────────────
-function DeltaStat({ label, value, unit, hint, hue }: {
-  label: string; value: string; unit: string; hint: string; hue?: string;
+function DeltaStat({
+  label,
+  value,
+  unit,
+  hint,
+  hue,
+}: {
+  label: string;
+  value: string;
+  unit: string;
+  hint: string;
+  hue?: string;
 }) {
   return (
     <div>
@@ -556,10 +731,16 @@ function DeltaStat({ label, value, unit, hint, hue }: {
       </p>
       <p
         className="font-mono tabular-nums leading-none"
-        style={{ fontSize: "clamp(1.75rem, 3.5vw, 2.4rem)", letterSpacing: "-0.03em", color: hue ?? "var(--foreground)" }}
+        style={{
+          fontSize: "clamp(1.75rem, 3.5vw, 2.4rem)",
+          letterSpacing: "-0.03em",
+          color: hue ?? "var(--foreground)",
+        }}
       >
         {value}
-        <span className="text-[13px] text-muted-foreground ml-1.5 font-sans">{unit}</span>
+        <span className="text-[13px] text-muted-foreground ml-1.5 font-sans">
+          {unit}
+        </span>
       </p>
       <p className="text-[11px] text-muted-foreground mt-1.5">{hint}</p>
     </div>
@@ -567,21 +748,36 @@ function DeltaStat({ label, value, unit, hint, hue }: {
 }
 
 // ── Metric pair — big diverging numbers ─────────────────────────────────────
-function MetricPair({ label, a, b, unit, higherIsBetter }: {
-  label: string; a: number | null; b: number | null; unit: string; higherIsBetter: boolean;
+function MetricPair({
+  label,
+  a,
+  b,
+  unit,
+  higherIsBetter,
+}: {
+  label: string;
+  a: number | null;
+  b: number | null;
+  unit: string;
+  higherIsBetter: boolean;
 }) {
   if (a === null || b === null) {
     return (
       <div>
-        <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground font-medium mb-2">{label}</p>
+        <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground font-medium mb-2">
+          {label}
+        </p>
         <p className="text-[13px] text-muted-foreground">—</p>
       </div>
     );
   }
-  const better = a === b ? null : higherIsBetter ? (a > b ? "a" : "b") : (a < b ? "a" : "b");
+  const better =
+    a === b ? null : higherIsBetter ? (a > b ? "a" : "b") : a < b ? "a" : "b";
   return (
     <div>
-      <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground font-medium mb-3">{label}</p>
+      <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground font-medium mb-3">
+        {label}
+      </p>
       <div className="flex items-baseline gap-2">
         <span
           className="font-mono tabular-nums leading-none"
@@ -606,7 +802,8 @@ function MetricPair({ label, a, b, unit, higherIsBetter }: {
         </span>
       </div>
       <p className="text-[11px] text-muted-foreground mt-1.5">
-        {unit}{better ? ` · ${better === "a" ? "A" : "B"} gana` : " · iguales"}
+        {unit}
+        {better ? ` · ${better === "a" ? "A" : "B"} gana` : " · iguales"}
       </p>
     </div>
   );
@@ -626,7 +823,9 @@ function RoomDiff({ a, b }: { a: Scene; b: Scene }) {
         Recinto
       </p>
       <div className="grid grid-cols-1 gap-2">
-        {rows.map(r => <DiffRow key={r.label} {...r} />)}
+        {rows.map((r) => (
+          <DiffRow key={r.label} {...r} />
+        ))}
       </div>
     </div>
   );
@@ -634,11 +833,41 @@ function RoomDiff({ a, b }: { a: Scene; b: Scene }) {
 
 function AcousticsDiff({ a, b }: { a: Scene; b: Scene }) {
   const rows = [
-    { label: "Volumen", a: a.acoustics.volume, b: b.acoustics.volume, unit: "m³", higherIsBetter: false as const },
-    { label: "RT60 con público", a: a.acoustics.rt60Audience, b: b.acoustics.rt60Audience, unit: "s", higherIsBetter: false as const },
-    { label: "Distancia crítica", a: a.acoustics.criticalDistance, b: b.acoustics.criticalDistance, unit: "m", higherIsBetter: true as const },
-    { label: "Speech score", a: a.acoustics.speechScore, b: b.acoustics.speechScore, unit: "/100", higherIsBetter: true as const },
-    { label: "Music score", a: a.acoustics.musicScore, b: b.acoustics.musicScore, unit: "/100", higherIsBetter: true as const },
+    {
+      label: "Volumen",
+      a: a.acoustics.volume,
+      b: b.acoustics.volume,
+      unit: "m³",
+      higherIsBetter: false as const,
+    },
+    {
+      label: "RT60 con público",
+      a: a.acoustics.rt60Audience,
+      b: b.acoustics.rt60Audience,
+      unit: "s",
+      higherIsBetter: false as const,
+    },
+    {
+      label: "Distancia crítica",
+      a: a.acoustics.criticalDistance,
+      b: b.acoustics.criticalDistance,
+      unit: "m",
+      higherIsBetter: true as const,
+    },
+    {
+      label: "Speech score",
+      a: a.acoustics.speechScore,
+      b: b.acoustics.speechScore,
+      unit: "/100",
+      higherIsBetter: true as const,
+    },
+    {
+      label: "Music score",
+      a: a.acoustics.musicScore,
+      b: b.acoustics.musicScore,
+      unit: "/100",
+      higherIsBetter: true as const,
+    },
   ];
   return (
     <div>
@@ -646,53 +875,91 @@ function AcousticsDiff({ a, b }: { a: Scene; b: Scene }) {
         Acústica
       </p>
       <div className="grid grid-cols-1 gap-2">
-        {rows.map(r => <DiffRow key={r.label} {...r} />)}
+        {rows.map((r) => (
+          <DiffRow key={r.label} {...r} />
+        ))}
       </div>
     </div>
   );
 }
 
-function DiffRow({ label, a, b, unit, higherIsBetter }: {
-  label: string; a: number; b: number; unit: string; higherIsBetter?: boolean;
+function DiffRow({
+  label,
+  a,
+  b,
+  unit,
+  higherIsBetter,
+}: {
+  label: string;
+  a: number;
+  b: number;
+  unit: string;
+  higherIsBetter?: boolean;
 }) {
   const delta = b - a;
   const same = Math.abs(delta) < 0.01;
-  const better = higherIsBetter === undefined
-    ? null
-    : higherIsBetter ? (delta > 0 ? "b" : "a") : (delta < 0 ? "b" : "a");
+  const better =
+    higherIsBetter === undefined
+      ? null
+      : higherIsBetter
+        ? delta > 0
+          ? "b"
+          : "a"
+        : delta < 0
+          ? "b"
+          : "a";
 
   return (
     <div
-      className="grid grid-cols-[1fr_auto_auto_auto] gap-4 md:gap-6 items-center py-3"
+      className="comparison-row grid grid-cols-[minmax(0,1fr)_auto_auto_auto] gap-2 md:gap-6 items-center py-3"
       style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}
       data-testid={`diff-row-${label.toLowerCase().replace(/\s+/g, "-")}`}
     >
       <p className="text-[13px] text-muted-foreground">{label}</p>
       <span
         className="font-mono text-[14px] tabular-nums text-right w-16"
-        style={{ letterSpacing: "-0.01em", color: better === "a" ? A_HUE : "var(--foreground)" }}
+        style={{
+          letterSpacing: "-0.01em",
+          color: better === "a" ? A_HUE : "var(--foreground)",
+        }}
       >
-        {a}<span className="text-[10px] text-muted-foreground ml-1">{unit}</span>
+        {a}
+        <span className="text-[10px] text-muted-foreground ml-1">{unit}</span>
       </span>
       <span className="w-6 flex justify-center">
-        {same
-          ? <Minus size={12} className="text-muted-foreground/60" />
-          : delta > 0
-            ? <TrendingUp size={13} className={cn(better === "b" ? "text-[#C9F03E]" : "text-[#F5B62E]")} />
-            : <TrendingDown size={13} className={cn(better === "b" ? "text-[#C9F03E]" : "text-[#F5B62E]")} />}
+        {same ? (
+          <Minus size={12} className="text-muted-foreground/60" />
+        ) : delta > 0 ? (
+          <TrendingUp
+            size={13}
+            className={cn(better === "b" ? "text-[#C9F03E]" : "text-[#F5B62E]")}
+          />
+        ) : (
+          <TrendingDown
+            size={13}
+            className={cn(better === "b" ? "text-[#C9F03E]" : "text-[#F5B62E]")}
+          />
+        )}
       </span>
       <span
         className="font-mono text-[14px] tabular-nums text-right w-16"
-        style={{ letterSpacing: "-0.01em", color: better === "b" ? B_HUE : "var(--foreground)" }}
+        style={{
+          letterSpacing: "-0.01em",
+          color: better === "b" ? B_HUE : "var(--foreground)",
+        }}
       >
-        {b}<span className="text-[10px] text-muted-foreground ml-1">{unit}</span>
+        {b}
+        <span className="text-[10px] text-muted-foreground ml-1">{unit}</span>
       </span>
     </div>
   );
 }
 
 function GearDiff({ a, b }: { a: Scene; b: Scene }) {
-  const cats: { key: "tops" | "subs" | "monitors" | "amps" | "mics"; label: string }[] = [
+  const cats: {
+    key: "tops" | "subs" | "monitors" | "amps" | "mics";
+    label: string;
+  }[] = [
     { key: "tops", label: "Tops" },
     { key: "subs", label: "Subs" },
     { key: "monitors", label: "Monitors" },
@@ -714,12 +981,13 @@ function GearDiff({ a, b }: { a: Scene; b: Scene }) {
           <span className="mx-1.5">→</span>
           <span style={{ color: B_HUE }}>{totalB}</span>
           <span className="ml-1.5">
-            ({totalDelta > 0 ? "+" : ""}{totalDelta})
+            ({totalDelta > 0 ? "+" : ""}
+            {totalDelta})
           </span>
         </p>
       </div>
       <div className="grid grid-cols-1 gap-3">
-        {cats.map(cat => {
+        {cats.map((cat) => {
           const ca = gearCount(a, cat.key);
           const cb = gearCount(b, cat.key);
           if (ca === 0 && cb === 0) return null;
@@ -727,7 +995,7 @@ function GearDiff({ a, b }: { a: Scene; b: Scene }) {
           return (
             <div
               key={cat.key}
-              className="grid grid-cols-[80px_1fr_40px_40px_1fr] items-center gap-3"
+              className="grid grid-cols-[50px_minmax(0,1fr)_30px_30px_minmax(0,1fr)] items-center gap-2"
               data-testid={`gear-diff-${cat.key}`}
             >
               <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground font-medium">
@@ -736,15 +1004,33 @@ function GearDiff({ a, b }: { a: Scene; b: Scene }) {
               <div className="h-[3px] rounded-full bg-white/[0.05] overflow-hidden">
                 <div
                   className="h-full rounded-full"
-                  style={{ width: `${(ca / max) * 100}%`, background: A_HUE, transition: "width 0.6s cubic-bezier(0.22,1,0.36,1)" }}
+                  style={{
+                    width: `${(ca / max) * 100}%`,
+                    background: A_HUE,
+                    transition: "width 0.6s cubic-bezier(0.22,1,0.36,1)",
+                  }}
                 />
               </div>
-              <span className="font-mono text-[13px] tabular-nums text-right" style={{ color: A_HUE }}>{ca}</span>
-              <span className="font-mono text-[13px] tabular-nums" style={{ color: B_HUE }}>{cb}</span>
+              <span
+                className="font-mono text-[13px] tabular-nums text-right"
+                style={{ color: A_HUE }}
+              >
+                {ca}
+              </span>
+              <span
+                className="font-mono text-[13px] tabular-nums"
+                style={{ color: B_HUE }}
+              >
+                {cb}
+              </span>
               <div className="h-[3px] rounded-full bg-white/[0.05] overflow-hidden">
                 <div
                   className="h-full rounded-full"
-                  style={{ width: `${(cb / max) * 100}%`, background: B_HUE, transition: "width 0.6s cubic-bezier(0.22,1,0.36,1)" }}
+                  style={{
+                    width: `${(cb / max) * 100}%`,
+                    background: B_HUE,
+                    transition: "width 0.6s cubic-bezier(0.22,1,0.36,1)",
+                  }}
                 />
               </div>
             </div>

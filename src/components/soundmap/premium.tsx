@@ -22,13 +22,16 @@ interface PremiumShellProps {
 }
 
 export function PremiumShell({
-  eyebrow, title, subtitle, right, children, wrapperClassName, ...rest
+  eyebrow,
+  title,
+  subtitle,
+  right,
+  children,
+  wrapperClassName,
+  ...rest
 }: PremiumShellProps) {
   return (
-    <div
-      className="v6-workspace"
-      data-testid={rest["data-testid"]}
-    >
+    <div className="v6-workspace" data-testid={rest["data-testid"]}>
       <div className={cn("mx-auto", wrapperClassName ?? "max-w-[1400px]")}>
         <motion.div
           initial={{ opacity: 0, y: 8 }}
@@ -36,21 +39,18 @@ export function PremiumShell({
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
         >
           {eyebrow && (
-            <p className="text-[11px] uppercase tracking-[0.28em] font-medium text-muted-foreground mb-4">
+            <p className="text-[11px] uppercase tracking-[0.15em] font-medium text-muted-foreground mb-2">
               {eyebrow}
             </p>
           )}
-          <div className="flex items-end justify-between gap-6 mb-3 flex-wrap">
-            <h1
-              className="v6-heading"
-              data-testid="premium-title"
-            >
+          <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
+            <h1 className="v6-heading" data-testid="premium-title">
               {title}
             </h1>
             {right && <div className="shrink-0">{right}</div>}
           </div>
           {subtitle && (
-            <p className="text-[15px] text-muted-foreground max-w-xl leading-relaxed mb-6">
+            <p className="text-sm text-muted-foreground max-w-xl leading-relaxed mb-5">
               {subtitle}
             </p>
           )}
@@ -70,20 +70,24 @@ interface PremiumCardProps {
   onClick?: () => void;
   "data-testid"?: string;
 }
-export function PremiumCard({ children, className, interactive, onClick, ...rest }: PremiumCardProps) {
+export function PremiumCard({
+  children,
+  className,
+  interactive,
+  onClick,
+  ...rest
+}: PremiumCardProps) {
   return (
     <div
       onClick={onClick}
       data-testid={rest["data-testid"]}
-      className={cn(
-        "rounded-2xl",
-        interactive && "cursor-pointer",
-        className,
-      )}
+      className={cn("rounded-2xl", interactive && "cursor-pointer", className)}
       style={{
         background: "rgba(255,255,255,0.02)",
         boxShadow: "0 0 0 1px rgba(255,255,255,0.05)",
-        transition: interactive ? "background-color 0.3s ease, box-shadow 0.3s ease" : undefined,
+        transition: interactive
+          ? "background-color 0.3s ease, box-shadow 0.3s ease"
+          : undefined,
       }}
     >
       {children}
@@ -92,9 +96,20 @@ export function PremiumCard({ children, className, interactive, onClick, ...rest
 }
 
 // ── Whisper section header — replaces uppercase font-black labels ──────────
-export function SectionEyebrow({ children, className }: { children: ReactNode; className?: string }) {
+export function SectionEyebrow({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
   return (
-    <p className={cn("text-[11px] uppercase tracking-[0.28em] font-medium text-muted-foreground", className)}>
+    <p
+      className={cn(
+        "text-[11px] uppercase tracking-[0.28em] font-medium text-muted-foreground",
+        className,
+      )}
+    >
       {children}
     </p>
   );
@@ -112,9 +127,17 @@ interface QuietButtonProps {
   "data-testid"?: string;
 }
 export function QuietButton({
-  onClick, children, className, disabled, variant = "ghost", size = "md", hue, ...rest
+  onClick,
+  children,
+  className,
+  disabled,
+  variant = "ghost",
+  size = "md",
+  hue,
+  ...rest
 }: QuietButtonProps) {
-  const pad = size === "sm" ? "px-3 py-1.5 text-[12px]" : "px-4 py-2.5 text-[13px]";
+  const pad =
+    size === "sm" ? "px-3 py-1.5 text-[12px]" : "px-4 py-2.5 text-[13px]";
   const solidBg = hue ?? "var(--foreground)";
   const solidColor = "var(--background)";
   return (
@@ -129,18 +152,25 @@ export function QuietButton({
       )}
       style={{
         background:
-          variant === "solid" ? solidBg
-          : variant === "danger" ? "#FF6B4A12"
-          : "rgba(255,255,255,0.03)",
+          variant === "solid"
+            ? solidBg
+            : variant === "danger"
+              ? "#FF6B4A12"
+              : "rgba(255,255,255,0.03)",
         boxShadow:
-          variant === "solid" ? "none"
-          : variant === "danger" ? "0 0 0 1px #FF6B4A55"
-          : "0 0 0 1px rgba(255,255,255,0.06)",
+          variant === "solid"
+            ? "none"
+            : variant === "danger"
+              ? "0 0 0 1px #FF6B4A55"
+              : "0 0 0 1px rgba(255,255,255,0.06)",
         color:
-          variant === "solid" ? solidColor
-          : variant === "danger" ? "var(--sm-warm)"
-          : "var(--foreground)",
-        transition: "background-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease",
+          variant === "solid"
+            ? solidColor
+            : variant === "danger"
+              ? "var(--sm-warm)"
+              : "var(--foreground)",
+        transition:
+          "background-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease",
       }}
     >
       {children}
@@ -150,5 +180,10 @@ export function QuietButton({
 
 // ── Divider ─────────────────────────────────────────────────────────────────
 export function PremiumDivider({ className }: { className?: string }) {
-  return <div className={cn("h-px w-full", className)} style={{ background: "rgba(255,255,255,0.05)" }} />;
+  return (
+    <div
+      className={cn("h-px w-full", className)}
+      style={{ background: "rgba(255,255,255,0.05)" }}
+    />
+  );
 }

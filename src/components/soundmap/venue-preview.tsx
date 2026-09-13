@@ -41,6 +41,7 @@ export function VenuePreview({
   className,
   geometryOnly = false,
   compact = true,
+  interactive = true,
 }: {
   room: RoomScanInput;
   tops?: GearItem[];
@@ -51,6 +52,7 @@ export function VenuePreview({
   className?: string;
   geometryOnly?: boolean;
   compact?: boolean;
+  interactive?: boolean;
 }) {
   const coverage = useMemo(() => {
     if (geometryOnly) return undefined;
@@ -83,9 +85,14 @@ export function VenuePreview({
           subs={subs}
           monitors={monitors}
           splGrid={coverage}
-          speakers={geometryOnly ? [] : venueSpeakers(room, tops, subs, monitors, layout)}
+          speakers={
+            geometryOnly
+              ? []
+              : venueSpeakers(room, tops, subs, monitors, layout)
+          }
           className={className}
           compact={compact}
+          interactive={interactive}
         />
       </Suspense>
     </VenueBoundary>

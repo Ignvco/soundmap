@@ -17,7 +17,7 @@ probar es exactamente lo que querés.
 
 - **Android Studio** — https://developer.android.com/studio
   Al abrirlo por primera vez, dejá que instale el SDK. Necesitás **API 36**
-  (`compileSdk`/`targetSdk` del proyecto) y **JDK 17 o superior**
+  (`compileSdk`/`targetSdk` del proyecto) y **JDK 21**
   (Android Studio trae uno embebido, no hace falta instalarlo aparte).
 - **Tu teléfono en modo desarrollador**:
   Ajustes → Información del teléfono → tocá **7 veces** "Número de compilación"
@@ -26,10 +26,10 @@ probar es exactamente lo que querés.
 ### 2. Compilar
 
 ```bash
-npm install
-npm run build          # genera dist/
-npx cap sync android   # copia dist/ al proyecto Android + sincroniza plugins
-npx cap open android   # abre Android Studio
+pnpm install
+pnpm build          # genera dist/
+pnpm exec cap sync android   # copia dist/ al proyecto Android + sincroniza plugins
+pnpm exec cap open android   # abre Android Studio
 ```
 
 En Android Studio: esperá a que termine el "Gradle sync" (la primera vez tarda
@@ -41,7 +41,7 @@ selector de dispositivos arriba y tocá **Run ▶**.
 Si ya tenés el SDK instalado y el teléfono conectado:
 
 ```bash
-npm run build && npx cap sync android
+pnpm build && pnpm exec cap sync android
 cd android
 ./gradlew assembleDebug
 # APK en: android/app/build/outputs/apk/debug/app-debug.apk
@@ -75,7 +75,7 @@ keyPassword=...
 Después:
 
 ```bash
-npm run build && npx cap sync android
+pnpm build && pnpm exec cap sync android
 cd android
 ./gradlew assembleRelease   # APK
 ./gradlew bundleRelease     # AAB — es lo que pide Play Store

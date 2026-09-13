@@ -11,6 +11,7 @@ import {
   Plus,
   RotateCcw,
   Layers3,
+  Ellipsis,
 } from "lucide-react";
 import * as THREE from "three";
 import {
@@ -243,7 +244,15 @@ function Speaker({ speaker, labels, onSelect, selected }) {
           rotation={monitor ? [-0.35, Math.PI, 0] : [0.1, 0, 0]}
         >
           <Block
-            size={sub ? [0.76, 0.76, 0.68] : array ? [0.72, 0.32, 0.46] : monitor ? [0.5, 0.32, 0.46] : [0.46, 0.72, 0.46]}
+            size={
+              sub
+                ? [0.76, 0.76, 0.68]
+                : array
+                  ? [0.72, 0.32, 0.46]
+                  : monitor
+                    ? [0.5, 0.32, 0.46]
+                    : [0.46, 0.72, 0.46]
+            }
             color="#171b1b"
             edge={selected ? "#FFFFFF" : color}
           />
@@ -346,7 +355,8 @@ export function Stage3D({
   onSelect,
 }) {
   const [webgl, setWebgl] = useState(null);
-  const [labels, setLabels] = useState(!compact),
+  const [optionsOpen, setOptionsOpen] = useState(false);
+  const [labels, setLabels] = useState(false),
     [coverage, setCoverage] = useState(true),
     [command, setCommand] = useState(null);
   useEffect(() => {
@@ -417,7 +427,7 @@ export function Stage3D({
           </Canvas>
         ) : (
           <div
-            className="h-full flex flex-col items-center justify-center gap-3 px-8 text-center"
+            className="venue-unavailable h-full flex flex-col items-center justify-center gap-3 px-8 text-center"
             role="status"
           >
             <Box size={28} className="text-muted-foreground" />
@@ -463,20 +473,33 @@ export function Stage3D({
             <RotateCcw size={14} />
           </button>
           <button
-            onClick={() => setLabels((v) => !v)}
-            aria-label="Etiquetas de equipos"
-            aria-pressed={labels}
+            onClick={() => setOptionsOpen((v) => !v)}
+            aria-label="Opciones del visor"
+            aria-expanded={optionsOpen}
           >
-            {labels ? <Eye size={14} /> : <EyeOff size={14} />}
+            <Ellipsis size={17} />
           </button>
-          {splGrid && (
-            <button
-              onClick={() => setCoverage((v) => !v)}
-              aria-label="Cobertura SPL"
-              aria-pressed={coverage}
-            >
-              <Layers3 size={14} />
-            </button>
+          {optionsOpen && (
+            <div className="venue-options">
+              <button
+                onClick={() => setLabels((v) => !v)}
+                aria-label="Etiquetas de equipos"
+                aria-pressed={labels}
+              >
+                {labels ? <Eye size={14} /> : <EyeOff size={14} />}
+                <span>Etiquetas</span>
+              </button>
+              {splGrid && (
+                <button
+                  onClick={() => setCoverage((v) => !v)}
+                  aria-label="Cobertura SPL"
+                  aria-pressed={coverage}
+                >
+                  <Layers3 size={14} />
+                  <span>Cobertura SPL</span>
+                </button>
+              )}
+            </div>
           )}
         </div>
       )}

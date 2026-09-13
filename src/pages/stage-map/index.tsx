@@ -1239,17 +1239,14 @@ export default function StageMap() {
   }
 
   return (
-    <ScreenShell>
+    <ScreenShell className="stage-workspace">
       {/* Vitals-style header — eyebrow + big title + right actions */}
       <div className="mb-6 flex items-end justify-between gap-4 flex-wrap">
         <div className="min-w-0">
           <p className="text-[11px] uppercase tracking-[0.28em] font-medium text-muted-foreground mb-2">
-            Mapa
+            Stage Map
           </p>
-          <h1
-            className="text-[1.6rem] md:text-[2.1rem] leading-[1.05] tracking-[-0.03em] font-medium text-foreground"
-            data-testid="page-header-title"
-          >
+          <h1 className="v6-heading" data-testid="page-header-title">
             {room.name}
           </h1>
           <p className="text-[13px] text-muted-foreground mt-1">
@@ -1330,7 +1327,7 @@ export default function StageMap() {
 
       {/* 3D View */}
       {viewMode === "3d" && stageConfig && (
-        <div className="px-4 mb-3">
+        <div className="mb-3">
           {/* El canvas manda. Las métricas flotan encima en vez de ocupar una
               tarjeta debajo: el brief pide "evitar paneles innecesarios
               alrededor" y que la visualización sea protagonista. */}
@@ -1360,7 +1357,7 @@ export default function StageMap() {
                 }}
                 data-testid="stage-3d-overlay"
               >
-                <div className="grid grid-cols-4 gap-4">
+                <div className="stage-metrics grid grid-cols-2 sm:grid-cols-4 gap-4">
                   {[
                     {
                       label: "Máx",
@@ -1461,7 +1458,7 @@ export default function StageMap() {
                 Seleccioná una caja para editar su posición y altura.
               </p>
             </div>
-            <div className="flex gap-2 items-center">
+            <div className="plan-controls flex gap-2 items-center">
               <select
                 aria-label="Capa del plano"
                 value={layer}
@@ -1656,14 +1653,18 @@ export default function StageMap() {
 
       {/* System evaluation */}
       {systemEval && (
-        <div className="px-4 mb-4">
+        <details className="stage-evaluation mb-4">
+          <summary>
+            Evaluación del posicionamiento{" "}
+            <span>{systemEval.overallScore}/100</span>
+          </summary>
           <SystemEvaluationCard evaluation={systemEval} />
-        </div>
+        </details>
       )}
 
       {/* Details toggle */}
       {stageConfig && (
-        <div className="px-4 mb-4">
+        <div className="mb-4">
           <button
             onClick={() => setShowDetails((d) => !d)}
             className="w-full flex items-center justify-between rounded-xl border border-border bg-secondary px-4 py-3 cursor-pointer hover:bg-secondary/70 transition-colors"
@@ -1802,7 +1803,7 @@ export default function StageMap() {
 
       {/* Delay tower warning */}
       {stageConfig?.needsDelayTowers && (
-        <div className="px-4 pb-4">
+        <div className="pb-4">
           <div className="flex items-start gap-2.5 rounded-xl bg-accent/10 border border-accent/25 px-4 py-3">
             <AlertTriangle size={13} className="text-accent mt-0.5 shrink-0" />
             <p className="text-xs text-accent">
@@ -1821,7 +1822,7 @@ export default function StageMap() {
 
       {/* Add gear nudge */}
       {tops.length === 0 && (
-        <div className="px-4 pb-4">
+        <div className="pb-4">
           <Link to="/gear-builder">
             <div className="flex items-center justify-between rounded-xl bg-secondary border border-border px-4 py-3 cursor-pointer hover:bg-secondary/70 transition-colors">
               <p className="text-xs text-muted-foreground">

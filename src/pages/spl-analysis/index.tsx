@@ -24,7 +24,7 @@ export default function SPLAnalysis() {
       : undefined;
   }, [stageLayout, room, tops, subs, frequency]);
   return (
-    <div className="v6-workspace">
+    <div className="v6-workspace spl-analysis-workspace">
       <AnalysisNav />
       <header className="flex justify-between items-center flex-wrap gap-4 mb-6">
         <div>

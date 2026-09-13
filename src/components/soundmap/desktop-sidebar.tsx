@@ -1,3 +1,4 @@
+import { Search } from "lucide-react";
 import { ANALYSIS_LINKS } from "@/components/soundmap/analysis-nav.tsx";
 // Sidebar de escritorio.
 //
@@ -14,8 +15,18 @@ import { ANALYSIS_LINKS } from "@/components/soundmap/analysis-nav.tsx";
 //   Settings · cuenta
 import { NavLink, useLocation } from "react-router-dom";
 import {
-  Home, Compass, Radio, BarChart3, Layers, LayoutTemplate, Sparkles,
-  Calculator, Users, Settings as SettingsIcon, PanelLeftClose, PanelLeft,
+  Home,
+  Compass,
+  Radio,
+  BarChart3,
+  Layers,
+  LayoutTemplate,
+  Sparkles,
+  Calculator,
+  Users,
+  Settings as SettingsIcon,
+  PanelLeftClose,
+  PanelLeft,
 } from "lucide-react";
 import { useState, type ComponentType } from "react";
 import { feedback } from "@/lib/feedback.ts";
@@ -30,17 +41,32 @@ interface Item {
 }
 
 const PRIMARY: Item[] = [
-  { to: "/",        label: "Home",    icon: Home },
-  { to: "/design",  label: "Design",  icon: Compass, match: ["/room-scan", "/gear-builder", "/dsp", "/channels"] },
-  { to: "/perform", label: "Perform", icon: Radio,   match: ["/live", "/kiosk", "/pa"] },
-  { to: "/compare", label: "Analyze", icon: BarChart3, match: ["/stage-map", "/export", "/spl-analysis", "/acoustic-analysis"] },
+  { to: "/", label: "Home", icon: Home },
+  {
+    to: "/design",
+    label: "Design",
+    icon: Compass,
+    match: ["/room-scan", "/gear-builder", "/dsp", "/channels"],
+  },
+  {
+    to: "/perform",
+    label: "Perform",
+    icon: Radio,
+    match: ["/live", "/kiosk", "/pa"],
+  },
+  {
+    to: "/compare",
+    label: "Analyze",
+    icon: BarChart3,
+    match: ["/stage-map", "/export", "/spl-analysis", "/acoustic-analysis"],
+  },
 ];
 
 const WORKSPACE: Item[] = [
   { to: "/ai-advisor", label: "AI Advisor", icon: Sparkles },
-  { to: "/scenes",    label: "Scenes",    icon: Layers },
+  { to: "/scenes", label: "Scenes", icon: Layers },
   { to: "/templates", label: "Templates", icon: LayoutTemplate },
-  { to: "/toolkit",   label: "Toolkit",   icon: Calculator },
+  { to: "/toolkit", label: "Toolkit", icon: Calculator },
   { to: "/community", label: "Community", icon: Users },
 ];
 
@@ -50,7 +76,15 @@ function isActive(pathname: string, item: Item): boolean {
   return (item.match ?? []).some((m) => pathname.startsWith(m));
 }
 
-function Row({ item, active, collapsed }: { item: Item; active: boolean; collapsed: boolean }) {
+function Row({
+  item,
+  active,
+  collapsed,
+}: {
+  item: Item;
+  active: boolean;
+  collapsed: boolean;
+}) {
   const Icon = item.icon;
   return (
     <NavLink
@@ -64,12 +98,15 @@ function Row({ item, active, collapsed }: { item: Item; active: boolean; collaps
         borderRadius: "var(--radius-control)",
         background: active ? "var(--surface-3)" : "transparent",
         color: active ? "var(--foreground)" : "var(--muted-foreground)",
-        transition: "background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease)",
+        transition:
+          "background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease)",
       }}
     >
       <Icon size={16} strokeWidth={1.75} />
       {!collapsed && (
-        <span className="text-[13px] font-medium tracking-[-0.01em] truncate">{item.label}</span>
+        <span className="text-[13px] font-medium tracking-[-0.01em] truncate">
+          {item.label}
+        </span>
       )}
       {/* Marca de activo: una barra de 2px, no un bloque verde. El acento se
           reserva para lo que de verdad lo necesita. */}
@@ -95,7 +132,7 @@ export function DesktopSidebar() {
     <aside
       aria-label="Navegación principal"
       data-testid="desktop-sidebar"
-      className="hidden md:flex flex-col shrink-0 h-[100dvh] sticky top-0"
+      className="hidden lg:flex flex-col shrink-0 h-[100dvh] sticky top-0"
       style={{
         width: w,
         background: "var(--sidebar)",
@@ -105,7 +142,13 @@ export function DesktopSidebar() {
     >
       {/* Marca */}
       <div className="h-16 flex items-center gap-2.5 px-4 shrink-0">
-        <svg width="20" height="14" viewBox="0 0 28 18" aria-hidden="true" className="shrink-0">
+        <svg
+          width="20"
+          height="14"
+          viewBox="0 0 28 18"
+          aria-hidden="true"
+          className="shrink-0"
+        >
           <path
             d="M1 9h3l2.5-7 3 14 3-11 2.5 8 2-4h10"
             fill="none"
@@ -122,22 +165,59 @@ export function DesktopSidebar() {
         )}
       </div>
 
+      <button
+        className="sidebar-search"
+        onClick={() => window.dispatchEvent(new Event("soundmap:openpalette"))}
+        aria-label="Buscar pantallas y acciones"
+        data-testid="sidebar-search"
+      >
+        <Search size={15} />
+        {!collapsed && (
+          <>
+            <span>Buscar</span>
+            <kbd>⌘K</kbd>
+          </>
+        )}
+      </button>
+
       <nav className="flex-1 overflow-y-auto px-2.5 pb-4 no-scrollbar">
         <div className="space-y-0.5">
           {PRIMARY.map((it) => (
-            <Row key={it.to} item={it} active={isActive(pathname, it)} collapsed={collapsed} />
+            <Row
+              key={it.to}
+              item={it}
+              active={isActive(pathname, it)}
+              collapsed={collapsed}
+            />
           ))}
         </div>
 
-        {!collapsed && <div className="mt-2 ml-4 border-l border-border pl-2 space-y-1">
-          {ANALYSIS_LINKS.map(item => <NavLink key={item.to} to={item.to} className={({ isActive }) => `block px-2 py-2 rounded text-[11px] ${isActive ? "text-accent bg-accent/5" : "text-muted-foreground hover:text-foreground"}`}>{item.label}</NavLink>)}
-        </div>}
+        {!collapsed && (
+          <div className="mt-2 ml-4 border-l border-border pl-2 space-y-1">
+            {ANALYSIS_LINKS.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) =>
+                  `block px-2 py-2 rounded text-[11px] ${isActive ? "text-accent bg-accent/5" : "text-muted-foreground hover:text-foreground"}`
+                }
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </div>
+        )}
         <div className="my-4 px-2.5">
           {collapsed ? (
-            <div className="h-px" style={{ background: "var(--border-subtle)" }} />
+            <div
+              className="h-px"
+              style={{ background: "var(--border-subtle)" }}
+            />
           ) : (
-            <p className="text-[10px] font-medium uppercase tracking-[0.18em]"
-               style={{ color: "var(--muted-foreground)" }}>
+            <p
+              className="text-[10px] font-medium uppercase tracking-[0.18em]"
+              style={{ color: "var(--muted-foreground)" }}
+            >
               Workspace
             </p>
           )}
@@ -145,16 +225,28 @@ export function DesktopSidebar() {
 
         <div className="space-y-0.5">
           {WORKSPACE.map((it) => (
-            <Row key={it.to} item={it} active={isActive(pathname, it)} collapsed={collapsed} />
+            <Row
+              key={it.to}
+              item={it}
+              active={isActive(pathname, it)}
+              collapsed={collapsed}
+            />
           ))}
         </div>
       </nav>
 
       <div className="px-2.5 pb-3 shrink-0 space-y-0.5">
-        <div className="h-px mb-3 mx-2.5" style={{ background: "var(--border-subtle)" }} />
+        <div
+          className="h-px mb-3 mx-2.5"
+          style={{ background: "var(--border-subtle)" }}
+        />
         <Row
           item={{ to: "/settings", label: "Settings", icon: SettingsIcon }}
-          active={isActive(pathname, { to: "/settings", label: "Settings", icon: SettingsIcon })}
+          active={isActive(pathname, {
+            to: "/settings",
+            label: "Settings",
+            icon: SettingsIcon,
+          })}
           collapsed={collapsed}
         />
 
@@ -162,14 +254,22 @@ export function DesktopSidebar() {
           <div className="flex items-center gap-2.5 px-2.5 h-11 mt-1">
             <span
               className="h-7 w-7 rounded-full flex items-center justify-center text-[10px] font-semibold shrink-0"
-              style={{ background: "var(--surface-3)", color: "var(--muted-foreground)" }}
+              style={{
+                background: "var(--surface-3)",
+                color: "var(--muted-foreground)",
+              }}
               aria-hidden="true"
             >
               LP
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-[12px] font-medium text-foreground truncate leading-tight">LevelPro Audio</p>
-              <p className="text-[10px] truncate" style={{ color: "var(--muted-foreground)" }}>
+              <p className="text-[12px] font-medium text-foreground truncate leading-tight">
+                LevelPro Audio
+              </p>
+              <p
+                className="text-[10px] truncate"
+                style={{ color: "var(--muted-foreground)" }}
+              >
                 {scenes.length} {scenes.length === 1 ? "escena" : "escenas"}
               </p>
             </div>
@@ -177,7 +277,10 @@ export function DesktopSidebar() {
         )}
 
         <button
-          onClick={() => { feedback("tap"); setCollapsed((c) => !c); }}
+          onClick={() => {
+            feedback("tap");
+            setCollapsed((c) => !c);
+          }}
           aria-label={collapsed ? "Expandir navegación" : "Colapsar navegación"}
           data-testid="sidebar-toggle"
           className="w-full flex items-center gap-3 h-9 px-2.5 cursor-pointer"
@@ -187,7 +290,11 @@ export function DesktopSidebar() {
             transition: "color var(--dur-fast) var(--ease)",
           }}
         >
-          {collapsed ? <PanelLeft size={16} strokeWidth={1.75} /> : <PanelLeftClose size={16} strokeWidth={1.75} />}
+          {collapsed ? (
+            <PanelLeft size={16} strokeWidth={1.75} />
+          ) : (
+            <PanelLeftClose size={16} strokeWidth={1.75} />
+          )}
           {!collapsed && <span className="text-[12px]">Colapsar</span>}
         </button>
       </div>

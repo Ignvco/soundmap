@@ -5,8 +5,8 @@ import { useAppStore } from "@/store/app.ts";
 export default function AIAdvisor() {
   const { stageLayout, room, tops, subs, monitors } = useAppStore();
   return (
-    <div className="v6-workspace">
-      <header className="mb-6">
+    <div className="v6-workspace advisor-workspace">
+      <header className="mb-4">
         <h1 className="v6-heading">AI Advisor</h1>
         <p className="text-xs text-muted-foreground mt-2">
           Recinto, acústica y sistema de sonido
@@ -21,13 +21,15 @@ export default function AIAdvisor() {
       >
         <AdvisorPanel embedded />
         {room && (
-          <VenuePreview
-          layout={stageLayout}
-            room={room}
-            tops={tops}
-            subs={subs}
-            monitors={monitors}
-          />
+          <div className="hidden xl:block">
+            <VenuePreview
+              layout={stageLayout}
+              room={room}
+              tops={tops}
+              subs={subs}
+              monitors={monitors}
+            />
+          </div>
         )}
       </div>
     </div>

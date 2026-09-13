@@ -46,7 +46,7 @@ export function ARRoomScanModal({ open, onClose, onApply }: Props) {
       }}
     >
       <DialogContent
-        className="sm:max-w-5xl p-0 gap-0 overflow-hidden max-h-[94dvh] overflow-y-auto"
+        className="ar-dialog sm:max-w-5xl p-0 gap-0 overflow-hidden max-h-[94dvh] overflow-y-auto"
         data-testid="ar-scan-overlay"
       >
         {open && <ScanSession onApply={onApply} onClose={onClose} />}
@@ -233,7 +233,10 @@ function ScanSession({ onApply, onClose }: Pick<Props, "onApply" | "onClose">) {
           de aplicarlas.
         </DialogDescription>
       </header>
-      <div className="grid md:grid-cols-[minmax(0,1fr)_320px]">
+      <div
+        className="ar-layout grid lg:grid-cols-[minmax(0,1fr)_320px]"
+        data-mode={mode}
+      >
         <section className="p-5 bg-[#0b0d0e] space-y-4 min-w-0">
           <div className="flex gap-2">
             {(
@@ -253,7 +256,7 @@ function ScanSession({ onApply, onClose }: Pick<Props, "onApply" | "onClose">) {
               </button>
             ))}
           </div>
-          <div className="relative min-h-[280px] aspect-[4/3] max-h-[420px] rounded-lg border border-border bg-[#101415] overflow-hidden">
+          <div className="relative ar-camera min-h-[220px] aspect-[4/3] max-h-[420px] rounded-lg border border-border bg-[#101415] overflow-hidden">
             {mode === "camera" && (
               <video
                 ref={videoRef}
@@ -432,7 +435,7 @@ function ScanSession({ onApply, onClose }: Pick<Props, "onApply" | "onClose">) {
             </>
           )}
         </section>
-        <aside className="p-5 border-l border-border flex flex-col gap-5">
+        <aside className="ar-dimensions p-5 border-t lg:border-t-0 lg:border-l border-border flex flex-col gap-5">
           <div>
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
               Dimensiones del recinto
