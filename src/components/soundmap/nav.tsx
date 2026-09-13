@@ -17,10 +17,10 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, subtitle, right }: PageHeaderProps) {
   return (
-    <div className="flex items-end justify-between gap-6 mb-8 flex-wrap">
+    <div className="flex items-end justify-between gap-6 mb-6 flex-wrap">
       <div className="min-w-0">
         <h1
-          className="text-[1.75rem] md:text-[2.4rem] leading-[1.05] tracking-[-0.03em] font-medium text-foreground"
+          className="v6-heading"
           data-testid="page-header-title"
         >
           {title}

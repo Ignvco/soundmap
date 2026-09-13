@@ -19,6 +19,9 @@ import "./i18n.ts";
 // agrega un salto de spinner en el arranque sin ahorrar nada.
 import AIHome from "./pages/ai-home/index.tsx";
 
+const SPLAnalysis = lazy(() => import("./pages/spl-analysis/index.tsx"));
+const AcousticAnalysis = lazy(() => import("./pages/acoustic-analysis/index.tsx"));
+const AIAdvisor = lazy(() => import("./pages/ai-advisor/index.tsx"));
 const DesignWizard   = lazy(() => import("./pages/design-wizard/index.tsx"));
 const PerformHub     = lazy(() => import("./pages/perform-hub/index.tsx"));
 const StageMap       = lazy(() => import("./pages/stage-map/index.tsx"));      // three.js
@@ -100,6 +103,9 @@ export default function App() {
                 <Route path="/live" element={<Live />} />
                 <Route path="/export" element={<ExportPage />} />
                 <Route path="/scenes" element={<Scenes />} />
+                <Route path="/spl-analysis" element={<SPLAnalysis />} />
+                <Route path="/acoustic-analysis" element={<AcousticAnalysis />} />
+                <Route path="/ai-advisor" element={<AIAdvisor />} />
                 <Route path="/compare" element={<SceneCompare />} />
                 <Route path="/community" element={<CommunityGear />} />
                 <Route path="/templates" element={<Templates />} />

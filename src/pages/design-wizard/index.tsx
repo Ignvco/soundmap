@@ -8,7 +8,9 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Check, ChevronRight, ChevronLeft, Sparkles } from "lucide-react";
 import { useAppStore } from "@/store/app.ts";
 import {
-  wizardCompletion, wizardBlocker, firstIncompleteStep,
+  wizardCompletion,
+  wizardBlocker,
+  firstIncompleteStep,
   type WizardProgressInput,
 } from "./flow.ts";
 import { feedback } from "@/lib/feedback.ts";
@@ -18,27 +20,60 @@ import GearBuilder from "@/pages/gear-builder/index.tsx";
 import DSPPage from "@/pages/dsp/index.tsx";
 import Channels from "@/pages/channels/index.tsx";
 import ExportPage from "@/pages/export-page/index.tsx";
-import { V } from "@/components/soundmap/vitals/index.tsx";
 
 const STEPS = [
-  { id: "room",   label: "Recinto",  hint: "Dimensiones + material",      Component: RoomScan },
-  { id: "pa",     label: "PA",       hint: "Tops + subs + monitors",      Component: GearBuilder },
-  { id: "dsp",    label: "DSP",      hint: "EQ + xover automáticos",      Component: DSPPage },
-  { id: "patch",  label: "Patch",    hint: "Canales + micrófonos",        Component: Channels },
-  { id: "save",   label: "Guardar",  hint: "Preview + exportar",          Component: ExportPage },
+  {
+    id: "room",
+    label: "Recinto",
+    hint: "Dimensiones + material",
+    Component: RoomScan,
+  },
+  {
+    id: "pa",
+    label: "PA",
+    hint: "Tops + subs + monitors",
+    Component: GearBuilder,
+  },
+  {
+    id: "dsp",
+    label: "DSP",
+    hint: "EQ + xover automáticos",
+    Component: DSPPage,
+  },
+  {
+    id: "patch",
+    label: "Patch",
+    hint: "Canales + micrófonos",
+    Component: Channels,
+  },
+  {
+    id: "save",
+    label: "Guardar",
+    hint: "Preview + exportar",
+    Component: ExportPage,
+  },
 ] as const;
 
-type StepId = typeof STEPS[number]["id"];
+type StepId = (typeof STEPS)[number]["id"];
 
 export default function DesignWizard() {
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
-  const { room, tops, subs, dspUnits, mics, scenes, lastWizardStep, setLastWizardStep } = useAppStore();
+  const {
+    room,
+    tops,
+    subs,
+    dspUnits,
+    mics,
+    scenes,
+    lastWizardStep,
+    setLastWizardStep,
+  } = useAppStore();
 
   const urlStep = params.get("step") as StepId | null;
   // If URL has no explicit step, restore the last visited one from persist
   const currentStep: StepId = urlStep ?? (lastWizardStep as StepId) ?? "room";
-  const idx = STEPS.findIndex(s => s.id === currentStep);
+  const idx = STEPS.findIndex((s) => s.id === currentStep);
   const step = STEPS[Math.max(0, idx)];
   const StepComponent = step.Component;
 
@@ -59,13 +94,16 @@ export default function DesignWizard() {
   // barra de progreso mentía y nunca llegabas a verla entera.
   // Las reglas de flujo viven en `flow.ts` — son lógica de dominio, no render,
   // y así se testean sin jsdom ni testing-library. Ver __tests__/flow.test.ts.
-  const progress = useMemo<WizardProgressInput>(() => ({
-    hasRoom: !!room,
-    gearCount: tops.length + subs.length,
-    dspCount: dspUnits.length,
-    micCount: mics.length,
-    sceneCount: scenes.length,
-  }), [room, tops, subs, dspUnits, mics, scenes]);
+  const progress = useMemo<WizardProgressInput>(
+    () => ({
+      hasRoom: !!room,
+      gearCount: tops.length + subs.length,
+      dspCount: dspUnits.length,
+      micCount: mics.length,
+      sceneCount: scenes.length,
+    }),
+    [room, tops, subs, dspUnits, mics, scenes],
+  );
 
   const completed = useMemo(() => wizardCompletion(progress), [progress]);
   const blocker = wizardBlocker(currentStep, progress);
@@ -80,7 +118,11 @@ export default function DesignWizard() {
 
   const goPrev = () => idx > 0 && goTo(STEPS[idx - 1].id);
   const goNext = () => {
-    if (blocker) { feedback("select"); goTo(firstIncomplete); return; }
+    if (blocker) {
+      feedback("select");
+      goTo(firstIncomplete);
+      return;
+    }
     if (idx < STEPS.length - 1) goTo(STEPS[idx + 1].id);
     else {
       feedback("success");
@@ -89,22 +131,30 @@ export default function DesignWizard() {
   };
 
   return (
-    <div className="bg-background text-foreground pb-32">
+    <div
+      className="design-workspace bg-background text-foreground"
+      data-room-step={currentStep === "room"}
+    >
       {/* Progress bar */}
       <div
-        className="sticky top-0 z-20 px-5 md:px-10 pt-7 md:pt-9 pb-4"
+        className="wizard-stepbar"
         style={{
-          background: "linear-gradient(180deg, var(--background) 62%, rgba(8,9,10,0.88) 100%)",
+          background:
+            "linear-gradient(180deg, var(--background) 62%, rgba(8,9,10,0.88) 100%)",
           backdropFilter: "blur(20px)",
         }}
       >
-        <div className="max-w-[1180px] mx-auto">
+        <div className="max-w-[1400px] mx-auto">
+          <div className="wizard-heading">
+            <h1>Design</h1>
+            <span>{room?.name || "Nuevo sistema"}</span>
+          </div>
           {/* Barra de pasos: "01 Room · 02 PA · 03 DSP…". El activo se marca con
               el acento; los demás quedan disponibles pero secundarios. Antes
               cada paso era un chip con fondo propio — cinco cápsulas compitiendo
               donde alcanza con tipografía y una línea. */}
           <nav
-            className="flex items-center gap-5 md:gap-7 overflow-x-auto no-scrollbar -mx-1 px-1"
+            className="wizard-steps"
             data-testid="wizard-steps"
             aria-label="Pasos del diseño"
           >
@@ -117,18 +167,26 @@ export default function DesignWizard() {
                   onClick={() => goTo(s.id)}
                   data-testid={`wizard-step-${s.id}`}
                   aria-current={active ? "step" : undefined}
-                  className="group relative flex items-center gap-1.5 py-2 text-[12px] font-medium cursor-pointer whitespace-nowrap shrink-0"
+                  className="wizard-step"
                   style={{
-                    color: active ? "var(--accent)" : done ? "var(--foreground)" : "var(--muted-foreground)",
+                    color: active
+                      ? "var(--accent)"
+                      : done
+                        ? "var(--foreground)"
+                        : "var(--muted-foreground)",
                     transition: "color var(--dur) var(--ease)",
                   }}
                 >
-                  <span className="font-mono tabular-nums opacity-60">
+                  <span className="wizard-step-number font-mono tabular-nums opacity-60">
                     {String(i + 1).padStart(2, "0")}
                   </span>
                   {s.label}
                   {done && !active && (
-                    <Check size={10} strokeWidth={2.5} style={{ color: "var(--accent)" }} />
+                    <Check
+                      size={10}
+                      strokeWidth={2.5}
+                      style={{ color: "var(--accent)" }}
+                    />
                   )}
                   {/* Subrayado del paso activo — 2px, no una cápsula rellena. */}
                   <span
@@ -144,7 +202,10 @@ export default function DesignWizard() {
             })}
           </nav>
         </div>
-        <div className="h-px mt-0" style={{ background: "var(--border-subtle)" }} />
+        <div
+          className="h-px mt-0"
+          style={{ background: "var(--border-subtle)" }}
+        />
       </div>
 
       {/* Step content — reuse existing page, marked "inside wizard" so it
@@ -158,7 +219,10 @@ export default function DesignWizard() {
           data-testid={`wizard-body-${currentStep}`}
         >
           {blocker ? (
-            <div className="max-w-[1180px] mx-auto px-5 md:px-10 pt-10" data-testid="wizard-blocked">
+            <div
+              className="max-w-[1400px] mx-auto px-5 md:px-10 pt-10"
+              data-testid="wizard-blocked"
+            >
               <div
                 className="p-6 text-center max-w-md"
                 style={{
@@ -167,15 +231,23 @@ export default function DesignWizard() {
                   boxShadow: "var(--elev-1)",
                 }}
               >
-                <p className="text-[14px] text-foreground mb-1.5">Falta un paso previo</p>
-                <p className="text-[13px] text-muted-foreground mb-5">{blocker}</p>
+                <p className="text-[14px] text-foreground mb-1.5">
+                  Falta un paso previo
+                </p>
+                <p className="text-[13px] text-muted-foreground mb-5">
+                  {blocker}
+                </p>
                 <button
                   onClick={() => goTo(firstIncomplete)}
                   data-testid="wizard-goto-blocker"
                   className="inline-flex items-center gap-1.5 h-10 px-5 text-[13px] font-medium cursor-pointer"
-                  style={{ borderRadius: "var(--radius-pill)", background: "var(--accent)", color: "var(--accent-foreground)" }}
+                  style={{
+                    borderRadius: "var(--radius-control)",
+                    background: "var(--accent)",
+                    color: "var(--accent-foreground)",
+                  }}
                 >
-                  Ir a {STEPS.find(s => s.id === firstIncomplete)?.label}
+                  Ir a {STEPS.find((s) => s.id === firstIncomplete)?.label}
                   <ChevronRight size={13} strokeWidth={2} />
                 </button>
               </div>
@@ -186,61 +258,63 @@ export default function DesignWizard() {
         </motion.div>
       </WizardContext.Provider>
 
-      {/* Fixed bottom action bar */}
-      <div
-        className="fixed inset-x-0 md:left-[var(--sidebar-w)] z-30 px-5 md:px-10 py-3 wizard-actionbar"
-      >
-        <div
-          className="absolute inset-0 -z-10"
-          style={{
-            background: "rgba(8, 9, 10, 0.92)",
-            backdropFilter: "blur(20px)",
-            borderTop: "1px solid var(--border-subtle)",
-          }}
-        />
-        <div className="max-w-[1180px] mx-auto flex items-center justify-between gap-3">
-          <button
-            onClick={goPrev}
-            disabled={idx === 0}
-            data-testid="wizard-prev"
-            className="inline-flex items-center gap-1.5 h-10 px-4 text-[13px] font-medium cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+      {/* Room owns its dimension/material steps and continuation. */}
+      {currentStep !== "room" && (
+        <div className="fixed inset-x-0 lg:left-[var(--sidebar-w)] z-30 px-4 lg:px-7 py-3 wizard-actionbar">
+          <div
+            className="absolute inset-0 -z-10"
             style={{
-              borderRadius: "var(--radius-control)",
-              background: "transparent",
-              boxShadow: "0 0 0 1px var(--border)",
-              color: "var(--foreground)",
-              transition: "box-shadow var(--dur-fast) var(--ease)",
+              background: "rgba(8, 9, 10, 0.92)",
+              backdropFilter: "blur(20px)",
+              borderTop: "1px solid var(--border-subtle)",
             }}
-          >
-            <ChevronLeft size={13} strokeWidth={2} />
-            Anterior
-          </button>
-          <p className="text-[11px] text-muted-foreground hidden sm:block">Auto-guardado</p>
-          <button
-            onClick={goNext}
-            data-testid="wizard-next"
-            className="inline-flex items-center gap-1.5 h-10 px-6 text-[13px] font-medium cursor-pointer"
-            style={{
-              borderRadius: "var(--radius-pill)",
-              background: "var(--accent)",
-              color: "var(--accent-foreground)",
-              transition: "opacity var(--dur-fast) var(--ease)",
-            }}
-          >
-            {idx === STEPS.length - 1 ? (
-              <>
-                <Sparkles size={13} strokeWidth={2} />
-                Ir a Perform
-              </>
-            ) : (
-              <>
-                Siguiente
-                <ChevronRight size={13} strokeWidth={2} />
-              </>
-            )}
-          </button>
+          />
+          <div className="max-w-[1400px] mx-auto flex items-center justify-between gap-3">
+            <button
+              onClick={goPrev}
+              disabled={idx === 0}
+              data-testid="wizard-prev"
+              className="inline-flex items-center gap-1.5 h-10 px-4 text-[13px] font-medium cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+              style={{
+                borderRadius: "var(--radius-control)",
+                background: "transparent",
+                boxShadow: "0 0 0 1px var(--border)",
+                color: "var(--foreground)",
+                transition: "box-shadow var(--dur-fast) var(--ease)",
+              }}
+            >
+              <ChevronLeft size={13} strokeWidth={2} />
+              Anterior
+            </button>
+            <p className="text-[11px] text-muted-foreground hidden sm:block">
+              Cambios guardados en este dispositivo
+            </p>
+            <button
+              onClick={goNext}
+              data-testid="wizard-next"
+              className="inline-flex items-center gap-1.5 h-10 px-6 text-[13px] font-medium cursor-pointer"
+              style={{
+                borderRadius: "var(--radius-control)",
+                background: "var(--accent)",
+                color: "var(--accent-foreground)",
+                transition: "opacity var(--dur-fast) var(--ease)",
+              }}
+            >
+              {idx === STEPS.length - 1 ? (
+                <>
+                  <Sparkles size={13} strokeWidth={2} />
+                  Ir a Perform
+                </>
+              ) : (
+                <>
+                  Siguiente
+                  <ChevronRight size={13} strokeWidth={2} />
+                </>
+              )}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

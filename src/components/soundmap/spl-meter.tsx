@@ -2,36 +2,70 @@
 // Uses `useSPLMeter` for real-time microphone SPL estimation.
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Mic, MicOff, RotateCcw, Sliders, Info, X, Play, Pause, Circle, Square, Download, FileText } from "lucide-react";
+import {
+  Mic,
+  MicOff,
+  RotateCcw,
+  Sliders,
+  Info,
+  X,
+  Play,
+  Pause,
+  Circle,
+  Square,
+  Download,
+  FileText,
+} from "lucide-react";
 import { useSPLMeter } from "@/hooks/use-spl-meter.ts";
-import { SessionRecorder, euComplianceLabel } from "@/lib/audio/session-recorder.ts";
+import {
+  SessionRecorder,
+  euComplianceLabel,
+} from "@/lib/audio/session-recorder.ts";
 import { feedback } from "@/lib/feedback.ts";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils.ts";
 
 interface Props {
   className?: string;
+  variant?: "ring" | "instrument";
+  headroomDb?: number;
   target?: number; // target SPL (dB) — usually PA engine's splTarget
 }
 
 const BAND_COLOR: Record<string, string> = {
-  quiet:    "var(--info)",
+  quiet: "var(--info)",
   moderate: "var(--accent)",
-  loud:     "var(--warning)",
-  hot:      "var(--destructive)",
-  clip:     "var(--destructive)",
+  loud: "var(--warning)",
+  hot: "var(--destructive)",
+  clip: "var(--destructive)",
 };
 
 const BAND_LABEL: Record<string, string> = {
-  quiet:    "SILENCIO",
+  quiet: "SILENCIO",
   moderate: "OK",
-  loud:     "FUERTE",
-  hot:      "MUY FUERTE",
-  clip:     "PICO",
+  loud: "FUERTE",
+  hot: "MUY FUERTE",
+  clip: "PICO",
 };
 
-export function SPLMeter({ className, target }: Props) {
-  const { state, error, reading, calibrationOffset, isCalibrated, start, stop, calibrate, setCalibrationOffset, resetLeq } = useSPLMeter();
+export function SPLMeter({
+  className,
+  target,
+  variant = "ring",
+  headroomDb,
+}: Props) {
+  const {
+    state,
+    error,
+    reading,
+    calibrationOffset,
+    isCalibrated,
+    start,
+    stop,
+    calibrate,
+    setCalibrationOffset,
+    resetLeq,
+  } = useSPLMeter();
   const [showCalib, setShowCalib] = useState(false);
 
   // ── Session recording ───────────────────────────────────────────────────
@@ -135,8 +169,14 @@ export function SPLMeter({ className, target }: Props) {
   // Ring maths: 40–120 dB range → 0..1 progress
   const minDb = 40;
   const maxDb = 120;
-  const ringProgress = Math.max(0, Math.min(1, (reading.spl - minDb) / (maxDb - minDb)));
-  const peakProgress = Math.max(0, Math.min(1, (reading.peak - minDb) / (maxDb - minDb)));
+  const ringProgress = Math.max(
+    0,
+    Math.min(1, (reading.spl - minDb) / (maxDb - minDb)),
+  );
+  const peakProgress = Math.max(
+    0,
+    Math.min(1, (reading.peak - minDb) / (maxDb - minDb)),
+  );
 
   // Ring geometry
   const size = 220;
@@ -150,23 +190,33 @@ export function SPLMeter({ className, target }: Props) {
   const peakY = size / 2 + r * Math.sin(peakRad);
 
   return (
-    <div className={cn("relative", className)}>
-      <div className="rounded-3xl border border-border bg-card p-5 pt-6 overflow-hidden">
+    <div
+      className={cn(
+        "relative spl-meter",
+        variant === "instrument" && "spl-instrument",
+        className,
+      )}
+    >
+      <div className="spl-meter-surface rounded-xl border border-border bg-card p-5 pt-6 overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="spl-meter-header flex items-center justify-between gap-3 mb-4">
           <div>
             <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-muted-foreground">
-              SPL Meter · Micrófono
+              Nivel en vivo
             </p>
             <p className="text-[10px] text-muted-foreground/60 mt-0.5 font-mono">
-              A-weighted · calib {calibrationOffset.toFixed(1)} dB
+              {isCalibrated ? "Calibrado" : "Sin calibrar · estimación"}
             </p>
           </div>
           <div className="flex items-center gap-1.5">
             <button
-              onClick={() => { feedback("tap"); setShowCalib(true); }}
+              onClick={() => {
+                feedback("tap");
+                setShowCalib(true);
+              }}
               disabled={!isRunning}
               data-testid="spl-calibrate-btn"
+              aria-label="Calibrar micrófono"
               className="h-8 w-8 rounded-full bg-secondary border border-border flex items-center justify-center hover:border-info/40 hover:text-info disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
             >
               <Sliders size={13} />
@@ -178,31 +228,80 @@ export function SPLMeter({ className, target }: Props) {
                 else start();
               }}
               data-testid="spl-toggle-btn"
+              aria-label={isRunning ? "Detener micrófono" : "Iniciar micrófono"}
               className={cn(
                 "flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[11px] font-medium uppercase tracking-[0.2em] cursor-pointer transition-all",
                 isRunning
                   ? "bg-destructive/12 border border-destructive/30 text-destructive hover:bg-destructive/20"
-                  : "bg-accent text-accent-foreground shadow-[0_4px_18px_rgba(0,255,158,0.35)] hover:brightness-110"
+                  : "bg-accent text-accent-foreground shadow-[0_4px_18px_rgba(0,255,158,0.35)] hover:brightness-110",
               )}
             >
-              {isRunning ? <><Pause size={11} /> Stop</> : <><Play size={11} /> Iniciar</>}
+              {isRunning ? (
+                <>
+                  <Pause size={11} /> Stop
+                </>
+              ) : (
+                <>
+                  <Play size={11} /> Iniciar
+                </>
+              )}
             </button>
           </div>
         </div>
 
         {/* Ring + Center readout */}
         <div className="flex flex-col items-center">
-          <div className="relative" style={{ width: size, height: size }}>
+          {variant === "instrument" && (
+            <div className="spl-readout" data-testid="perform-live-spl">
+              <span className="spl-state">
+                <span
+                  className={isRunning ? "bg-accent" : "bg-muted-foreground"}
+                />
+                {isRunning
+                  ? "EN VIVO"
+                  : state === "starting"
+                    ? "INICIANDO"
+                    : "MICRÓFONO DETENIDO"}
+              </span>
+              <p
+                className="spl-number"
+                style={{ color: isRunning ? bandColor : "var(--foreground)" }}
+              >
+                {isRunning ? reading.spl.toFixed(1) : "—"}
+                <span>dB(A)</span>
+              </p>
+              <div className="spl-level-track">
+                <span
+                  style={{
+                    width: isRunning ? `${ringProgress * 100}%` : "0%",
+                    background: bandColor,
+                  }}
+                />
+              </div>
+              <div className="spl-level-scale">
+                <span>40</span>
+                <span>60</span>
+                <span>80</span>
+                <span>100</span>
+                <span>120 dB</span>
+              </div>
+            </div>
+          )}
+          <div
+            className="spl-ring relative"
+            style={{ width: size, height: size }}
+          >
             {/* Glow behind ring when hot */}
-            {isRunning && (reading.band === "hot" || reading.band === "clip") && (
-              <motion.div
-                className="absolute inset-0 rounded-full"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: [0.25, 0.55, 0.25] }}
-                transition={{ duration: 1, repeat: Infinity }}
-                style={{ boxShadow: `0 0 60px ${bandColor}` }}
-              />
-            )}
+            {isRunning &&
+              (reading.band === "hot" || reading.band === "clip") && (
+                <motion.div
+                  className="absolute inset-0 rounded-full"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: [0.25, 0.55, 0.25] }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                  style={{ boxShadow: `0 0 60px ${bandColor}` }}
+                />
+              )}
             <svg width={size} height={size} className="relative z-10">
               <defs>
                 <linearGradient id="spl-ring-grad" x1="0" y1="0" x2="1" y2="1">
@@ -215,14 +314,18 @@ export function SPLMeter({ className, target }: Props) {
               </defs>
               {/* Track */}
               <circle
-                cx={size / 2} cy={size / 2} r={r}
+                cx={size / 2}
+                cy={size / 2}
+                r={r}
                 fill="none"
                 stroke="rgba(255,255,255,0.06)"
                 strokeWidth={stroke}
               />
               {/* Progress */}
               <motion.circle
-                cx={size / 2} cy={size / 2} r={r}
+                cx={size / 2}
+                cy={size / 2}
+                r={r}
                 fill="none"
                 stroke="url(#spl-ring-grad)"
                 strokeWidth={stroke}
@@ -232,7 +335,11 @@ export function SPLMeter({ className, target }: Props) {
                 transform={`rotate(-90 ${size / 2} ${size / 2})`}
                 animate={{ strokeDashoffset: dashOffset }}
                 transition={{ duration: 0.08 }}
-                style={{ filter: isRunning ? `drop-shadow(0 0 6px ${bandColor}aa)` : "none" }}
+                style={{
+                  filter: isRunning
+                    ? `drop-shadow(0 0 6px ${bandColor}aa)`
+                    : "none",
+                }}
               />
               {/* Peak marker */}
               {isRunning && reading.peak > 0 && (
@@ -246,19 +353,31 @@ export function SPLMeter({ className, target }: Props) {
                 />
               )}
               {/* Target marker (if provided) */}
-              {typeof target === "number" && target >= minDb && target <= maxDb && (
-                <g>
-                  {(() => {
-                    const tp = (target - minDb) / (maxDb - minDb);
-                    const angle = (360 * tp - 90) * Math.PI / 180;
-                    const x1 = size / 2 + (r - stroke / 2) * Math.cos(angle);
-                    const y1 = size / 2 + (r - stroke / 2) * Math.sin(angle);
-                    const x2 = size / 2 + (r + stroke / 2) * Math.cos(angle);
-                    const y2 = size / 2 + (r + stroke / 2) * Math.sin(angle);
-                    return <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="rgba(255,255,255,0.85)" strokeWidth={2} strokeLinecap="round" />;
-                  })()}
-                </g>
-              )}
+              {typeof target === "number" &&
+                target >= minDb &&
+                target <= maxDb && (
+                  <g>
+                    {(() => {
+                      const tp = (target - minDb) / (maxDb - minDb);
+                      const angle = ((360 * tp - 90) * Math.PI) / 180;
+                      const x1 = size / 2 + (r - stroke / 2) * Math.cos(angle);
+                      const y1 = size / 2 + (r - stroke / 2) * Math.sin(angle);
+                      const x2 = size / 2 + (r + stroke / 2) * Math.cos(angle);
+                      const y2 = size / 2 + (r + stroke / 2) * Math.sin(angle);
+                      return (
+                        <line
+                          x1={x1}
+                          y1={y1}
+                          x2={x2}
+                          y2={y2}
+                          stroke="rgba(255,255,255,0.85)"
+                          strokeWidth={2}
+                          strokeLinecap="round"
+                        />
+                      );
+                    })()}
+                  </g>
+                )}
             </svg>
             {/* Center readout */}
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
@@ -272,7 +391,9 @@ export function SPLMeter({ className, target }: Props) {
                     —
                   </span>
                   <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground mt-1">
-                    {state === "denied" ? "Permiso denegado" : "Micrófono apagado"}
+                    {state === "denied"
+                      ? "Permiso denegado"
+                      : "Micrófono apagado"}
                   </span>
                 </>
               )}
@@ -285,22 +406,33 @@ export function SPLMeter({ className, target }: Props) {
                   >
                     …
                   </span>
-                  <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-info mt-1">Iniciando…</span>
+                  <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-info mt-1">
+                    Iniciando…
+                  </span>
                 </>
               )}
               {isRunning && (
                 <>
                   <span
                     className="text-6xl font-medium tabular-nums font-mono leading-none"
-                    style={{ color: bandColor, textShadow: `0 0 24px ${bandColor}55` }}
+                    style={{
+                      color: bandColor,
+                      textShadow: `0 0 24px ${bandColor}55`,
+                    }}
                     data-testid="spl-value"
                   >
                     {reading.spl.toFixed(0)}
                   </span>
-                  <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground mt-1">dB(A)</span>
+                  <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground mt-1">
+                    dB(A)
+                  </span>
                   <div
                     className="mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-medium uppercase tracking-[0.2em] border"
-                    style={{ background: `${bandColor}18`, borderColor: `${bandColor}40`, color: bandColor }}
+                    style={{
+                      background: `${bandColor}18`,
+                      borderColor: `${bandColor}40`,
+                      color: bandColor,
+                    }}
                   >
                     {bandLabel}
                   </div>
@@ -311,20 +443,44 @@ export function SPLMeter({ className, target }: Props) {
 
           {/* Stats row */}
           <div className="grid grid-cols-3 gap-2 w-full mt-4 pt-4 border-t border-border">
-            <Stat label="Peak" value={isRunning ? reading.peak.toFixed(1) : "—"} unit="dB" color="var(--warning)" />
-            <Stat label="Leq" value={isRunning ? reading.leq.toFixed(1) : "—"} unit="dB" color="var(--info)" />
             <Stat
-              label="Target"
-              value={typeof target === "number" ? target.toString() : "—"}
+              label="Peak"
+              value={isRunning ? reading.peak.toFixed(1) : "—"}
+              unit="dB"
+              color="var(--warning)"
+            />
+            <Stat
+              label="Leq"
+              value={isRunning ? reading.leq.toFixed(1) : "—"}
+              unit="dB"
+              color="var(--info)"
+            />
+            <Stat
+              label={variant === "instrument" ? "Margen PA" : "Target"}
+              value={
+                variant === "instrument"
+                  ? headroomDb != null
+                    ? `${headroomDb > 0 ? "+" : ""}${headroomDb}`
+                    : "—"
+                  : typeof target === "number"
+                    ? target.toString()
+                    : "—"
+              }
               unit="dB"
               color="var(--foreground)"
               extra={
                 isRunning && typeof target === "number" ? (
                   <span
                     className="text-[9px] font-medium mt-0.5 font-mono"
-                    style={{ color: reading.spl > target ? "var(--destructive)" : "var(--accent)" }}
+                    style={{
+                      color:
+                        reading.spl > target
+                          ? "var(--destructive)"
+                          : "var(--accent)",
+                    }}
                   >
-                    {reading.spl > target ? "+" : ""}{(reading.spl - target).toFixed(1)}
+                    {reading.spl > target ? "+" : ""}
+                    {(reading.spl - target).toFixed(1)}
                   </span>
                 ) : null
               }
@@ -334,7 +490,10 @@ export function SPLMeter({ className, target }: Props) {
           {isRunning && (
             <div className="mt-3 flex items-center justify-center gap-3">
               <button
-                onClick={() => { feedback("tap"); resetLeq(); }}
+                onClick={() => {
+                  feedback("tap");
+                  resetLeq();
+                }}
                 data-testid="spl-reset-leq"
                 className="inline-flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground hover:text-info transition-colors cursor-pointer uppercase tracking-[0.2em]"
               >
@@ -347,10 +506,18 @@ export function SPLMeter({ className, target }: Props) {
                   "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 border text-[10px] font-medium uppercase tracking-[0.28em] cursor-pointer active:scale-95 transition-all",
                   recording
                     ? "bg-destructive/15 border-destructive/50 text-destructive shadow-[0_0_12px_rgba(255,77,109,0.35)]"
-                    : "bg-secondary/60 border-border text-muted-foreground hover:text-destructive hover:border-destructive/40"
+                    : "bg-secondary/60 border-border text-muted-foreground hover:text-destructive hover:border-destructive/40",
                 )}
               >
-                {recording ? <><Square size={9} className="fill-current" /> STOP</> : <><Circle size={9} className="fill-current" /> REC</>}
+                {recording ? (
+                  <>
+                    <Square size={9} className="fill-current" /> STOP
+                  </>
+                ) : (
+                  <>
+                    <Circle size={9} className="fill-current" /> REC
+                  </>
+                )}
               </button>
             </div>
           )}
@@ -363,22 +530,41 @@ export function SPLMeter({ className, target }: Props) {
             >
               <div className="flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
-                <span className="text-[9px] font-medium uppercase tracking-[0.28em] text-destructive">REC</span>
-                <span className="text-[10px] font-mono tabular-nums text-foreground" data-testid="session-duration">
+                <span className="text-[9px] font-medium uppercase tracking-[0.28em] text-destructive">
+                  REC
+                </span>
+                <span
+                  className="text-[10px] font-mono tabular-nums text-foreground"
+                  data-testid="session-duration"
+                >
                   {formatDuration(liveSummary.durationSec)}
                 </span>
               </div>
               <div className="flex items-center gap-2 text-[9px] font-mono tabular-nums">
-                <span className="text-muted-foreground">Leq <span className="font-medium text-foreground">{liveSummary.leq}</span></span>
-                <span className="text-muted-foreground">n <span className="font-medium text-foreground">{liveSummary.samples}</span></span>
+                <span className="text-muted-foreground">
+                  Leq{" "}
+                  <span className="font-medium text-foreground">
+                    {liveSummary.leq}
+                  </span>
+                </span>
+                <span className="text-muted-foreground">
+                  n{" "}
+                  <span className="font-medium text-foreground">
+                    {liveSummary.samples}
+                  </span>
+                </span>
               </div>
             </div>
           )}
 
           {error && (
-            <p className="text-[11px] text-destructive mt-3 text-center leading-snug" data-testid="spl-error">
+            <p
+              className="text-[11px] text-destructive mt-3 text-center leading-snug"
+              data-testid="spl-error"
+            >
               {error}
-              {state === "denied" && " Aceptá el permiso desde ajustes del navegador/sistema."}
+              {state === "denied" &&
+                " Aceptá el permiso desde ajustes del navegador/sistema."}
             </p>
           )}
         </div>
@@ -409,8 +595,12 @@ export function SPLMeter({ className, target }: Props) {
                     <Sliders size={14} className="text-info" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-foreground">Calibración</p>
-                    <p className="text-[10px] text-muted-foreground">Ajustá el offset con una fuente conocida</p>
+                    <p className="text-sm font-medium text-foreground">
+                      Calibración
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      Ajustá el offset con una fuente conocida
+                    </p>
                   </div>
                 </div>
                 <button
@@ -426,39 +616,54 @@ export function SPLMeter({ className, target }: Props) {
                 <div className="flex items-start gap-2">
                   <Info size={12} className="text-info mt-0.5 shrink-0" />
                   <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    Con una fuente de referencia estable (por ej. un pistonfono de <span className="text-info font-bold">94 dB</span> o un SPL meter Class-2), presioná el botón cuando el valor mostrado sea estable.
+                    Con una fuente de referencia estable (por ej. un pistonfono
+                    de <span className="text-info font-bold">94 dB</span> o un
+                    SPL meter Class-2), presioná el botón cuando el valor
+                    mostrado sea estable.
                   </p>
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-2 mb-3">
-                {[80, 94, 100].map(v => (
+                {[80, 94, 100].map((v) => (
                   <button
                     key={v}
-                    onClick={() => { feedback("select"); calibrate(v); }}
+                    onClick={() => {
+                      feedback("select");
+                      calibrate(v);
+                    }}
                     data-testid={`spl-calib-preset-${v}`}
                     className="rounded-2xl border border-border bg-secondary hover:border-info/40 hover:text-info py-3 text-sm font-medium text-foreground cursor-pointer transition-all"
                   >
-                    {v} <span className="text-[10px] text-muted-foreground">dB</span>
+                    {v}{" "}
+                    <span className="text-[10px] text-muted-foreground">
+                      dB
+                    </span>
                   </button>
                 ))}
               </div>
 
               <div className="rounded-2xl bg-secondary/40 border border-border p-3">
-                <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-muted-foreground mb-2">Offset manual</p>
+                <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-muted-foreground mb-2">
+                  Offset manual
+                </p>
                 <input
                   type="range"
                   min={70}
                   max={130}
                   step={0.5}
                   value={calibrationOffset}
-                  onChange={(e) => setCalibrationOffset(parseFloat(e.target.value))}
+                  onChange={(e) =>
+                    setCalibrationOffset(parseFloat(e.target.value))
+                  }
                   data-testid="spl-calib-slider"
                   className="w-full accent-info"
                 />
                 <div className="flex justify-between text-[10px] font-mono text-muted-foreground mt-1">
                   <span>70</span>
-                  <span className="text-info font-medium">{calibrationOffset.toFixed(1)} dB</span>
+                  <span className="text-info font-medium">
+                    {calibrationOffset.toFixed(1)} dB
+                  </span>
                   <span>130</span>
                 </div>
               </div>
@@ -475,7 +680,10 @@ export function SPLMeter({ className, target }: Props) {
         onClose={() => setSummaryOpen(false)}
         onExportCsv={exportCsv}
         onExportJson={exportJson}
-        onClear={() => { recorderRef.current.clear(); setSummaryOpen(false); }}
+        onClear={() => {
+          recorderRef.current.clear();
+          setSummaryOpen(false);
+        }}
       />
     </div>
   );
@@ -489,7 +697,13 @@ function formatDuration(sec: number): string {
 }
 
 function SessionSummaryModal({
-  open, recorder, isCalibrated, onClose, onExportCsv, onExportJson, onClear,
+  open,
+  recorder,
+  isCalibrated,
+  onClose,
+  onExportCsv,
+  onExportJson,
+  onClear,
 }: {
   open: boolean;
   recorder: SessionRecorder;
@@ -526,8 +740,12 @@ function SessionSummaryModal({
                 <FileText size={16} className="text-destructive" />
               </div>
               <div>
-                <p className="text-base font-medium text-foreground">Sesión finalizada</p>
-                <p className="text-[10px] text-muted-foreground">{s.samples} muestras · {formatDuration(s.durationSec)}</p>
+                <p className="text-base font-medium text-foreground">
+                  Sesión finalizada
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  {s.samples} muestras · {formatDuration(s.durationSec)}
+                </p>
               </div>
             </div>
             <button
@@ -540,38 +758,85 @@ function SessionSummaryModal({
           </div>
 
           <div className="grid grid-cols-3 gap-2 mb-3">
-            <SumStat label="Leq" value={`${s.leq}`} unit="dB" color="var(--info)" testId="summary-leq" />
-            <SumStat label="Peak" value={`${s.peak}`} unit="dB" color="var(--warning)" testId="summary-peak" />
-            <SumStat label="LEX,8h" value={`${s.lex8h}`} unit="dB" color={compliance.color} testId="summary-lex8h" />
+            <SumStat
+              label="Leq"
+              value={`${s.leq}`}
+              unit="dB"
+              color="var(--info)"
+              testId="summary-leq"
+            />
+            <SumStat
+              label="Peak"
+              value={`${s.peak}`}
+              unit="dB"
+              color="var(--warning)"
+              testId="summary-peak"
+            />
+            <SumStat
+              label="LEX,8h"
+              value={`${s.lex8h}`}
+              unit="dB"
+              color={compliance.color}
+              testId="summary-lex8h"
+            />
           </div>
 
           <div
             className="rounded-2xl border p-3 mb-3"
-            style={{ borderColor: `${compliance.color}55`, background: `${compliance.color}12` }}
+            style={{
+              borderColor: `${compliance.color}55`,
+              background: `${compliance.color}12`,
+            }}
             data-testid="summary-compliance"
           >
-            <p className="text-[10px] font-medium uppercase tracking-[0.28em]" style={{ color: compliance.color }}>
+            <p
+              className="text-[10px] font-medium uppercase tracking-[0.28em]"
+              style={{ color: compliance.color }}
+            >
               EU 2003/10/EC
             </p>
-            <p className="text-sm font-bold text-foreground mt-0.5">{compliance.label}</p>
+            <p className="text-sm font-bold text-foreground mt-0.5">
+              {compliance.label}
+            </p>
             {/* El cálculo de LEX,8h es correcto, pero parte del SPL que mide el
                 micrófono del teléfono. Sin calibrar contra una fuente conocida,
                 el valor absoluto puede estar varios dB corrido — suficiente para
                 cruzar un umbral de la directiva en cualquier dirección. Decirlo
                 es obligatorio: si no, esto parece un documento de cumplimiento. */}
             {!isCalibrated && (
-              <p className="text-[10px] leading-snug mt-2" style={{ color: "var(--sm-amber)" }}>
-                ⚠ Micrófono sin calibrar. El nivel absoluto no es trazable: usalo
-                como referencia, no como documentación. Calibrá contra una fuente
-                conocida (94 dB) desde los ajustes del medidor.
+              <p
+                className="text-[10px] leading-snug mt-2"
+                style={{ color: "var(--sm-amber)" }}
+              >
+                ⚠ Micrófono sin calibrar. El nivel absoluto no es trazable:
+                usalo como referencia, no como documentación. Calibrá contra una
+                fuente conocida (94 dB) desde los ajustes del medidor.
               </p>
             )}
           </div>
 
           <div className="grid grid-cols-3 gap-2 mb-4">
-            <SumStat label=">85 dB" value={`${s.timeAbove85.toFixed(0)}`} unit="s" color="var(--warning)" testId="summary-t85" />
-            <SumStat label=">90 dB" value={`${s.timeAbove90.toFixed(0)}`} unit="s" color="var(--sm-warm)" testId="summary-t90" />
-            <SumStat label=">95 dB" value={`${s.timeAbove95.toFixed(0)}`} unit="s" color="var(--destructive)" testId="summary-t95" />
+            <SumStat
+              label=">85 dB"
+              value={`${s.timeAbove85.toFixed(0)}`}
+              unit="s"
+              color="var(--warning)"
+              testId="summary-t85"
+            />
+            <SumStat
+              label=">90 dB"
+              value={`${s.timeAbove90.toFixed(0)}`}
+              unit="s"
+              color="var(--sm-warm)"
+              testId="summary-t90"
+            />
+            <SumStat
+              label=">95 dB"
+              value={`${s.timeAbove95.toFixed(0)}`}
+              unit="s"
+              color="var(--destructive)"
+              testId="summary-t95"
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-2">
@@ -603,23 +868,63 @@ function SessionSummaryModal({
   );
 }
 
-function SumStat({ label, value, unit, color, testId }: { label: string; value: string; unit: string; color: string; testId?: string }) {
+function SumStat({
+  label,
+  value,
+  unit,
+  color,
+  testId,
+}: {
+  label: string;
+  value: string;
+  unit: string;
+  color: string;
+  testId?: string;
+}) {
   return (
-    <div className="rounded-xl bg-secondary/50 border border-border p-2 text-center" data-testid={testId}>
-      <p className="text-[9px] font-medium uppercase tracking-[0.28em] text-muted-foreground">{label}</p>
-      <p className="text-base font-medium font-mono tabular-nums leading-none mt-1" style={{ color }}>
-        {value}<span className="text-[9px] text-muted-foreground ml-0.5">{unit}</span>
+    <div
+      className="rounded-xl bg-secondary/50 border border-border p-2 text-center"
+      data-testid={testId}
+    >
+      <p className="text-[9px] font-medium uppercase tracking-[0.28em] text-muted-foreground">
+        {label}
+      </p>
+      <p
+        className="text-base font-medium font-mono tabular-nums leading-none mt-1"
+        style={{ color }}
+      >
+        {value}
+        <span className="text-[9px] text-muted-foreground ml-0.5">{unit}</span>
       </p>
     </div>
   );
 }
 
-function Stat({ label, value, unit, color, extra }: { label: string; value: string; unit: string; color: string; extra?: React.ReactNode }) {
+function Stat({
+  label,
+  value,
+  unit,
+  color,
+  extra,
+}: {
+  label: string;
+  value: string;
+  unit: string;
+  color: string;
+  extra?: React.ReactNode;
+}) {
   return (
     <div className="flex flex-col items-center">
-      <p className="text-[9px] font-medium uppercase tracking-[0.2em] text-muted-foreground mb-0.5">{label}</p>
+      <p className="text-[9px] font-medium uppercase tracking-[0.2em] text-muted-foreground mb-0.5">
+        {label}
+      </p>
       <div className="flex items-baseline gap-0.5">
-        <span className="text-lg font-medium font-mono tabular-nums" style={{ color }}>{value}</span>
+        <span
+          className="text-lg font-medium font-mono tabular-nums"
+          style={{ color }}
+        >
+          {value}
+        </span>
         <span className="text-[9px] text-muted-foreground">{unit}</span>
       </div>
       {extra}

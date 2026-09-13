@@ -13,7 +13,15 @@
 //    (via the standard Screen Wake Lock API, no plugins).
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "motion/react";
-import { X, Maximize2, Minimize2, Volume2, Timer, Flag, AlertTriangle } from "lucide-react";
+import {
+  X,
+  Maximize2,
+  Minimize2,
+  Volume2,
+  Timer,
+  Flag,
+  AlertTriangle,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAppStore } from "@/store/app.ts";
 import { useSPLMeter, type SPLState } from "@/hooks/use-spl-meter.ts";
@@ -29,9 +37,12 @@ import { Capacitor } from "@capacitor/core";
 // oscuridad, querés distinguir tops de subs de monitores — no OUT-C de OUT-D.
 function colorOf(role: DSPOutput["role"]): string {
   switch (role) {
-    case "sub":     return "var(--sm-blue)";  // azul — graves
-    case "monitor": return "var(--sm-amber)";  // ámbar — cuñas
-    default:        return "var(--sm-accent)";  // lime — tops
+    case "sub":
+      return "var(--sm-blue)"; // azul — graves
+    case "monitor":
+      return "var(--sm-amber)"; // ámbar — cuñas
+    default:
+      return "var(--sm-accent)"; // lime — tops
   }
 }
 
@@ -42,11 +53,16 @@ function colorOf(role: DSPOutput["role"]): string {
  */
 function bandColor(band: string) {
   switch (band) {
-    case "clip": return "#FF3B30";  // rojo — dolor
-    case "hot":  return "var(--sm-warm)";  // naranja — daño rápido
-    case "loud": return "var(--sm-amber)";  // ámbar — límite de jornada
-    case "moderate": return "var(--sm-accent)";
-    default: return "var(--sm-muted)";
+    case "clip":
+      return "#FF3B30"; // rojo — dolor
+    case "hot":
+      return "var(--sm-warm)"; // naranja — daño rápido
+    case "loud":
+      return "var(--sm-amber)"; // ámbar — límite de jornada
+    case "moderate":
+      return "var(--sm-accent)";
+    default:
+      return "var(--sm-muted)";
   }
 }
 
@@ -55,24 +71,36 @@ const MAX_VISIBLE_FADERS = 8;
 
 function stateLabel(s: SPLState) {
   switch (s) {
-    case "running":  return "MIC LIVE";
-    case "starting": return "STARTING…";
-    case "denied":   return "MIC BLOCKED";
-    case "error":    return "MIC ERROR";
-    default:         return "MIC OFF";
+    case "running":
+      return "MIC LIVE";
+    case "starting":
+      return "STARTING…";
+    case "denied":
+      return "MIC BLOCKED";
+    case "error":
+      return "MIC ERROR";
+    default:
+      return "MIC OFF";
   }
 }
 
 // ── Fader ───────────────────────────────────────────────────────────────────
 interface FaderProps {
   output: DSPOutput;
-  value: number;      // dB, from -60 to +6
+  value: number; // dB, from -60 to +6
   muted: boolean;
   onChange: (dB: number) => void;
   onToggleMute: () => void;
   testId: string;
 }
-function Fader({ output, value, muted, onChange, onToggleMute, testId }: FaderProps) {
+function Fader({
+  output,
+  value,
+  muted,
+  onChange,
+  onToggleMute,
+  testId,
+}: FaderProps) {
   const color = colorOf(output.role);
   const trackRef = useRef<HTMLDivElement | null>(null);
   // Fader travel: -60 dB → +6 dB linearly, 0 dB is around 90% up
@@ -102,11 +130,19 @@ function Fader({ output, value, muted, onChange, onToggleMute, testId }: FaderPr
   };
 
   return (
-    <div className="flex flex-col items-center gap-2 min-w-0" data-testid={testId}>
-      <p className="text-[9px] font-medium uppercase tracking-[0.28em] truncate max-w-[76px]" style={{ color }}>
+    <div
+      className="kiosk-fader flex flex-col items-center gap-2 min-w-0"
+      data-testid={testId}
+    >
+      <p
+        className="text-[9px] font-medium uppercase tracking-[0.28em] truncate max-w-[76px]"
+        style={{ color }}
+      >
         {output.label.replace("OUT-", "")}
       </p>
-      <p className="text-[8px] text-muted-foreground truncate max-w-[76px]">{output.destination}</p>
+      <p className="text-[8px] text-muted-foreground truncate max-w-[76px]">
+        {output.destination}
+      </p>
       <div
         ref={trackRef}
         onPointerDown={onPointerDown}
@@ -118,7 +154,7 @@ function Fader({ output, value, muted, onChange, onToggleMute, testId }: FaderPr
         }}
       >
         {/* travel scale ticks */}
-        {[0, 0.25, 0.5, 0.75, 1].map(t => (
+        {[0, 0.25, 0.5, 0.75, 1].map((t) => (
           <span
             key={t}
             className="absolute left-full ml-1 h-px w-1.5 bg-border"
@@ -139,14 +175,22 @@ function Fader({ output, value, muted, onChange, onToggleMute, testId }: FaderPr
           className="absolute left-1/2 -translate-x-1/2 w-9 h-5 rounded-md border border-border shadow-lg flex items-center justify-center"
           style={{
             top: `calc(${(1 - knobPct) * 100}% - 10px)`,
-            background: muted ? "#1A1D22" : `linear-gradient(180deg, #2A2E35, #16181C)`,
-            boxShadow: muted ? "none" : `0 2px 8px ${color}44, inset 0 1px 0 rgba(255,255,255,0.08)`,
+            background: muted
+              ? "#1A1D22"
+              : `linear-gradient(180deg, #2A2E35, #16181C)`,
+            boxShadow: muted
+              ? "none"
+              : `0 2px 8px ${color}44, inset 0 1px 0 rgba(255,255,255,0.08)`,
           }}
           animate={{ scale: muted ? 0.9 : 1 }}
           transition={{ duration: 0.15 }}
         >
-          <span className="text-[8px] font-mono font-medium tabular-nums" style={{ color: muted ? "#666" : color }}>
-            {value >= 0 ? "+" : ""}{value.toFixed(1)}
+          <span
+            className="text-[8px] font-mono font-medium tabular-nums"
+            style={{ color: muted ? "#666" : color }}
+          >
+            {value >= 0 ? "+" : ""}
+            {value.toFixed(1)}
           </span>
         </motion.div>
       </div>
@@ -182,7 +226,9 @@ function useElapsedTimer(active: boolean) {
     const startedAt = Date.now();
     startRef.current = startedAt;
     const id = setInterval(() => {
-      setElapsed(accumulatedRef.current + Math.floor((Date.now() - startedAt) / 1000));
+      setElapsed(
+        accumulatedRef.current + Math.floor((Date.now() - startedAt) / 1000),
+      );
     }, 500);
     return () => {
       clearInterval(id);
@@ -203,7 +249,9 @@ function useWakeLock(enabled: boolean) {
     const request = async () => {
       try {
         if ("wakeLock" in navigator) {
-          lock = await (navigator as Navigator & { wakeLock: WakeLock }).wakeLock.request("screen");
+          lock = await (
+            navigator as Navigator & { wakeLock: WakeLock }
+          ).wakeLock.request("screen");
         }
       } catch {
         /* not supported / user hasn't gestured yet */
@@ -217,7 +265,11 @@ function useWakeLock(enabled: boolean) {
     return () => {
       document.removeEventListener("visibilitychange", onVis);
       if (lock) {
-        try { lock.release(); } catch { /* ignore */ }
+        try {
+          lock.release();
+        } catch {
+          /* ignore */
+        }
       }
     };
   }, [enabled]);
@@ -226,10 +278,22 @@ function useWakeLock(enabled: boolean) {
 // ── Kiosk Page ──────────────────────────────────────────────────────────────
 export default function KioskPage() {
   const navigate = useNavigate();
-  const { room, acoustics, tops, subs, monitors, dspUnits, amps } = useAppStore();
+  const { room, acoustics, tops, subs, monitors, dspUnits, amps } =
+    useAppStore();
   const dsp = useMemo(
-    () => (room && acoustics ? generateDSPConfig(room, acoustics, tops, subs, monitors, dspUnits[0] ?? null, amps) : null),
-    [room, acoustics, tops, subs, monitors, dspUnits, amps]
+    () =>
+      room && acoustics
+        ? generateDSPConfig(
+            room,
+            acoustics,
+            tops,
+            subs,
+            monitors,
+            dspUnits[0] ?? null,
+            amps,
+          )
+        : null,
+    [room, acoustics, tops, subs, monitors, dspUnits, amps],
   );
   const outputs = dsp?.outputs ?? [];
 
@@ -238,15 +302,19 @@ export default function KioskPage() {
   const [mutes, setMutes] = useState<Record<string, boolean>>({});
   const [fullscreen, setFullscreen] = useState(false);
   // Marcas de sesión: anotar el pico de un tema sin soltar el kiosk.
-  const [marks, setMarks] = useState<{ at: number; time: string; spl: number }[]>([]);
+  const [marks, setMarks] = useState<
+    { at: number; time: string; spl: number }[]
+  >([]);
 
   useEffect(() => {
     const init: Record<string, number> = {};
-    outputs.forEach(o => { init[o.id] = o.gain; });
+    outputs.forEach((o) => {
+      init[o.id] = o.gain;
+    });
     setFaders(init);
     setMutes({});
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [outputs.length, outputs.map(o => o.id).join(",")]);
+  }, [outputs.length, outputs.map((o) => o.id).join(",")]);
 
   const spl = useSPLMeter();
   // Sólo mantener la pantalla encendida mientras el medidor corre de verdad.
@@ -254,15 +322,17 @@ export default function KioskPage() {
   const timer = useElapsedTimer(spl.state === "running");
 
   const handleFader = (id: string, dB: number) => {
-    setFaders(prev => ({ ...prev, [id]: dB }));
+    setFaders((prev) => ({ ...prev, [id]: dB }));
   };
   const markMoment = () => {
     feedback("success");
-    setMarks(prev => [{ at: Date.now(), time: timer, spl: displaySpl }, ...prev].slice(0, 12));
+    setMarks((prev) =>
+      [{ at: Date.now(), time: timer, spl: displaySpl }, ...prev].slice(0, 12),
+    );
   };
 
   const handleMute = (id: string) => {
-    setMutes(prev => ({ ...prev, [id]: !prev[id] }));
+    setMutes((prev) => ({ ...prev, [id]: !prev[id] }));
     feedback("select");
   };
 
@@ -300,119 +370,174 @@ export default function KioskPage() {
   const displayLeq = spl.state === "running" ? spl.reading.leq : 0;
 
   return (
-    <div className="fixed inset-0 z-40 overflow-hidden select-none touch-none"
-      style={{ background: "#000" }}
-      data-testid="kiosk-root">
+    <div
+      className="fixed inset-0 z-40 overflow-y-auto select-none flex flex-col"
+      style={{ background: "var(--background)" }}
+      data-testid="kiosk-root"
+    >
       {/* Grain */}
-      <div className="grain-overlay" aria-hidden="true" />
 
       {/* Header */}
-      <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-4 py-2 bg-gradient-to-b from-black/80 to-transparent pt-safe">
+      <div className="sticky top-0 z-20 flex items-center justify-between px-5 py-3 bg-background border-b border-border pt-safe">
         <div className="flex items-center gap-2">
           <button
-            onClick={() => { feedback("tap"); navigate(-1); }}
+            onClick={() => {
+              feedback("tap");
+              navigate(-1);
+            }}
             data-testid="kiosk-exit"
-            className="h-9 w-9 rounded-full bg-secondary/70 border border-border flex items-center justify-center cursor-pointer active:scale-90"
+            aria-label="Salir de Kiosk"
+            className="h-9 w-9 rounded-md bg-secondary/70 border border-border flex items-center justify-center cursor-pointer active:scale-90"
           >
             <X size={14} />
           </button>
           <div className="flex flex-col leading-none">
-            <span className="text-[9px] font-medium uppercase tracking-[0.28em] text-muted-foreground">FOH Kiosk</span>
-            <span className="text-[10px] font-mono text-foreground">{room?.name ?? "Sin recinto"}</span>
+            <span className="text-[9px] font-medium uppercase tracking-[0.28em] text-muted-foreground">
+              FOH Kiosk
+            </span>
+            <span className="text-[10px] font-mono text-foreground">
+              {room?.name ?? "Sin recinto"}
+            </span>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <div className="rounded-full bg-secondary/60 border border-border px-2.5 py-1 flex items-center gap-1.5">
             <Timer size={10} className="text-muted-foreground" />
-            <span className="text-[10px] font-mono tabular-nums text-foreground" data-testid="kiosk-timer">{timer}</span>
-          </div>
-          {canFullscreen && <button
-            onClick={toggleFullscreen}
-            aria-label={fullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
-            data-testid="kiosk-fullscreen"
-            className="h-9 w-9 rounded-full bg-secondary/70 border border-border flex items-center justify-center cursor-pointer active:scale-90"
-          >
-            {fullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
-          </button>}
-        </div>
-      </div>
-
-      {/* SPL centerpiece */}
-      <div className="absolute top-14 left-1/2 -translate-x-1/2 flex flex-col items-center">
-        <button
-          onClick={() => { feedback("tap"); if (spl.state === "running") spl.stop(); else spl.start(); }}
-          data-testid="kiosk-spl-toggle"
-          className="rounded-full px-3 py-1 mb-1 text-[9px] font-medium uppercase tracking-[0.28em] border cursor-pointer active:scale-95"
-          style={{
-            background: spl.state === "running" ? `${splColor}20` : "transparent",
-            borderColor: `${splColor}55`,
-            color: splColor,
-            boxShadow: spl.state === "running" ? `0 0 16px ${splColor}55` : "none",
-          }}
-        >
-          {stateLabel(spl.state)}
-        </button>
-        <div
-          className="font-mono font-medium tabular-nums leading-none"
-          style={{
-            color: splColor,
-            textShadow: spl.state === "running" ? `0 0 22px ${splColor}88` : "none",
-            fontSize: "clamp(80px, 24vw, 220px)",
-          }}
-          data-testid="kiosk-spl-value"
-        >
-          {displaySpl.toFixed(0)}
-        </div>
-        <div className="text-[10px] font-medium uppercase tracking-[0.4em] text-muted-foreground -mt-3">
-          dB SPL · A
-        </div>
-        <div className="mt-1 flex items-center gap-4">
-          <div className="text-center">
-            <p className="text-[8px] font-medium uppercase tracking-[0.28em] text-muted-foreground">Peak</p>
-            <p className="text-sm font-mono font-medium tabular-nums" style={{ color: splColor }} data-testid="kiosk-peak">{displayPeak.toFixed(1)}</p>
-          </div>
-          <div className="text-center">
-            <p className="text-[8px] font-medium uppercase tracking-[0.28em] text-muted-foreground">Leq sesión</p>
-            <p className="text-sm font-mono font-medium tabular-nums text-foreground" data-testid="kiosk-leq">{displayLeq.toFixed(1)}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Faders row */}
-      <div className="absolute inset-x-0 bottom-24 px-4 flex justify-center gap-3 overflow-x-auto no-scrollbar" data-testid="kiosk-faders">
-        {outputs.length === 0 ? (
-          <div className="text-center py-14 px-6">
-            <p className="text-[13px] text-foreground font-medium">Sin sistema cargado</p>
-            <p className="text-[11px] text-muted-foreground mt-1.5 max-w-xs mx-auto leading-relaxed">
-              El medidor de SPL funciona igual. Para ver la referencia de ganancias
-              necesitás un recinto y un PA.
-            </p>
-            <button
-              onClick={() => { feedback("tap"); navigate("/design?step=room"); }}
-              data-testid="kiosk-empty-cta"
-              className="mt-4 px-4 py-2 rounded-full text-[12px] font-medium cursor-pointer"
-              style={{ background: "rgba(255,255,255,0.05)", boxShadow: "0 0 0 1px rgba(255,255,255,0.08)" }}
+            <span
+              className="text-[10px] font-mono tabular-nums text-foreground"
+              data-testid="kiosk-timer"
             >
-              Ir a Diseño
-            </button>
+              {timer}
+            </span>
           </div>
-        ) : (
-          outputs.slice(0, MAX_VISIBLE_FADERS).map(out => (
-            <Fader
-              key={out.id}
-              output={out}
-              value={faders[out.id] ?? out.gain}
-              muted={!!mutes[out.id]}
-              onChange={(dB) => handleFader(out.id, dB)}
-              onToggleMute={() => handleMute(out.id)}
-              testId={`kiosk-fader-${out.id.toLowerCase()}`}
-            />
-          ))
-        )}
+          {canFullscreen && (
+            <button
+              onClick={toggleFullscreen}
+              aria-label={
+                fullscreen ? "Salir de pantalla completa" : "Pantalla completa"
+              }
+              data-testid="kiosk-fullscreen"
+              className="h-9 w-9 rounded-md bg-secondary/70 border border-border flex items-center justify-center cursor-pointer active:scale-90"
+            >
+              {fullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="kiosk-workspace">
+        {/* SPL centerpiece */}
+        <div className="flex flex-col items-center justify-center py-6 min-w-0">
+          <button
+            onClick={() => {
+              feedback("tap");
+              if (spl.state === "running") spl.stop();
+              else spl.start();
+            }}
+            data-testid="kiosk-spl-toggle"
+            className="rounded-full px-3 py-1 mb-1 text-[9px] font-medium uppercase tracking-[0.28em] border cursor-pointer active:scale-95"
+            style={{
+              background:
+                spl.state === "running" ? `${splColor}20` : "transparent",
+              borderColor: `${splColor}55`,
+              color: splColor,
+              boxShadow:
+                spl.state === "running" ? `0 0 16px ${splColor}55` : "none",
+            }}
+          >
+            {stateLabel(spl.state)}
+          </button>
+          <div
+            className="font-mono font-medium tabular-nums leading-none"
+            style={{
+              color: splColor,
+              textShadow:
+                spl.state === "running" ? `0 0 22px ${splColor}88` : "none",
+              fontSize: "clamp(80px, 24vw, 220px)",
+            }}
+            data-testid="kiosk-spl-value"
+          >
+            {displaySpl.toFixed(0)}
+          </div>
+          <div className="text-[10px] font-medium uppercase tracking-[0.4em] text-muted-foreground -mt-3">
+            dB SPL · A
+          </div>
+          <div className="mt-1 flex items-center gap-4">
+            <div className="text-center">
+              <p className="text-[8px] font-medium uppercase tracking-[0.28em] text-muted-foreground">
+                Peak
+              </p>
+              <p
+                className="text-sm font-mono font-medium tabular-nums"
+                style={{ color: splColor }}
+                data-testid="kiosk-peak"
+              >
+                {displayPeak.toFixed(1)}
+              </p>
+            </div>
+            <div className="text-center">
+              <p className="text-[8px] font-medium uppercase tracking-[0.28em] text-muted-foreground">
+                Leq sesión
+              </p>
+              <p
+                className="text-sm font-mono font-medium tabular-nums text-foreground"
+                data-testid="kiosk-leq"
+              >
+                {displayLeq.toFixed(1)}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Faders row */}
+        <div
+          className="px-4 py-6 flex justify-start md:justify-center gap-3 overflow-x-auto items-end no-scrollbar"
+          data-testid="kiosk-faders"
+        >
+          {outputs.length === 0 ? (
+            <div className="text-center py-14 px-6">
+              <p className="text-[13px] text-foreground font-medium">
+                Sin sistema cargado
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-1.5 max-w-xs mx-auto leading-relaxed">
+                El medidor de SPL funciona igual. Para ver la referencia de
+                ganancias necesitás un recinto y un PA.
+              </p>
+              <button
+                onClick={() => {
+                  feedback("tap");
+                  navigate("/design?step=room");
+                }}
+                data-testid="kiosk-empty-cta"
+                className="mt-4 px-4 py-2 rounded-full text-[12px] font-medium cursor-pointer"
+                style={{
+                  background: "rgba(255,255,255,0.05)",
+                  boxShadow: "0 0 0 1px rgba(255,255,255,0.08)",
+                }}
+              >
+                Ir a Diseño
+              </button>
+            </div>
+          ) : (
+            outputs
+              .slice(0, MAX_VISIBLE_FADERS)
+              .map((out) => (
+                <Fader
+                  key={out.id}
+                  output={out}
+                  value={faders[out.id] ?? out.gain}
+                  muted={!!mutes[out.id]}
+                  onChange={(dB) => handleFader(out.id, dB)}
+                  onToggleMute={() => handleMute(out.id)}
+                  testId={`kiosk-fader-${out.id.toLowerCase()}`}
+                />
+              ))
+          )}
+        </div>
       </div>
       {outputs.length > MAX_VISIBLE_FADERS && (
         <p
-          className="absolute bottom-[4.5rem] left-4 text-[10px] text-muted-foreground"
+          className="px-5 pb-3 text-[11px] text-muted-foreground"
           data-testid="kiosk-faders-overflow"
         >
           +{outputs.length - MAX_VISIBLE_FADERS} salidas más — ver en DSP
@@ -420,14 +545,24 @@ export default function KioskPage() {
       )}
 
       {/* Barra inferior — aviso de alcance + marcar momento */}
-      <div className="absolute bottom-0 inset-x-0 px-4 pb-safe pb-3 flex items-center gap-2.5 bg-gradient-to-t from-black/85 to-transparent">
+      <div className="kiosk-footer mt-auto sticky bottom-0 px-4 pt-3 pb-safe pb-3 flex items-center gap-2.5 bg-background border-t border-border">
         <div
           className="flex-1 flex items-center gap-2 px-3 h-11 rounded-2xl min-w-0"
-          style={{ background: "rgba(245,182,46,0.10)", boxShadow: "0 0 0 1px rgba(245,182,46,0.30)" }}
+          style={{
+            background: "rgba(245,182,46,0.10)",
+            boxShadow: "0 0 0 1px rgba(245,182,46,0.30)",
+          }}
           data-testid="kiosk-reference-notice"
         >
-          <AlertTriangle size={13} strokeWidth={2} style={{ color: "var(--sm-amber)", flexShrink: 0 }} />
-          <p className="text-[11px] leading-tight truncate" style={{ color: "var(--sm-amber)" }}>
+          <AlertTriangle
+            size={13}
+            strokeWidth={2}
+            style={{ color: "var(--sm-amber)", flexShrink: 0 }}
+          />
+          <p
+            className="text-[11px] leading-relaxed"
+            style={{ color: "var(--sm-amber)" }}
+          >
             Referencia visual — no controla el DSP
           </p>
         </div>
@@ -437,18 +572,26 @@ export default function KioskPage() {
           className="h-11 px-5 rounded-2xl text-[12px] font-medium cursor-pointer active:scale-[0.97] shrink-0"
           style={{ background: "var(--sm-accent)", color: "var(--background)" }}
         >
-          <span className="inline-flex items-center gap-1.5"><Flag size={13} strokeWidth={2} /> Marcar</span>
+          <span className="inline-flex items-center gap-1.5">
+            <Flag size={13} strokeWidth={2} /> Marcar
+          </span>
         </button>
       </div>
 
       {/* Últimas marcas — para anotar el pico de un tema sin soltar el kiosk */}
       {marks.length > 0 && (
-        <div className="absolute bottom-20 right-4 flex flex-col items-end gap-1" data-testid="kiosk-marks">
+        <div
+          className="absolute bottom-20 right-4 flex flex-col items-end gap-1"
+          data-testid="kiosk-marks"
+        >
           {marks.slice(0, 3).map((m, i) => (
             <div
               key={m.at}
               className="px-2.5 py-1 rounded-full text-[10px] font-mono tabular-nums"
-              style={{ background: "rgba(255,255,255,0.06)", color: i === 0 ? "#F4F4F5" : "var(--muted-foreground)" }}
+              style={{
+                background: "rgba(255,255,255,0.06)",
+                color: i === 0 ? "#F4F4F5" : "var(--muted-foreground)",
+              }}
             >
               {m.time} · {m.spl.toFixed(0)} dB
             </div>
