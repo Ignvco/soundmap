@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="es" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <title>SoundMap — Diseño de sistemas de audio profesional</title>
+    <meta name="description" content="Análisis acústico, configuración de PA, salidas DSP y despliegue en vivo para ingenieros de sonido." />
+    <meta name="author" content="LevelPro Audio" />
+    <link rel="icon" type="image/png" href="/icon/icon-192.png" />
+
+    <!-- PWA Configuration -->
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta name="theme-color" content="#08090A" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="SoundMap" />
+    <link rel="apple-touch-icon" href="/icon/icon-192.png" />
+
+    <meta property="og:title" content="SoundMap — Diseño de sistemas de audio profesional" />
+    <meta property="og:description" content="Análisis acústico, configuración de PA, salidas DSP y despliegue en vivo para ingenieros de sonido." />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="SoundMap" />
+    <meta property="og:image" content="/icon/icon-512.png" />
+    <meta property="og:image:type" content="image/png" />
+
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:image" content="/icon/icon-512.png" />
+
+    <!-- Fuentes — sólo General Sans + JetBrains Mono, que es lo único que usa
+         el design system. Se cargan acá (no vía @import en el CSS) para que el
+         navegador las descubra en el primer parseo del HTML. -->
+    <!-- Geist + Geist Mono: la tipografía que pide el rediseño. Geist Mono es
+         para valores técnicos (102.3 dB, 1.42 s, LR24) — números de instrumento,
+         no de dashboard. Sólo estas dos familias, sólo los pesos que se usan. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap"
+    />
+
+    <!-- SoundMap es dark-only por diseño (el ThemeProvider usa
+         enableSystem={false} + defaultTheme="dark"). Este script sólo asegura
+         que la clase esté puesta antes del primer paint. Antes leía
+         prefers-color-scheme y aplicaba "light" en equipos con el SO en claro,
+         lo que provocaba un flash con la paleta legacy hasta que next-themes
+         montaba y la pisaba. -->
+    <script>
+      document.documentElement.classList.add("dark");
+    </script>
+
+    <link href="/src/index.css" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
