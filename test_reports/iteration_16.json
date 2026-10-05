@@ -1,0 +1,71 @@
+{
+  "summary": "Fase 5 continued — premium (Apple/Linear/Arc) adaptation of remaining subpages. Verified /scenes rewrite + PageHeader/GlassCard/ProButton visual upgrades + typography cleanup across 11 legacy routes + shell chrome. 10/11 routes PASS. /room-scan is a partial FAIL: it does NOT use PageHeader (custom text-xl font-bold h1 in ScreenShell) so it never adopts the whisper+big-title style even though the request explicitly lists it. Minor design polish gaps in shared components (empty-state, sync-indicator, spl-meter, rt60-modal, ar-room-scan) that still contain .font-black / .font-display / tracking-wider — outside the 'pages' scope but visible on empty states of /dsp /pa /stage-map. All acceptance criteria met on /scenes; palette + back button work; no page-level JS errors.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "/room-scan (src/pages/room-scan/index.tsx L467-479)",
+        "issue": "Page does NOT adopt the premium whisper + big-title header. Instead of wrapping in <PageHeader />, it renders a custom <h1 className='text-xl font-bold text-foreground tracking-tight'> inside <ScreenShell>. Result: no eyebrow, no big medium-weight title, no data-testid='page-header-title'. Review request explicitly listed /room-scan among pages that should use PageHeader.",
+        "selector": "h1 inside ScreenShell of /room-scan (no data-testid)",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "/dsp, /pa, /stage-map (empty states)",
+        "issues": [
+          "src/components/soundmap/empty-state.tsx still uses <p className='text-base font-black text-foreground'> at L53 and a radial-gradient glow inside GlassCard at L42-45 — the empty state does not match the quiet Notion-style aesthetic applied elsewhere. Buttons at L59, L66, L74 use rounded-xl bg-primary text-sm font-bold (legacy pill/rectangle), not the new rounded-full bg-white pill.",
+          "src/components/soundmap/empty-state.tsx L91 'Flujo de trabajo' label still uses uppercase font-bold tracking-widest — should be tracking-[0.28em] font-medium per new whisper spec."
+        ]
+      },
+      {
+        "screen": "Shared components rendered inside affected pages",
+        "issues": [
+          "sync-indicator.tsx L58 keeps 'text-[10px] font-black uppercase tracking-wider font-display' — visible on top-right of every subpage.",
+          "spl-meter.tsx L272, rt60-modal.tsx L217, ar-room-scan.tsx L262 still contain font-black + font-display + tracking-wider — visible inside /toolkit, /room-scan, /dsp modals.",
+          "share-scene-modal.tsx / optimizer-modal.tsx / test-signals-player.tsx / onboarding.tsx / guided-tour.tsx / share-dsp-modal.tsx still contain font-black and/or font-display classes."
+        ]
+      }
+    ]
+  },
+  "verified_criteria": [
+    "/scenes empty state: premium-title='Tu biblioteca de sistemas', scenes-empty=1, scenes-empty-go-export=1, scenes-auth-hint=1 (unauthenticated). PASS.",
+    "/scenes populated (3 seed scenes: Alpha Warehouse, Bravo Theater, Charlie Club): scenes-grid=1, scene-card-<id>=3, scene-name-<id>=3 with correct names, scene-load-btn-<id>=3, scene-delete-btn-<id>=3. PASS.",
+    "SceneCard visual: computed border-radius=20px, box-shadow='rgba(255,255,255,0.05) 0px 0px 0px 1px' (hairline), background='rgba(255,255,255,0.02)'. Matches spec exactly. PASS.",
+    "PageHeader upgrade — verified on /gear-builder, /dsp, /stage-map, /channels, /live, /export-page, /toolkit, /templates, /pa: h1 computed font-weight=500, letter-spacing=-1.152px (=-0.03em × 38.4px), font-size=38.4px (2.4rem md), plus an uppercase <p> eyebrow with letter-spacing≈3px and 11px font size. data-testid='page-header-title' present on each h1. PASS.",
+    "GlassCard visual: 0 legacy glow nodes (queried .glass-card, shadow-[0_20px…], neon-glow) on all tested routes. PASS.",
+    "Typography cleanup on pages/: grep across pages/{channels,dsp,gear-builder,kiosk,live,pa,room-scan,shared,shared-dsp,stage-map,templates,toolkit,scenes}/*.tsx returned 0 matches for font-black|font-display. PASS.",
+    "Shell chrome: [data-testid='shell-cmd-btn'] and [data-testid='shell-home'] present on every subpage top bar. Clicking shell-cmd-btn opens command-palette-overlay with palette-input + palette-results. Clicking shell-home navigates to '/'. Cmd+K global listener wired via window.dispatchEvent('soundmap:openpalette'). PASS.",
+    "No page-level pageerror events across all 11 routes. The only console errors observed were 429s (Vite HMR/static asset rate-limiting under load) — expected per agent-to-agent context note.",
+    "PageHeader partial FAIL: /room-scan uses a custom <h1 className='text-xl font-bold text-foreground tracking-tight'>{t('room_scan.title')}</h1> inside <ScreenShell> at line 471 — never adopts the premium whisper+big-title style. Review request explicitly listed /room-scan among pages to upgrade."
+  ],
+  "test_report_links": [".screenshots/scenes_populated.png"],
+  "action_items": [
+    "Wrap /room-scan (src/pages/room-scan/index.tsx L467-479) header in <PageHeader title='Escaneo' subtitle={t('room_scan.title')} /> or replace with PremiumShell to match the premium whisper+big-title style used by other subpages.",
+    "Rewrite src/components/soundmap/empty-state.tsx to use PremiumShell (or at minimum drop font-black L53, the radial glow L42-45, and replace rounded-xl bg-primary buttons L59/66 with rounded-full bg-white text-[#09090b] pills). Currently /dsp /pa /stage-map empty states expose legacy chrome.",
+    "Bulk-strip .font-black / .font-display / tracking-wider from remaining shared components: sync-indicator.tsx (L58 — visible in top-nav of every subpage), spl-meter.tsx (L272), rt60-modal.tsx (L217), ar-room-scan.tsx (L262), share-scene-modal.tsx, optimizer-modal.tsx, test-signals-player.tsx, onboarding.tsx, guided-tour.tsx, share-dsp-modal.tsx. Same sed pattern the pages/ dir received.",
+    "Non-blocking: /app/src/pages/Index.tsx still contains extensive font-black + font-display usage (18+ occurrences). Review request said the home was 'already validated (skip re-validation)' so the classes may be intentional here — flagged only for consistency awareness."
+  ],
+  "critical_code_review_comments": [
+    "PremiumShell (src/components/soundmap/premium.tsx L24-63) has an inconsistency: the outer wrapper carries data-testid={rest['data-testid']} while the h1 always carries data-testid='premium-title'. For /scenes both are wired correctly, but any caller passing data-testid to PremiumShell will get it on the outer div — no distinct testid on the eyebrow <p> (could add 'premium-eyebrow' for future robustness).",
+    "PremiumShell L52-56: when a subtitle is provided the muted body uses max-w-xl which is fine, but the fallback L57 renders an empty <div className='mb-10 md:mb-12' /> — dead whitespace. Consider collapsing to a single margin on the wrapping motion.div.",
+    "Legacy PageHeader (src/components/soundmap/nav.tsx L349-366) still reads awkwardly: the whisper eyebrow is fed the `title` prop, while the big <h1> is fed `subtitle ?? title` — meaning if only `title` is supplied both the eyebrow and the h1 show the same text. Callers today happen to pass both (e.g. /dsp passes title='DSP' + subtitle=<dspModel>), but callers that only pass title (e.g. /toolkit L31-34 passing only title='Toolkit de RF, potencia y transporte') get 'TOOLKIT' as eyebrow AND 'Toolkit …' as title. Consider clearer prop names (eyebrow/title) or defaulting eyebrow to a slug of the route.",
+    "src/pages/room-scan/index.tsx L467-479 is the only page missed by the bulk sed — its custom header (font-bold text-xl) is a functional gap not just typography. Simplest fix: replace lines 469-479 with <PageHeader title={t('room_scan.eyebrow') ?? 'Escaneo'} subtitle={t('room_scan.title')} right={<stepper/>} />.",
+    "src/pages/scenes/index.tsx L131-141 hard-codes HUE_SYNC (#5BA777) as the primary 'Cargar' button background. The review request states primary buttons are 'white bg with black text (bg-white text-[#09090b])'. The /scenes Cargar CTA deviates from that primary style (sage-green, not white). It looks great and helps signal 'load into workspace', but it's technically inconsistent with the ProButton primary variant.",
+    "The GlassCard component (src/components/soundmap/ui.tsx L15-36) still exposes a `glow` prop that toggles a slightly heavier shadow. Even though the old GLOW_SHADOWS constant was removed, glow=true still yields shadow '0 12px 40px -10px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.06)' — noticeably heavier than the quiet baseline. ActionCard L182 passes glow={active}. Consider removing the glow branch entirely if the new design token is 'always quiet hairline'.",
+    "AudioMetricCard L121 still uses 'text-xl font-black' for the value — outside the pages/ scope, but if it renders on any card inside /toolkit or /live it will visually clash with the new quiet aesthetic.",
+    "src/store/app.ts persist version=2 — the migration path at L322 was not exercised by my seed (I wrote version=2 directly). If future test agents use version=1 seed data they'll trigger migrate(); confirm migrate() still returns a valid v2 shape."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (frontend-only per request)",
+    "frontend": "10/11 legacy routes fully pass premium adaptation criteria; /room-scan is a partial FAIL (custom header, not PageHeader). /scenes rewrite fully passes. Chrome + palette PASS. Overall ≈91%."
+  },
+  "test_credentials": "N/A — anonymous mode (Convex offline in preview). /app/memory/test_credentials.md was not required.",
+  "seed_data_creation": "Seeded 3 scenes into localStorage['soundmap-store'] version=2: Alpha Warehouse (30×20×6 m, echoRisk=low), Bravo Theater (31×20×6 m, echoRisk=medium), Charlie Club (32×20×6 m, echoRisk=high). Each includes room, acoustics (full AcousticsResult shape: volume, rt60Empty/Audience, echoRisk, schroederFreq, criticalDistance, boolean risks, speech/musicScore, recommendations=[], axialModes), tops (JBL SRX906LA), subs (QSC KLA181), monitors (QSC K10.2), dspUnits (Lab Gruppen LM 44), amps (FP10000Q). state.room/acoustics intentionally left null so /dsp /pa /stage-map render their EmptyRoomState.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Preview URL: https://soundmap-preview.preview.emergentagent.com. Convex is offline in preview (VITE_CONVEX_URL unset) → /community + sync features show loading spinners; ignore. Vite HMR rate-limits (HTTP 429) fire under sequential navigations — sleep 3-6s between routes if you see 429s and retry. Zustand persist key is 'soundmap-store' with version=2 (schema in src/store/app.ts L9-26 and AcousticsResult in src/lib/audio/acoustics.ts L20-34). Seed template in this iteration works — reuse. Do NOT visit /shared/:token, /shared/dsp, or /kiosk (kiosk uses its own landscape shell). Command palette test-ids: shell-cmd-btn (trigger), command-palette-overlay (backdrop), palette-input (search field), palette-results (list). /room-scan needs a header rewrite before it will show data-testid='page-header-title'.",
+  "rca of the issue": "Root cause for the one FAIL: bulk sed replacement targeted class strings (font-black → font-medium, remove font-display) but did NOT transform structural JSX. /room-scan uses a bespoke <h1> inline (line 471) instead of the shared <PageHeader/> component. The bulk approach used by the main agent to 'upgrade all pages in-place' works for components that import PageHeader — but /room-scan opted out of PageHeader for its stepper-aware header. Fix requires either (a) wrapping the stepper block in a <PageHeader/> or (b) refactoring the custom header to whisper eyebrow + font-medium big title. Repro: navigate to /room-scan → inspect first <h1> → font-weight computes to 700 (bold), font-size 20px (text-xl), no preceding uppercase <p> eyebrow. Compare with /gear-builder → font-weight 500, font-size 38.4px, preceded by 11px uppercase eyebrow."
+}

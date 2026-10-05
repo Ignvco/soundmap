@@ -1,0 +1,162 @@
+{
+  "typography": {
+    "font_family_primary": "General Sans, sans-serif",
+    "font_family_secondary": "Geist, sans-serif",
+    "font_family_mono": "JetBrains Mono, monospace",
+    "headings": {
+      "H1": "text-4xl sm:text-5xl lg:text-6xl tracking-tight font-medium",
+      "H2": "text-2xl sm:text-3xl lg:text-4xl tracking-tight font-medium",
+      "H3": "text-xl sm:text-2xl tracking-tight font-normal",
+      "H4": "text-lg sm:text-xl font-normal text-muted-foreground"
+    },
+    "body": "text-base leading-relaxed text-zinc-300 font-secondary",
+    "mono_stats": "font-mono tracking-tight text-xl font-medium",
+    "hierarchy_rules": "Use font weight and opacity instead of borders. The eye should naturally know where to look. Headings are 'General Sans'. Data/SPL readouts MUST use 'JetBrains Mono'. Never use bold generic sans fonts."
+  },
+  "colors": {
+    "theme": "dark",
+    "backgrounds": {
+      "primary": "#09090b",
+      "secondary": "#121214",
+      "elevated": "#18181b",
+      "glass": "bg-black/60 backdrop-blur-2xl"
+    },
+    "accents_desaturated": {
+      "green": "#5BA777",
+      "cyan": "#4E9EA8",
+      "purple": "#9B7EBD",
+      "orange": "#C28B62",
+      "pink": "#C77A9E"
+    },
+    "text": {
+      "primary": "#F4F4F5",
+      "secondary": "#A1A1AA",
+      "muted": "#71717A"
+    },
+    "borders": {
+      "subtle": "border-white/5",
+      "focus": "border-white/20"
+    },
+    "color_rules": "Reduce saturation by 30%. Never use colors for decoration. Pink is strictly for primary CTA. Green = System Healthy. Cyan = Measurements. Purple = DSP. Orange = Warnings. Use solid background colors for data-heavy sections to avoid glass refraction."
+  },
+  "visual_enhancers": {
+    "shadows": {
+      "ambient": "shadow-[0_8px_32px_rgba(0,0,0,0.4)]",
+      "glow": "shadow-[0_0_24px_rgba(199,122,158,0.15)]"
+    },
+    "borders": {
+      "radius_base": "18px",
+      "radius_large": "24px"
+    },
+    "textures": "Subtle noise overlay (opacity 0.03) over pure black backgrounds to simulate dark architectural spaces. 'Glassmorphism' strictly for command bar and floating nav."
+  },
+  "grids": {
+    "spacing_scale": "Tailwind standard, but aggressively scaled up (p-8, p-12, p-16).",
+    "dashboard_layout": "ONE HERO CARD centered. No widget grid.",
+    "bento_rules": "If bento is needed for utilities, use high-density mode A but with soft transparent borders (border-white/5). Everything must feel like floating surfaces, not constrained boxes."
+  },
+  "layouts": {
+    "navigation": "Remove permanent sidebar. Use a Raycast-style Command Bar (Cmd+K) and a minimal, floating top-nav or bottom pill for mobile. Interface should disappear.",
+    "page_structure": "Progressive disclosure. Always center content with massive horizontal padding."
+  },
+  "motion": {
+    "transitions": "Gentle fades, smooth transitions. Layout animations using Framer Motion (layoutId).",
+    "hover_states": "Soft hover animations (scale 1.02 or subtle background lighten).",
+    "timing": "transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1)",
+    "loading": "Elegant skeleton fades, no abrupt spinners. Everything must feel expensive."
+  },
+  "accessibility": {
+    "contrast": "APCA contrast checks. Ensure all text over dark gray is #E4E4E7 or brighter.",
+    "reduced_motion": "Respect prefers-reduced-motion for the 3D stage map.",
+    "focus_states": "Ring-1 ring-white/30 ring-offset-black"
+  },
+  "media": {
+    "image_treatment": "Black/white or heavily desaturated images to fit the dark architectural vibe. Max 80vh on mobile."
+  },
+  "3d_libraries": {
+    "primary": "React Three Fiber (R3F) + Drei",
+    "usage": "Use for the Stage Map (2D + 3D). Render with dark ambient lighting, glowing cyan/purple edges for PA speakers, avoiding realistic materials. Emphasize 'holographic' tech look over literal simulation."
+  },
+  "image_urls": {
+    "architectural_dark": {
+      "url": "https://images.unsplash.com/photo-1511406361295-0a1ff814c0ce?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Njd8MHwxfHNlYXJjaHwxfHxkYXJrJTIwYXJjaGl0ZWN0dXJhbCUyMG1pbmltYWxpc3R8ZW58MHx8fHwxNzg0NTE0ODMwfDA&ixlib=rb-4.1.0&q=85",
+      "description": "dark pathway lit with small light fixture, used for mood/texture behind AI Home"
+    },
+    "concert_stage": {
+      "url": "https://images.unsplash.com/photo-1558620013-a08999547a36?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzd8MHwxfHNlYXJjaHwxfHxjb25jZXJ0JTIwc3RhZ2UlMjBkYXJrJTIwbWluaW1hbHxlbnwwfHx8fDE3ODQ1MTQ4MzB8MA&ixlib=rb-4.1.0&q=85",
+      "description": "grayscale photography of stage with lights, used for library/templates card background"
+    }
+  },
+  "Information Architecture": {
+    "strategy": "Merge 19 routes down to 6 core flows. Eradicate 'engineering dashboard' feel.",
+    "routes": {
+      "/": "AI Home (Objective picker + Hero Card)",
+      "/design": "Merged: Room Scan -> Gear Builder -> PA Design -> DSP -> Stage Map -> Channels",
+      "/perform": "Merged: Live SPL Meter -> Session Recording -> Kiosk FOH Mode",
+      "/analyze": "Merged: Compare A/B -> Toolkit -> Export",
+      "/library": "Merged: Scenes -> Templates -> Community Gear DB",
+      "/settings": "Auth -> Preferences"
+    },
+    "flow": "Current Project -> Primary CTA -> Progress -> Performance Summary -> Technical Details -> Utilities."
+  },
+  "AI-First Landing Flow": {
+    "landing_question": "What would you like to do today?",
+    "objectives": [
+      "Design a new sound system",
+      "Optimize an existing venue",
+      "Prepare for a live event",
+      "Diagnose a system",
+      "Generate a technical report"
+    ],
+    "interaction": "Cinematic text reveal. 5 elegant ghost cards list the objectives. Once clicked, interface morphs gracefully (framer-motion layoutId) into the unified context flow. Unnecessary tools remain hidden until called."
+  },
+  "Hero Card Blueprint": {
+    "description": "ONE HERO CARD that replaces the dashboard grid.",
+    "questions_answered": [
+      "Is my system ready?",
+      "How good is my design?",
+      "What should I do next?"
+    ],
+    "structure": "Large rounded card (24px radius), soft dark gray background (bg-[#121214]). Split into three distinct optical zones. Uses typography for hierarchy. No internal borders.",
+    "states": {
+      "empty": "Subtle pulsing pink CTA 'Start Configuration'",
+      "in-progress": "Progress ring, current step highlighted, secondary text indicates 'Next: Gear Builder'",
+      "ready": "Green text '#5BA777' indicating 'System Healthy', large Pink CTA 'Go Live'"
+    }
+  },
+  "Command Bar Copilot": {
+    "description": "AI Operating System interface. A floating orb or Raycast-style modal (Cmd+K).",
+    "functionality": "Navigate anywhere, answer technical questions ('optimize my subs'), perform actions ('export report').",
+    "visuals": "Frosted glass background (backdrop-blur-2xl), 1px subtle white border (border-white/10), heavily desaturated icons."
+  },
+  "Component Reduction Table": {
+    "Sidebar": "Removed entirely. Replaced by Command Bar / floating minimal nav.",
+    "Widget_Grid": "Removed. Replaced by single Hero Card.",
+    "Tabs": "Reduced. Use progressive disclosure via inline expanding sections instead of page-level tabs.",
+    "Action_Buttons": "Merged. Only one Pink CTA on screen at a time. All other actions are ghost buttons."
+  },
+  "Do_Dont Table": {
+    "DO": [
+      "Use typography to create hierarchy",
+      "Apply rounded corners between 18 and 24 px",
+      "Hide advanced tools until asked",
+      "Treat AI as the OS, not a widget"
+    ],
+    "DONT": [
+      "Do NOT resemble ArrayCalc or Smaart",
+      "Do NOT use a widget grid dashboard",
+      "Do NOT use bright, highly saturated colors",
+      "Do NOT preserve current interface out of compatibility"
+    ]
+  },
+  "First Screen Wireframe": "export default function AIHome() { return ( <div className='min-h-screen bg-[#09090b] text-[#f4f4f5] flex flex-col items-center justify-center p-8'> <motion.h1 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className='text-4xl sm:text-5xl font-medium tracking-tight mb-16'> What would you like to do today? </motion.h1> <div className='flex flex-col gap-4 w-full max-w-xl'> {['Design a new sound system', 'Optimize an existing venue', 'Prepare for a live event', 'Diagnose a system', 'Generate a technical report'].map((task) => ( <motion.button key={task} whileHover={{ scale: 1.02 }} className='p-6 text-left rounded-[20px] bg-[#121214] border border-white/5 hover:border-white/20 transition-all duration-400'> <span className='text-xl tracking-tight text-zinc-300'>{task}</span> </motion.button> ))} </div> </div> ); }",
+  "UNIVERSAL GUIDELINES FOR MAIN AGENT": [
+    "You MUST NOT apply universal transition (e.g. transition: all). Add transitions for specific interactive elements excluding transforms.",
+    "Never center align the app container in global CSS. Optical alignment over mathematical.",
+    "All interactive elements MUST include data-testid attribute.",
+    "Use Shadcn primitives where applicable, but customize their radius to 18-24px and use dark/subtle borders.",
+    "Never use purely transparent backgrounds over content. Always use backdrop-blur.",
+    "Create depth with layered design elements, not just flat panels."
+  ],
+  "instructions_to_main_agent": "Treat this as a luxury iOS/visionOS app ported to the web. Extreme restraint. The AI copilot is the core navigation paradigm. The UI should whisper, not shout. Prioritize typography and space over boxes."
+}

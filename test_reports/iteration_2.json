@@ -1,0 +1,36 @@
+{
+  "summary": "Iteration 2 frontend validation of the 8 fixes from iteration_1. 17/18 fix checks PASS as-is. One issue found and fixed by testing agent: Fix#5's data-testid='room-continue-step1' was set on <ProButton> but ProButton (src/components/soundmap/ui.tsx line 238) was silently dropping the data-testid prop instead of forwarding it to the underlying <button>. After forwarding the prop, Fix#5 passes (button visible, enabled with empty name, advances the wizard to step 2 where open-rt60-modal-btn appears). Regression sweep of all 15 routes passes (each loads with sync-indicator + non-empty body; empty bodies during first bulk sweep were Cloudflare 429 rate-limit artifacts, not app bugs — confirmed by re-running with longer waits). Demo load, KPIs, gear inventory, and SPL toggle (no-crash) all verified. Two secondary issues discovered and reported for main agent.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "BottomNav pills (mobile)", "issue": "Same double-slash testid bug as pre-fix nav-more — bottom nav pill testids come out as 'nav-pill-homegear-builder', 'nav-pill-homedsp', 'nav-pill-homelive', 'nav-pill-home' (concatenation of 'home' + path without separator, and the path leading '/' not stripped). Should be 'nav-pill-gear-builder', 'nav-pill-dsp', 'nav-pill-live', 'nav-pill-home' etc. Same file/pattern as Fix#2 in nav.tsx.", "selector": "src/components/soundmap/nav.tsx BottomNav pill map", "priority": "MEDIUM"},
+      {"component": "Room Scan sticky Continuar vs FAB overlap", "issue": "On mobile 420x900, the sticky full-width 'Continuar' ProButton (bbox x=16..404, y=830..878) visually sits underneath nav-fab-more (bbox x=182..238, y=827..883). Real user taps in the center-bottom area of the Continue button will land on the FAB and open 'Todos los módulos' bottom-sheet instead of advancing. Playwright force-clicks reproduce the issue; JS .click() bypasses it. Recommend either raising the Continue button above the FAB (extra bottom padding + z-index), moving the FAB slightly off-center, or converting the sticky bar to sit above the fab's visual line.", "selector": "src/pages/room-scan/index.tsx line 577 (Continuar ProButton)", "priority": "HIGH"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Global topbar", "issues": ["sync-indicator icon (fixed top-3 right-3) is very close to the browser status bar / safe-area; on some Android mobile layouts it can overlap notch UI. Non-blocking, but consider explicit pt-safe/mt-safe wrapper — already added but confirm on real device."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Apply same fix as nav-more-* to BottomNav pills in src/components/soundmap/nav.tsx: use `nav-pill-${item.path === '/' ? 'home' : item.path.replace(/^\\//,'').replace(/\\//g,'-')}` (currently emits 'nav-pill-homegear-builder', 'nav-pill-homedsp', 'nav-pill-homelive').",
+    "Fix z-index/positioning conflict between sticky Continuar button on /room-scan step 1 and floating nav-fab-more — the FAB visually covers the middle of the Continue button on mobile 420x900. Add mb-16 / pb-16 to the sticky bar, or reposition FAB to right-3 corner.",
+    "Verify other pages using ProButton with data-testid (settings/index.tsx, export-page/index.tsx) now work correctly with the forwarded prop — my fix in ui.tsx enables previously-silently-dropped testids across the codebase."
+  ],
+  "critical_code_review_comments": [
+    "src/components/soundmap/ui.tsx line 228-259: ProButton component was NOT forwarding data-testid (or any HTML button attributes) — silently dropping the prop meant every consumer that set data-testid on <ProButton> had no effect at runtime. Fixed by adding data-testid to the interface and passing it through. Consider extending to a spread of standard button HTML attributes (aria-*, form, name) for future-proofing.",
+    "src/components/soundmap/nav.tsx BottomNav pill map still has the SAME double-slash / missing-strip bug that was fixed for nav-more-*: bottom nav pill testids emit e.g. 'nav-pill-homegear-builder' because it concatenates 'home' with the raw path (leading '/' not stripped). Fix analogously.",
+    "src/pages/room-scan/index.tsx line 577: sticky 'Continuar' ProButton visually collides with the FAB on mobile. UX/testability concern — force clicks always hit the FAB.",
+    "SyncIndicator globally mounted in AppLayout (App.tsx line 53-57) works well; pt-safe is applied — confirmed sync-indicator resolves on every one of the 15 routes."
+  ],
+  "updated_files": [
+    "/app/src/components/soundmap/ui.tsx (ProButton now forwards data-testid prop — required to make Fix#5's room-continue-step1 testid resolvable)"
+  ],
+  "success_rate": {"backend": "N/A (frontend-only)", "frontend": "100% of the 8 requested fixes verified PASS (17/17 assertions, plus regression sweep of 15 routes = OK). 2 additional adjacent issues reported."},
+  "test_credentials": "N/A — anonymous demo mode; Convex not connected on preview (expected).",
+  "seed_data_creation": "Used built-in load-demo-btn on Home to seed 'The Warehouse Club' room + gear.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "All 8 iteration_1 fixes are now verified. Main agent should: (1) re-apply the strip-leading-slash pattern to nav-pill-* in BottomNav (same file src/components/soundmap/nav.tsx as Fix#2), (2) fix the FAB/Continuar overlap in /room-scan step 1. Testing infra note: Cloudflare rate-limits the preview URL — bulk-navigating 15 routes in <15 seconds triggers 429s that return an empty body. Use >=4-5s between goto() calls, and if body_len==0, wait 8s and reload. Also note that the pre-existing ProButton silent-drop-of-data-testid bug is now fixed in ui.tsx, so any prior tests that failed on ProButton data-testid selectors should be retried.",
+  "rca of the issue": "Fix#5 (room-continue-step1) failed initially because the button is wrapped in <ProButton> (src/components/soundmap/ui.tsx). ProButton's interface did not declare data-testid and its render did not spread extra props onto the inner <button>, so the attribute was silently dropped. Confirmed by: (a) visually seeing an enabled 'Continuar' button on the /room-scan step 1 page with correct behavior, (b) grepping the source and finding data-testid='room-continue-step1' at line 577, and (c) inspecting ProButton to find no data-testid forwarding. Mitigation: added `\"data-testid\"?: string` to ProButtonProps and pass through to the DOM button. Re-tested — testid resolves, JS click advances to step 2 (open-rt60-modal-btn visible)."
+}

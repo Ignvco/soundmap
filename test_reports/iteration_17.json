@@ -1,0 +1,76 @@
+{
+  "summary": "Fase 5 retest after iteration_16 fixes. Two headline requests validated: (1) /room-scan now uses the whisper 'ESCANEO' eyebrow + big font-medium h1 'Escaneo de Sala' with data-testid='page-header-title' — computed font-weight=500, size=38.4px, letter-spacing=-1.152px (=-0.03em). PASS. (2) All 12 shared components explicitly listed for bulk cleanup (share-dsp-modal, error-boundary, onboarding, ar-room-scan, sync-indicator, spl-meter, guided-tour, share-scene-modal, optimizer-modal, test-signals-player, empty-state, rt60-modal) now contain zero font-black / font-display / tracking-wider occurrences. PASS. Full regression across 11 routes (/scenes /room-scan /gear-builder /dsp /stage-map /channels /live /pa /export-page /toolkit /templates): every route renders the whisper eyebrow + big-title header with data-testid='page-header-title' (or 'premium-title' on /scenes) at font-weight 500, size 38.4-44.8px, letter-spacing -0.03em, and no page-level JS errors. SPL meter on /live and EmptyRoomState on /pa also contain zero legacy class violations. The 'grep sanity litmus test' is a PARTIAL FAIL only because three OTHER files that were NOT in the bulk cleanup list still contain legacy classes: nav.tsx (AppHeader h1 L328, SoundMapLogo wordmark L377, sidebar labels L116/L225 — used by Home shell), ui.tsx (AudioMetricCard L121, StatChip sublabel L311), and scenes/index.tsx (2 status pills L88, L94 — 'tracking-wider' on font-medium uppercase pills). None of these are visible on the affected content pages' new headers (verified by page-level DOM scan on /pa returning totalViolations=0).",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Global brand chrome + Home",
+        "issues": [
+          "nav.tsx L328 (AppHeader h1) still uses 'text-xl font-black text-foreground tracking-tight ... font-display'. AppHeader is the header rendered on Index.tsx (Home), not on subpages — visually the Home wordmark is deliberate. Flag only if the litmus test is meant to apply to Home as well.",
+          "nav.tsx L377 (SoundMapLogo wordmark) uses 'text-[15px] font-black ... font-display'. Brand mark — likely intentional identity element.",
+          "nav.tsx L116 'Todos los Módulos' sidebar section header uses font-black tracking-widest — visible in the fixed left rail.",
+          "nav.tsx L225 (module label pill in nav) uses font-black tracking-wide font-display.",
+          "ui.tsx L121 AudioMetricCard value uses text-xl font-black — renders on cards that appear in Home dashboards.",
+          "ui.tsx L311 sublabel span uses tracking-wider (a raw class — the spec calls for tracking-[0.28em] instead).",
+          "pages/scenes/index.tsx L88 & L94 status pills use 'font-medium uppercase tracking-wider' — should switch to tracking-[0.28em] to be strict about the litmus test."
+        ]
+      },
+      {
+        "screen": "/pa /dsp /stage-map empty-state card",
+        "issues": [
+          "empty-state.tsx: legacy chrome flagged in iteration_16 for the CTA buttons (rounded-xl bg-primary text-sm font-bold at L59/66) remains — buttons are NOT the requested 'rounded-full bg-white text-[#09090b] pill' style, they are still the older rounded-xl solid pills. Cosmetic — no font-black/font-display/tracking-wider anymore, so it satisfies THIS iteration's grep, but the visual polish gap called out in iteration_16 still stands."
+        ]
+      }
+    ]
+  },
+  "verified_criteria": [
+    "ROOM-SCAN HEADER: <h1 data-testid='page-header-title'>Escaneo de Sala</h1> computed font-weight=500, font-size=38.4px, letter-spacing=-1.152px. Preceded by <p>ESCANEO</p> whisper eyebrow at 11px, uppercase, letter-spacing 3.08px (=0.28em), font-weight 500, muted. 'Paso 1 / 3' step counter appears on the right (font-medium uppercase tracked, muted). Subtitle 'Ingresá las dimensiones del recinto' renders muted below at 14px. NO font-bold on the h1. PASS.",
+    "BULK CLEANUP TARGETS (12 files): share-dsp-modal.tsx=0 hits, error-boundary.tsx=0, onboarding.tsx=0, ar-room-scan.tsx=0, sync-indicator.tsx=0, spl-meter.tsx=0, guided-tour.tsx=0, share-scene-modal.tsx=0, optimizer-modal.tsx=0, test-signals-player.tsx=0, empty-state.tsx=0, rt60-modal.tsx=0. Grep pattern used: '\\b(font-black|font-display)\\b|tracking-wider(\\s|\"|$)'. PASS.",
+    "SYNC INDICATOR: data-testid='sync-indicator' present at sync-indicator.tsx L56. Class list is 'inline-flex ... rounded-full border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.2em]'. No font-black / font-display / tracking-wider. PASS.",
+    "SPL METER on /live: data-testid='spl-toggle-btn' and 'spl-value' both present in DOM. Runtime DOM scan inside the SPL container (.rounded-3xl wrapping the toggle) returned 0 elements with font-black|font-display|tracking-wider. Labels/status pills all use font-medium tracking-[0.2em] / tracking-[0.28em]. PASS.",
+    "EMPTY STATE on /pa: 'SISTEMA PA' eyebrow + 'Sin sala cargada' big title from PageHeader render correctly. Empty card shows 'Sin Sala Cargada' + description + two CTAs + 'FLUJO DE TRABAJO' whisper row. Full-page DOM scan returned totalViolations=0 across all descendants. PASS.",
+    "REGRESSION SWEEP (11 routes) — all show a header title element with data-testid page-header-title (or premium-title on /scenes) at font-weight=500 and letter-spacing≈-0.03em: /scenes 'Tu biblioteca de sistemas' 44.8px, /room-scan 'Escaneo de Sala' 38.4px, /gear-builder 'Sin sala seleccionada' 38.4px, /dsp 'Sin sala cargada' 38.4px, /stage-map 'Sin sala cargada' 38.4px, /channels '0 canales · 0 phantom' 38.4px, /live 'Sin recinto cargado' 38.4px, /pa 'Sin sala cargada' 38.4px, /export-page 'No data' 38.4px, /toolkit 'Cardioid · Line Array · Impedancia' 38.4px, /templates 'Punto de partida por tipo de servicio' 38.4px. Zero page-level pageerror events; only expected Vite HMR websocket noise (ignored). Some routes needed a 15s retry due to Vite 429s per agent note — all recovered on retry."
+  ],
+  "grep_sanity_litmus": {
+    "verdict": "PARTIAL FAIL (strict) / PASS (spirit of the fix)",
+    "clean_targets_all_pass": true,
+    "residual_violations_outside_cleanup_list": [
+      "src/components/soundmap/nav.tsx:116  (sidebar label — font-black tracking-widest)",
+      "src/components/soundmap/nav.tsx:225  (module chip — font-black tracking-wide font-display)",
+      "src/components/soundmap/nav.tsx:328  (AppHeader h1 — font-black font-display) — this is a SEPARATE header component used only by Index.tsx / Home, distinct from the updated PageHeader at L349-366 which is what the subpages use",
+      "src/components/soundmap/nav.tsx:377  (SoundMapLogo brand wordmark — font-black font-display)",
+      "src/components/soundmap/ui.tsx:121   (AudioMetricCard value — text-xl font-black)",
+      "src/components/soundmap/ui.tsx:311   (StatChip sublabel — tracking-wider)",
+      "src/pages/scenes/index.tsx:88, 94   (status pills — font-medium uppercase tracking-wider)"
+    ],
+    "explanation": "None of the residual violations affect the affected subpage headers or the 12 bulk-cleaned shared components — the whisper+big-title spec is fully satisfied on the routes the review request lists. However, if the litmus test in the review request ('zero occurrences ... inside /app/src/components/soundmap/*.tsx AND /app/src/pages/*/index.tsx') is meant strictly, these 7 lines must also be cleaned."
+  },
+  "test_report_links": [
+    ".screenshots/room_scan_header.png"
+  ],
+  "action_items": [
+    "OPTIONAL (litmus-strict): Extend the bulk sed pattern to also clean nav.tsx (AppHeader h1 L328, SoundMapLogo L377, sidebar labels L116/L225), ui.tsx (AudioMetricCard L121, StatChip sublabel L311), and scenes/index.tsx (status pills L88/L94). Not required for the 11 affected routes to pass — brand chrome may want to keep font-black/font-display intentionally on the Home wordmark and sidebar.",
+    "COSMETIC (carry-over from iteration_16): src/components/soundmap/empty-state.tsx CTA buttons L59/66 still use rounded-xl bg-primary + text-sm font-bold. If you want the 'rounded-full bg-white text-[#09090b] pill' primary style used elsewhere, swap the button classes here. Font-black/font-display/tracking-wider are already gone from this file — this is purely visual consistency, not blocking.",
+    "None of the above are blocking. All originally-flagged issues from iteration_16 are RESOLVED."
+  ],
+  "critical_code_review_comments": [
+    "src/components/soundmap/nav.tsx has TWO header components: AppHeader (L321-340) with the legacy 'text-xl font-black … font-display' h1 kept for Home, and PageHeader (L349-366) with the new whisper+big-title. The two-component split is intentional — the review request only targets PageHeader — but the file could be split into home-header.tsx + page-header.tsx to make the boundary clearer and prevent future sed passes from accidentally touching the Home wordmark.",
+    "src/pages/room-scan/index.tsx L466-493 does NOT use <PageHeader/> — it inlines an equivalent whisper+big-title JSX (correctly, with the same classes and data-testid). Functionally identical and passes; a future refactor could replace lines 469-493 with <PageHeader title='Escaneo' subtitle={t('room_scan.title')} right={<stepCounter/>} /> and drop the duplicated block. Only concern: any future edit to the PageHeader whisper spec will need to be replicated here (drift risk).",
+    "src/components/soundmap/empty-state.tsx L59/66: the Escanear Sala / Armar Equipo CTAs are still the legacy 'rounded-xl bg-primary text-sm font-bold text-primary-foreground shadow-…' primary buttons. The rest of the app (e.g. /scenes 'Cargar' CTA, /pa demo hero) has moved to rounded-full bg-white text-[#09090b] pills or accent-tinted pills. Convergence would be a small polish PR.",
+    "src/pages/scenes/index.tsx L88, L94 use raw 'tracking-wider' on status pills — trivial to migrate to tracking-[0.28em] for consistency with the whisper spec, but visually the difference is 2-3 pixels of letter spacing and the pills still read correctly.",
+    "src/components/soundmap/ui.tsx L121 AudioMetricCard 'text-xl font-black' — if AudioMetricCard is used anywhere inside the 11 affected pages (I did not audit its call sites in this iteration), it would visually clash with the quiet aesthetic. Grep across src/pages to confirm usage before deciding whether to soften to font-medium."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (frontend-only per request)",
+    "frontend": "6/6 explicit criteria PASS. 11/11 regression routes PASS. Grep sanity: 12/12 bulk-cleaned files clean; 3 out-of-scope files still contain legacy classes (nav.tsx, ui.tsx, scenes/index.tsx). Overall ≈100% on the review request's target scope, ~95% on the strict litmus wording."
+  },
+  "test_credentials": "N/A — anonymous mode. /app/memory/test_credentials.md not consulted (not required).",
+  "seed_data_creation": "None this iteration. Empty state was verified against the natural 'no room loaded' state on /pa /dsp /stage-map.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Preview URL: https://soundmap-preview.preview.emergentagent.com. Vite HMR rate-limits (HTTP 429) fire under sequential navigations — my sweep hit this on /channels /live /pa /export-page /toolkit /templates on the first pass; a 5-15s wait between routes and one retry always recovered. Vite dev-server websocket to wss://localhost:3000 always fails in the preview environment (expected — filter out of console-error checks). PageHeader (soundmap/nav.tsx L349-366) is the new whisper+big-title component; AppHeader (soundmap/nav.tsx L321-340) is the legacy home-only header and is intentionally NOT cleaned. /room-scan inlines the PageHeader pattern instead of importing it (L466-493). If the litmus test is re-run and it must pass strictly on ALL soundmap/*.tsx + pages/*/index.tsx, the remaining 7 lines to clean are listed under grep_sanity_litmus.residual_violations_outside_cleanup_list.",
+  "rca of the issue": "N/A — all originally reported iteration_16 issues are resolved. The only residual finding is a scope-interpretation question on the litmus test's wording (strict grep on the two glob directories vs. spirit of the fix on the 12 named components). No functional or visual regressions detected on any of the 11 affected pages."
+}

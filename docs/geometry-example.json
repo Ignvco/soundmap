@@ -1,0 +1,25 @@
+{
+  "outline": [
+    { "x": -6, "z": -6 },
+    { "x": 6, "z": -6 },
+    { "x": 6, "z": 2 },
+    { "x": 2, "z": 2 },
+    { "x": 2, "z": 6 },
+    { "x": -6, "z": 6 }
+  ],
+  "balconies": [
+    {
+      "id": "balcon-1",
+      "outline": [
+        { "x": -5, "z": 3 },
+        { "x": 1, "z": 3 },
+        { "x": 1, "z": 5 },
+        { "x": -5, "z": 5 }
+      ],
+      "heightM": 3,
+      "thicknessM": 0.2
+    }
+  ],
+  "exclusions": [{ "xMin": -1, "xMax": 1, "zMin": -6, "zMax": -4 }],
+  "source": "Ejemplo de formato; sustituir por plano levantado por el técnico"
+}

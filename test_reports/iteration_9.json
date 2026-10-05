@@ -1,0 +1,27 @@
+{
+  "summary": "Iteration 9 — minimal post-refactor verification of the 2 non-blocking perf fixes from iteration_8 code review. (A) OptimizerModal snapshot pattern: PASS end-to-end. From landing → 'Cargar Recinto Demo' → /stage-map → click 'stage-optimizer-btn' → 'optimizer-overlay' opens → 'optimizer-running' briefly visible → within <3s 'optimizer-summary' + 5 'optimizer-candidate-0..4' render with numeric KPIs (Uniform 74%, Spread 17.9 dB, SPL Media 125 dB, all non-NaN). Best config label: 'Tops @ 5.1m · Splay 15° · Tilt 5° · Subs distribuidos'. optimizer-close closes the overlay. Reopening the optimizer (2nd click on stage-optimizer-btn) correctly re-runs the search with a fresh snapshot and re-renders optimizer-summary. (B) SPL Meter recTick throttle: source-verified only (perf micro-optimization is not observable via UI selectors in headless — /live SPL toggle behavior was left as-is from iteration_8 since mic is denied). Code confirms recTick only updates when Math.floor(durationSec) changes (spl-meter.tsx L46-52). (C) Regression: /kiosk (kiosk-root) PASS, /dsp (dsp-share-btn after demo seed) PASS, /settings (replay-tour-btn) PASS. Zero pageerrors, zero console.error() across all navigations.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "optimizer-modal.tsx L31-39: snapshot useEffect intentionally omits room/tops/subs from deps with eslint-disable — this is correct for the snapshot semantics, but if the modal is left OPEN and the user changes gear in the background then re-triggers open, the snapshot state will only refresh via the `!open && snapshot` cleanup branch. The current UX (button click → modal opens fresh) is fine, but if a future refactor keeps the modal mounted, the snapshot may go stale. Non-blocking; document this invariant in a code comment or add a `key={openInstanceId}` to force remount per open.",
+    "optimizer-modal.tsx L41-71: the search useEffect depends on [open, snapshot] — because setSnapshot on line 33 is guarded by `!snapshot`, opening the modal now triggers exactly ONE 144-config search per open cycle (verified by re-open behavior). Good fix for the store-churn issue flagged in iteration_8.",
+    "spl-meter.tsx L46-52: recTick throttle is correct (setRecTick is a no-op when nowSec unchanged thanks to the functional-updater `prev === nowSec ? prev : nowSec`). However, the useEffect still fires and reads recorderRef.current.summary() (an O(n) reduce over samples) on every reading push (~10 Hz). For a 1-hour session (~36k samples) that's ~36k reduce passes per second at 10 Hz = 360k/hour — not the React re-render cliff anymore, but the summary() call itself is now the hot path. Consider caching the last computed integer-second inside SessionRecorder to avoid the per-frame reduce."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (frontend-only per request)",
+    "frontend": "100% for the requested scope — Optimizer end-to-end (open, run, summary, 5 candidates numeric no-NaN, close, reopen fresh run) + regression on /kiosk /dsp /settings, zero JS errors."
+  },
+  "test_credentials": "N/A — anonymous demo mode.",
+  "seed_data_creation": "Clicked 'Cargar Recinto Demo' on landing to seed 'The Warehouse Club' room + demo gear (persisted via zustand localStorage; needed to be re-seeded once after direct /dsp goto to expose dsp-share-btn).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Iteration 9 verified perf fixes are non-regressing. Preview: https://soundmap-preview.preview.emergentagent.com. Cloudflare 429 mitigation: 6.8s sleep between page.goto() calls worked reliably. Optimizer open→summary in ~1.5-2s, all candidate KPIs numeric. If /dsp opened directly without prior demo seed, dsp-share-btn is absent — seed from '/' first, then persist via localStorage carries across pages within the same context. No pageerrors captured in this run. Two minor code-review observations logged (snapshot invariant + summary() hot-path) but neither blocks release.",
+  "rca of the issue": "N/A — no defects observed. Both perf fixes are functionally correct; snapshot pattern eliminates the store-churn restart risk from iteration_8, and the recTick throttle correctly collapses ~10 Hz meter updates into ~1 Hz state churn (though the underlying summary() reduce still runs per reading — logged as an optional follow-up for the main agent)."
+}
