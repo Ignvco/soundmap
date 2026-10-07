@@ -5,7 +5,10 @@ import {
   SlidersHorizontal,
   ArrowUpRight,
   Save,
+  Ruler,
+  Cable,
 } from "lucide-react";
+import { useEffect, useRef } from "react";
 import { useAppStore, hasUnsavedRevision } from "@/store/app";
 
 /** Shared project orientation; status describes persistence, not acoustic approval. */
@@ -15,12 +18,38 @@ export function ProjectContext() {
   const saveRevision = useAppStore((s) => s.saveRevision);
   const lastStep = useAppStore((s) => s.lastWizardStep);
   const { pathname, search } = useLocation();
+  const navRef = useRef<HTMLElement>(null);
+  const designStep =
+    pathname === "/design"
+      ? (new URLSearchParams(search).get("step") ?? lastStep ?? "room")
+      : null;
+  useEffect(() => {
+    const nav = navRef.current;
+    const active = nav?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!nav || !active) return;
+    const reveal = () => {
+      if (nav.scrollWidth > nav.clientWidth)
+        nav.scrollLeft =
+          active.offsetLeft - (nav.clientWidth - active.offsetWidth) / 2;
+    };
+    reveal();
+    const observer = new ResizeObserver(reveal);
+    observer.observe(nav);
+    return () => observer.disconnect();
+  }, [pathname, designStep]);
   const dspActive =
     pathname === "/dsp" ||
     (pathname === "/design" &&
-      (new URLSearchParams(search).get("step") ?? lastStep) === "dsp");
+      (new URLSearchParams(search).get("step") ?? lastStep ?? "room") ===
+        "dsp");
   const views = [
     { to: "/", label: "Resumen", Icon: FolderOpen, active: pathname === "/" },
+    {
+      to: "/design?step=room",
+      label: "Recinto",
+      Icon: Ruler,
+      active: pathname === "/room-scan" || designStep === "room",
+    },
     {
       to: "/stage-map",
       label: "Plano",
@@ -34,10 +63,20 @@ export function ProjectContext() {
       active: dspActive,
     },
     {
+      to: "/channels",
+      label: "Patch",
+      Icon: Cable,
+      active: pathname === "/channels" || designStep === "patch",
+    },
+    {
       to: "/audit",
       label: "Expediente",
       Icon: ArrowUpRight,
-      active: pathname === "/audit",
+      active:
+        pathname === "/audit" ||
+        pathname === "/export" ||
+        designStep === "save" ||
+        designStep === "findings",
     },
   ];
   return (
@@ -73,7 +112,11 @@ export function ProjectContext() {
           </button>
         </div>
       )}
-      <nav aria-label="Vistas del proyecto" className="project-nav">
+      <nav
+        ref={navRef}
+        aria-label="Vistas del proyecto"
+        className="project-nav"
+      >
         {views.map(({ to, label, Icon, active }) => (
           <Link
             key={to}

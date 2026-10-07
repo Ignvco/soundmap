@@ -1,3 +1,4 @@
+import { WorkspaceHeading } from "@/components/soundmap/workspace-heading";
 import { ARRoomScanModal } from "@/components/soundmap/ar-room-scan.tsx";
 import { RT60Modal } from "@/components/soundmap/rt60-modal.tsx";
 import {
@@ -39,9 +40,7 @@ import {
   MaterialChip,
   NumInput,
   ResultsPanel,
-  ScannerRing,
   WALL_OPTIONS,
-  WaveformViz,
   type Step,
 } from "./components";
 
@@ -53,7 +52,7 @@ export default function RoomScan() {
   const loadDemoVenue = useAppStore((s) => s.loadDemoVenue);
   const [step, setStep] = useState<Step>(1);
   const [scanning, setScanning] = useState(false);
-  const [scanProgress, setScanProgress] = useState(0);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [rt60ModalOpen, setRt60ModalOpen] = useState(false);
   const [arScanOpen, setArScanOpen] = useState(false);
   const [measuredRt60, setMeasuredRt60] = useState<number | null>(null);
@@ -108,7 +107,6 @@ export default function RoomScan() {
     applyRoomScan(scanForm, acoustics);
     feedback("success");
     setScanning(true);
-    setScanProgress(100);
     timerRef.current = setTimeout(() => {
       setScanning(false);
       setStep(4);
@@ -117,69 +115,44 @@ export default function RoomScan() {
 
   const result = step === 4 ? calculateAcoustics(form) : null;
 
-  const STEP_LABELS = [
-    t("room_scan.step_venue"),
-    t("room_scan.step_materials"),
-    t("room_scan.step_scan"),
-  ];
+  const STEP_LABELS = ["Dimensiones", "Materiales", "Revisión"];
+  const previewToggle = step < 4 && (
+    <button
+      type="button"
+      className="audit-button room-preview-toggle"
+      aria-expanded={previewOpen}
+      aria-controls="room-preview-panel"
+      onClick={() => setPreviewOpen((v) => !v)}
+    >
+      <Layers size={16} />{" "}
+      {previewOpen ? "Ocultar vista del recinto" : "Mostrar vista del recinto"}
+    </button>
+  );
 
   return (
-    <ScreenShell compact={inWizard} className="room-workspace">
+    <ScreenShell compact={inWizard} className="room-workspace glow-room">
       {inWizard && (
         <div className="step-intro">
           <h2>Definí el recinto</h2>
           <p>Dimensiones, materiales y audiencia.</p>
+          {previewToggle}
         </div>
       )}
-      <div
-        className={
-          step < 4
-            ? "grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_380px] gap-6"
-            : ""
-        }
-      >
-        {step < 4 && (
-          <div className="room-preview xl:sticky xl:top-20 self-start">
-            <VenuePreview room={form} geometryOnly compact={false} />
-          </div>
-        )}
-        <div className="min-w-0">
-          {/* Header — hidden inside wizard (wizard owns the title) */}
-          {!inWizard && (
-            <div className="mb-8">
-              <div className="flex items-end justify-between gap-6 mb-3 flex-wrap">
-                <div className="min-w-0">
-                  <p className="text-[11px] uppercase tracking-[0.28em] font-medium text-muted-foreground mb-3">
-                    Escaneo
-                  </p>
-                  <h1
-                    className="text-[1.75rem] md:text-[2.4rem] leading-[1.05] tracking-[-0.03em] font-medium text-foreground"
-                    data-testid="page-header-title"
-                  >
-                    {t("room_scan.title")}
-                  </h1>
-                </div>
-                {step < 4 && (
-                  <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-[0.28em]">
-                    {t("room_scan.step", { step })}
-                  </span>
-                )}
-              </div>
-              {step < 4 && (
-                <p className="text-[14px] text-muted-foreground max-w-xl leading-relaxed">
-                  {
-                    [
-                      t("room_scan.step1_subtitle"),
-                      t("room_scan.step2_subtitle"),
-                      t("room_scan.step3_subtitle"),
-                      "",
-                    ][step - 1]
-                  }
-                </p>
-              )}
-            </div>
-          )}
-
+      {!inWizard && (
+        <WorkspaceHeading
+          eyebrow="RECINTO"
+          title={step < 4 ? "Define tu espacio" : "Tu recinto, calculado"}
+          description={
+            step < 4
+              ? "Dimensiones reales para empezar tu diseño."
+              : "Revisa las estimaciones antes de elegir el sistema."
+          }
+        >
+          {previewToggle}
+        </WorkspaceHeading>
+      )}
+      <div className={step < 4 ? "glow-room-layout" : ""}>
+        <div className="min-w-0 room-form">
           {/* Step progress pills — hidden inside wizard (wizard shows step chips) */}
           {!inWizard && step < 4 && (
             <div className="mb-5">
@@ -191,8 +164,9 @@ export default function RoomScan() {
                   return (
                     <div
                       key={s}
+                      aria-current={active ? "step" : undefined}
                       className={cn(
-                        "flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2 text-[10px] font-bold uppercase tracking-[0.2em] transition-all",
+                        "room-progress-step flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-medium transition-all",
                         active
                           ? "bg-accent/12 border border-accent/30 text-accent"
                           : done
@@ -221,7 +195,7 @@ export default function RoomScan() {
                   ? "Dimensiones"
                   : step === 2
                     ? "Materiales"
-                    : "Ambiente"}
+                    : "Revisión"}
               </p>
               <div className="flex gap-1">
                 {[1, 2, 3].map((s) => (
@@ -350,10 +324,14 @@ export default function RoomScan() {
 
                 {/* Venue name */}
                 <GlassCard className="p-4">
-                  <label className="text-[10px] text-muted-foreground uppercase tracking-[0.28em] font-semibold block mb-2">
+                  <label
+                    htmlFor="room-name"
+                    className="text-xs text-muted-foreground font-medium block mb-2"
+                  >
                     {t("room_scan.venue_name")}
                   </label>
                   <input
+                    id="room-name"
                     type="text"
                     value={form.name}
                     onChange={(e) => setField("name", e.target.value)}
@@ -420,23 +398,23 @@ export default function RoomScan() {
                       {t("room_scan.dimensions")}
                     </label>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  <div className="room-dimensions grid gap-3">
                     <NumInput
-                      label="Length"
+                      label="Largo"
                       value={form.length}
                       onChange={(v) => setField("length", v)}
                       suffix="m"
                       step={1}
                     />
                     <NumInput
-                      label="Width"
+                      label="Ancho"
                       value={form.width}
                       onChange={(v) => setField("width", v)}
                       suffix="m"
                       step={1}
                     />
                     <NumInput
-                      label="Height"
+                      label="Altura"
                       value={form.height}
                       onChange={(v) => setField("height", v)}
                       suffix="m"
@@ -504,7 +482,7 @@ export default function RoomScan() {
                   <label className="text-[10px] text-muted-foreground uppercase tracking-[0.28em] font-semibold block mb-3">
                     {t("room_scan.ceiling")}
                   </label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="room-materials grid grid-cols-3 gap-2">
                     {CEILING_OPTIONS.map((opt) => (
                       <MaterialChip
                         key={opt.value}
@@ -521,7 +499,7 @@ export default function RoomScan() {
                   <label className="text-[10px] text-muted-foreground uppercase tracking-[0.28em] font-semibold block mb-3">
                     {t("room_scan.walls")}
                   </label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="room-materials grid grid-cols-3 gap-2">
                     {WALL_OPTIONS.map((opt) => (
                       <MaterialChip
                         key={opt.value}
@@ -538,7 +516,7 @@ export default function RoomScan() {
                   <label className="text-[10px] text-muted-foreground uppercase tracking-[0.28em] font-semibold block mb-3">
                     {t("room_scan.floor")}
                   </label>
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="room-materials grid grid-cols-4 gap-2">
                     {FLOOR_OPTIONS.map((opt) => (
                       <MaterialChip
                         key={opt.value}
@@ -568,7 +546,7 @@ export default function RoomScan() {
                       Ambiente
                     </span>
                   </div>
-                  <div className="grid grid-cols-2 gap-2.5">
+                  <div className="room-environment grid grid-cols-2 gap-3">
                     <NumInput
                       label="Temperatura"
                       value={form.temperature ?? 20}
@@ -678,7 +656,7 @@ export default function RoomScan() {
                   )}
                 </GlassCard>
 
-                <div className="flex gap-3">
+                <div className="room-step-actions flex gap-3">
                   <ProButton
                     variant="ghost"
                     onClick={() => setStep(1)}
@@ -686,7 +664,11 @@ export default function RoomScan() {
                   >
                     {t("room_scan.back")}
                   </ProButton>
-                  <ProButton onClick={() => setStep(3)} className="flex-2">
+                  <ProButton
+                    onClick={() => setStep(3)}
+                    className="flex-[2]"
+                    data-testid="room-continue-step2"
+                  >
                     {t("room_scan.continue")} <ChevronRight size={16} />
                   </ProButton>
                 </div>
@@ -703,53 +685,77 @@ export default function RoomScan() {
                 transition={{ duration: 0.3 }}
                 className="space-y-5 pb-6"
               >
-                {/* Scanner card */}
-                <GlassCard
-                  className={cn(
-                    "p-6 text-center overflow-hidden relative",
-                    scanning && "border-accent/30",
-                  )}
-                  glow={scanning}
-                >
-                  {/* Background gradient when scanning */}
-                  {scanning && (
-                    <div className="absolute inset-0 bg-gradient-radial from-accent/8 via-transparent to-transparent pointer-events-none" />
-                  )}
-
-                  {/* Scanner ring */}
-                  <div className="flex justify-center mb-5">
-                    <ScannerRing progress={scanProgress} scanning={scanning} />
+                <GlassCard className="room-calculation-card p-6">
+                  <span className="workspace-tag">
+                    <Waves size={14} /> Estimación acústica
+                  </span>
+                  <h2>
+                    {scanning ? "Cálculo listo" : "Revisa antes de calcular"}
+                  </h2>
+                  <p>{form.name || "Recinto sin nombre"}</p>
+                  <dl className="workspace-metrics">
+                    <div>
+                      <dt>Largo</dt>
+                      <dd>
+                        {form.length}
+                        <small> m</small>
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Ancho</dt>
+                      <dd>
+                        {form.width}
+                        <small> m</small>
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Altura</dt>
+                      <dd>
+                        {form.height}
+                        <small> m</small>
+                      </dd>
+                    </div>
+                  </dl>
+                  <div className="room-calculation-summary">
+                    <p>
+                      <span>Audiencia prevista</span>
+                      <strong>{form.capacity} personas</strong>
+                    </p>
+                    <p>
+                      <span>Techo</span>
+                      <strong>
+                        {
+                          CEILING_OPTIONS.find(
+                            (o) => o.value === form.ceilingType,
+                          )?.label
+                        }
+                      </strong>
+                    </p>
+                    <p>
+                      <span>Muros</span>
+                      <strong>
+                        {
+                          WALL_OPTIONS.find(
+                            (o) => o.value === form.wallMaterial,
+                          )?.label
+                        }
+                      </strong>
+                    </p>
+                    <p>
+                      <span>Piso</span>
+                      <strong>
+                        {
+                          FLOOR_OPTIONS.find((o) => o.value === form.floorType)
+                            ?.label
+                        }
+                      </strong>
+                    </p>
                   </div>
-
-                  {/* Waveform */}
-                  <WaveformViz active={scanning} progress={scanProgress} />
-
-                  {!scanning && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="mt-4 space-y-1"
-                    >
-                      <p className="text-sm font-bold text-foreground">
-                        {form.name}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {form.length}m × {form.width}m × {form.height}m ·{" "}
-                        {form.capacity} audience
-                      </p>
-                    </motion.div>
-                  )}
-
-                  {scanning && (
-                    <motion.p
-                      key={Math.floor(scanProgress / 20)}
-                      initial={{ opacity: 0, y: 4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="mt-3 text-[11px] text-muted-foreground"
-                    >
-                      {t("room_scan.processing")}
-                    </motion.p>
-                  )}
+                  <p className="workspace-note">
+                    Calcula la acústica a partir de tus dimensiones y
+                    materiales. La medición con micrófono se registra por
+                    separado.
+                  </p>
                 </GlassCard>
 
                 {/* Warning + system info */}
@@ -769,7 +775,7 @@ export default function RoomScan() {
                       </p>
                     </div>
 
-                    <div className="flex gap-3">
+                    <div className="room-step-actions flex gap-3">
                       <ProButton
                         variant="ghost"
                         onClick={() => setStep(2)}
@@ -779,10 +785,11 @@ export default function RoomScan() {
                       </ProButton>
                       <ProButton
                         onClick={handleScan}
+                        data-testid="room-calculate"
                         size="lg"
-                        className="flex-2"
+                        className="flex-[2]"
                       >
-                        <Waves size={16} /> {t("room_scan.run_scan")}
+                        <Waves size={16} /> Calcular acústica
                       </ProButton>
                     </div>
                   </motion.div>
@@ -846,6 +853,26 @@ export default function RoomScan() {
             }}
           />
         </div>
+        {step < 4 && (
+          <aside
+            className={`room-preview glow-room-preview ${previewOpen ? "is-expanded" : ""}`}
+            id="room-preview-panel"
+            aria-label="Vista previa del recinto"
+          >
+            <div className="workspace-section-heading">
+              <div>
+                <p className="project-eyebrow">VISTA DEL ESPACIO</p>
+                <h2>{form.name || "Tu recinto"}</h2>
+              </div>
+              <span className="workspace-tag">Geometría</span>
+            </div>
+            <VenuePreview room={form} geometryOnly compact={false} />
+            <p className="workspace-note">
+              {form.length} × {form.width} × {form.height} m ·{" "}
+              {Math.round(form.length * form.width * form.height)} m³
+            </p>
+          </aside>
+        )}
       </div>
     </ScreenShell>
   );

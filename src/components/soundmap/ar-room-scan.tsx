@@ -46,7 +46,7 @@ export function ARRoomScanModal({ open, onClose, onApply }: Props) {
       }}
     >
       <DialogContent
-        className="ar-dialog sm:max-w-5xl p-0 gap-0 overflow-hidden max-h-[94dvh] overflow-y-auto"
+        className="ar-dialog glow-ar sm:max-w-5xl p-0 gap-0 overflow-hidden max-h-[94dvh] overflow-y-auto"
         data-testid="ar-scan-overlay"
       >
         {open && <ScanSession onApply={onApply} onClose={onClose} />}
@@ -104,8 +104,7 @@ function ScanSession({ onApply, onClose }: Pick<Props, "onApply" | "onClose">) {
     setSensorMessage("Esperando una lectura de inclinación…");
     // Request orientation permission synchronously within the user's gesture (iOS).
     const DOE = window.DeviceOrientationEvent as unknown as
-      | { requestPermission?: () => Promise<string> }
-      | undefined;
+      { requestPermission?: () => Promise<string> } | undefined;
     let permission: Promise<string>;
     try {
       permission = DOE?.requestPermission
@@ -221,7 +220,7 @@ function ScanSession({ onApply, onClose }: Pick<Props, "onApply" | "onClose">) {
 
   return (
     <>
-      <header className="px-6 py-5 border-b border-border pr-12">
+      <header className="ar-heading px-6 py-5 border-b border-border pr-12">
         <div className="flex items-center gap-2 text-accent text-[10px] uppercase tracking-[.2em] mb-2">
           <ScanLine size={13} /> Diseño del recinto
         </div>
@@ -238,7 +237,7 @@ function ScanSession({ onApply, onClose }: Pick<Props, "onApply" | "onClose">) {
         data-mode={mode}
       >
         <section className="p-5 bg-[#0b0d0e] space-y-4 min-w-0">
-          <div className="flex gap-2">
+          <div className="ar-mode-switch flex gap-2">
             {(
               [
                 ["camera", "Cámara asistida", Camera],
@@ -342,7 +341,7 @@ function ScanSession({ onApply, onClose }: Pick<Props, "onApply" | "onClose">) {
           )}
           {mode === "camera" && (
             <>
-              <div className="flex gap-2">
+              <div className="ar-axis-switch flex gap-2">
                 {AXES.map((a, i) => (
                   <button
                     key={a}
@@ -479,7 +478,7 @@ function ScanSession({ onApply, onClose }: Pick<Props, "onApply" | "onClose">) {
             las medidas con una referencia. Las dimensiones vacías conservan el
             valor del formulario.
           </p>
-          <div className="mt-auto space-y-3">
+          <div className="ar-apply-actions mt-auto space-y-3">
             <p className="text-[11px] text-muted-foreground">
               {confirmed.length} de 3 dimensiones listas
             </p>

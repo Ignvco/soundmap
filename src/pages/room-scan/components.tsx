@@ -325,9 +325,10 @@ export function MaterialChip({
   return (
     <motion.button
       onClick={onClick}
+      aria-pressed={selected}
       whileTap={{ scale: 0.95 }}
       className={cn(
-        "rounded-xl px-3 py-2.5 text-xs font-medium transition-all cursor-pointer",
+        "room-material-chip rounded-xl px-3 py-2.5 text-xs font-medium transition-all cursor-pointer",
         selected
           ? "bg-accent/12 text-accent"
           : "bg-white/[0.02] text-muted-foreground hover:text-foreground",
@@ -357,12 +358,13 @@ export function NumInput({
   step?: number;
 }) {
   return (
-    <div className="rounded-2xl bg-secondary/50 border border-border p-3 flex flex-col gap-1">
+    <div className="room-number-field rounded-2xl bg-secondary/50 border border-border p-3 flex flex-col gap-1">
       <span className="text-[10px] text-muted-foreground uppercase tracking-[0.28em] font-semibold">
         {label}
       </span>
       <div className="flex items-center gap-2">
         <button
+          aria-label={`Reducir ${label.toLowerCase()}`}
           onClick={() => onChange(Math.max(0, value - step))}
           className="h-8 w-8 rounded-lg bg-secondary text-secondary-foreground font-bold text-sm flex items-center justify-center cursor-pointer hover:bg-accent/15 hover:text-accent active:scale-90 transition-all shrink-0"
         >
@@ -370,11 +372,15 @@ export function NumInput({
         </button>
         <input
           type="number"
+          inputMode="decimal"
+          aria-label={label}
+          step={step}
           value={value}
           onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
           className="flex-1 bg-transparent text-center text-sm font-bold text-foreground focus:outline-none min-w-0"
         />
         <button
+          aria-label={`Aumentar ${label.toLowerCase()}`}
           onClick={() => onChange(value + step)}
           className="h-8 w-8 rounded-lg bg-secondary text-secondary-foreground font-bold text-sm flex items-center justify-center cursor-pointer hover:bg-accent/15 hover:text-accent active:scale-90 transition-all shrink-0"
         >

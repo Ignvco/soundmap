@@ -20,8 +20,14 @@ export function AppShellV5({ children }: { children: ReactNode }) {
     location.pathname === "/" ||
     location.pathname === "/stage-map" ||
     location.pathname === "/dsp" ||
+    location.pathname === "/room-scan" ||
+    location.pathname === "/channels" ||
+    location.pathname === "/audit" ||
+    location.pathname === "/export" ||
     (location.pathname === "/design" &&
-      (new URLSearchParams(location.search).get("step") ?? lastStep) === "dsp");
+      ["room", "dsp", "patch", "findings", "save"].includes(
+        new URLSearchParams(location.search).get("step") ?? lastStep ?? "room",
+      ));
   useEffect(() => {
     const open = () => setPaletteOpen(true);
     window.addEventListener("soundmap:openpalette", open);
