@@ -50,6 +50,7 @@ export function VenuePreview({
   compact = true,
   interactive = true,
   plan,
+  caption,
 }: {
   room: RoomScanInput;
   tops?: GearItem[];
@@ -62,6 +63,7 @@ export function VenuePreview({
   compact?: boolean;
   interactive?: boolean;
   plan?: ReactNode;
+  caption?: string;
 }) {
   const [opened, setOpened] = useState(false);
   const coverage = useMemo(() => {
@@ -104,7 +106,8 @@ export function VenuePreview({
           </svg>
         )}
         <p className="text-xs text-muted-foreground">
-          {room.width} × {room.length} m · Plano del inventario actual
+          {caption ??
+            `${room.width} × ${room.length} m · Plano del inventario actual`}
         </p>
         {interactive && (
           <button className="audit-button" onClick={() => setOpened(true)}>

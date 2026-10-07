@@ -24,8 +24,11 @@ export function AppShellV5({ children }: { children: ReactNode }) {
     location.pathname === "/channels" ||
     location.pathname === "/audit" ||
     location.pathname === "/export" ||
+    location.pathname === "/pa" ||
+    location.pathname === "/spl-analysis" ||
+    location.pathname === "/acoustic-analysis" ||
     (location.pathname === "/design" &&
-      ["room", "dsp", "patch", "findings", "save"].includes(
+      ["room", "pa", "dsp", "patch", "findings", "save"].includes(
         new URLSearchParams(location.search).get("step") ?? lastStep ?? "room",
       ));
   useEffect(() => {

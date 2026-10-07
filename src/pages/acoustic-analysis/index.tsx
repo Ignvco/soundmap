@@ -1,115 +1,204 @@
-import { AnalysisNav } from "@/components/soundmap/analysis-nav.tsx";
-import { VenuePreview } from "@/components/soundmap/venue-preview.tsx";
-import { Metric, MetricRow } from "@/components/soundmap/vitals/metric.tsx";
-import { useAppStore } from "@/store/app.ts";
+import { AnalysisNav } from "@/components/soundmap/analysis-nav";
+import { VenuePreview } from "@/components/soundmap/venue-preview";
+import { ProjectPlanPreview } from "@/components/soundmap/project-plan-preview";
+import { WorkspaceHeading } from "@/components/soundmap/workspace-heading";
+import { useAppStore } from "@/store/app";
+import { ArrowUpRight, Ruler } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function AcousticAnalysis() {
-  const { room, acoustics } = useAppStore();
+  const { room, acoustics, stageLayout } = useAppStore();
   return (
-    <div className="v6-workspace acoustic-workspace">
+    <div className="glow-workspace glow-analysis">
       <AnalysisNav />
-      <header className="mb-6">
-        <h1 className="v6-heading">Acoustic Analysis</h1>
-        <p className="text-xs text-muted-foreground mt-2">
-          {room?.name ?? "Sin recinto"} · Acústica estimada
-        </p>
-      </header>
+      <WorkspaceHeading
+        eyebrow="ANÁLISIS / ACÚSTICA DEL RECINTO"
+        title="Entendé la sala."
+        description="Reverberación, volumen y modos estimados a partir de las dimensiones, los materiales y la ocupación."
+      >
+        <Link className="audit-button" to="/design?step=room">
+          <Ruler size={15} /> Editar recinto
+        </Link>
+      </WorkspaceHeading>
       {room && acoustics ? (
         <>
-          <MetricRow className="pb-6 mb-6 border-b border-border">
-            <Metric
-              label="RT60 ocupación actual"
-              value={acoustics.rt60Occupied.toFixed(2)}
-              unit="s"
-            />
-            <Metric
-              label="Volumen"
-              value={Math.round(acoustics.volume).toLocaleString()}
-              unit="m³"
-            />
-            <Metric
-              label="Schroeder"
-              value={Math.round(acoustics.schroederFreq).toString()}
-              unit="Hz"
-            />
-            <Metric
-              label="Distancia crítica"
-              value={acoustics.criticalDistance.toFixed(1)}
-              unit="m"
-            />
-          </MetricRow>
-          <div className="acoustic-overview">
-            <aside className="v6-panel p-5 space-y-6">
-              <h2 className="text-sm font-medium">Reverberación</h2>
-              {[
-                { label: "Sala vacía", value: acoustics.rt60Empty },
-                { label: "Aforo completo", value: acoustics.rt60Audience },
-                { label: "Ocupación actual", value: acoustics.rt60Occupied },
-              ].map((x) => (
-                <div key={x.label}>
-                  <div className="flex justify-between text-xs mb-2">
-                    <span className="text-muted-foreground">{x.label}</span>
-                    <span className="font-mono">{x.value.toFixed(2)} s</span>
-                  </div>
-                  <div className="h-1 bg-secondary">
-                    <div
-                      className="h-full bg-accent"
-                      style={{
-                        width: `${Math.min(100, Math.max(0, (x.value / Math.max(acoustics.rt60Empty, acoustics.rt60Audience, 0.1)) * 100))}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Estimación a partir del volumen, materiales y ocupación. Para
-                contrastarla con una medición, usá la herramienta RT60 del
-                recinto.
-              </p>
-              <Link className="v6-button w-full" to="/design?step=room">
-                Recinto y medición RT60
-              </Link>
-            </aside>
-            <div className="acoustic-geometry">
-              <VenuePreview room={room} geometryOnly />
+          <dl
+            className="workspace-metrics analysis-metrics"
+            data-testid="acoustic-metrics"
+          >
+            <div>
+              <dt>RT60 · ocupación actual</dt>
+              <dd className="text-accent">
+                {acoustics.rt60Occupied.toFixed(2)} <small>s</small>
+              </dd>
             </div>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-6 mt-6">
-            <section className="v6-panel p-5">
-              <h2 className="text-sm font-medium mb-4">
-                Modos axiales fundamentales
-              </h2>
-              {Object.entries(acoustics.axialModes).map(([axis, f]) => (
-                <div
-                  key={axis}
-                  className="flex justify-between py-3 border-b border-border text-sm"
-                >
-                  <span className="text-muted-foreground">
-                    Eje {axis.toUpperCase()}
-                  </span>
-                  <span className="font-mono">{f.toFixed(1)} Hz</span>
+            <div>
+              <dt>Volumen</dt>
+              <dd>
+                {Math.round(acoustics.volume).toLocaleString()}{" "}
+                <small>m³</small>
+              </dd>
+            </div>
+            <div>
+              <dt>Frecuencia de Schroeder</dt>
+              <dd>
+                {Math.round(acoustics.schroederFreq)} <small>Hz</small>
+              </dd>
+            </div>
+            <div>
+              <dt>Distancia crítica</dt>
+              <dd>
+                {acoustics.criticalDistance.toFixed(1)} <small>m</small>
+              </dd>
+            </div>
+          </dl>
+          <div className="acoustic-layout">
+            <section className="workspace-card acoustic-reverb">
+              <div className="workspace-section-heading">
+                <div>
+                  <p className="project-eyebrow">TIEMPO DE REVERBERACIÓN</p>
+                  <h2>La ocupación cambia la sala</h2>
                 </div>
-              ))}
-            </section>
-            <section className="v6-panel p-5">
-              <h2 className="text-sm font-medium mb-4">
-                Recomendaciones del recinto
-              </h2>
-              <ul className="space-y-3 text-sm text-muted-foreground">
-                {acoustics.recommendations.map((r, i) => (
-                  <li key={i}>{r}</li>
+                <span className="workspace-tag">Estimado</span>
+              </div>
+              <div className="acoustic-bars">
+                {[
+                  {
+                    label: "Sala vacía",
+                    value: acoustics.rt60Empty,
+                    current: false,
+                  },
+                  {
+                    label: "Aforo completo",
+                    value: acoustics.rt60Audience,
+                    current: false,
+                  },
+                  {
+                    label: "Ocupación actual",
+                    value: acoustics.rt60Occupied,
+                    current: true,
+                  },
+                ].map((x) => (
+                  <div
+                    className="acoustic-bar"
+                    key={x.label}
+                    data-current={x.current}
+                  >
+                    <div>
+                      <span>{x.label}</span>
+                      <strong>
+                        {x.value.toFixed(2)} <small>s</small>
+                      </strong>
+                    </div>
+                    <div className="acoustic-bar-track" aria-hidden="true">
+                      <span
+                        style={{
+                          width: `${Math.min(100, Math.max(0, (x.value / Math.max(acoustics.rt60Empty, acoustics.rt60Audience, acoustics.rt60Occupied, 0.1)) * 100))}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
                 ))}
-              </ul>
+              </div>
+              <p className="workspace-note">
+                Valores calculados con los materiales declarados. Contrastalos
+                con una medición RT60 del recinto.
+              </p>
+              <Link className="audit-button" to="/design?step=room">
+                Recinto y medición RT60 <ArrowUpRight size={15} />
+              </Link>
+            </section>
+            <section className="workspace-card analysis-preview">
+              <div className="workspace-section-heading">
+                <div>
+                  <p className="project-eyebrow">GEOMETRÍA</p>
+                  <h2>{room.name}</h2>
+                </div>
+              </div>
+              <VenuePreview
+                room={room}
+                geometryOnly
+                caption={`${room.width} × ${room.length} × ${room.height} m · Geometría del recinto`}
+                plan={
+                  <ProjectPlanPreview
+                    room={room}
+                    tops={[]}
+                    subs={[]}
+                    monitors={[]}
+                    layout={stageLayout}
+                  />
+                }
+              />
+            </section>
+            <section className="workspace-card analysis-reading">
+              <p className="project-eyebrow">BAJAS FRECUENCIAS</p>
+              <h2>Modos axiales fundamentales</h2>
+              <dl className="acoustic-modes">
+                {[
+                  {
+                    label: "Largo",
+                    size: room.length,
+                    value: acoustics.axialModes.x,
+                  },
+                  {
+                    label: "Ancho",
+                    size: room.width,
+                    value: acoustics.axialModes.y,
+                  },
+                  {
+                    label: "Alto",
+                    size: room.height,
+                    value: acoustics.axialModes.z,
+                  },
+                ].map((axis) => (
+                  <div key={axis.label}>
+                    <dt>
+                      {axis.label}
+                      <small>{axis.size} m</small>
+                    </dt>
+                    <dd>
+                      {axis.value.toFixed(1)} <small>Hz</small>
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+              <p className="workspace-note">
+                Referencia a partir de las tres dimensiones. La geometría
+                irregular requiere un análisis específico.
+              </p>
+            </section>
+            <section className="workspace-card analysis-reading">
+              <p className="project-eyebrow">LECTURA DEL RECINTO</p>
+              <h2>Recomendaciones</h2>
+              {acoustics.recommendations.length ? (
+                <ul className="analysis-notes">
+                  {acoustics.recommendations.map((r, i) => (
+                    <li key={i}>{r}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="workspace-note">
+                  Sin recomendaciones adicionales para los datos actuales.
+                </p>
+              )}
+              <Link className="audit-button" to="/spl-analysis">
+                Explorar cobertura SPL <ArrowUpRight size={15} />
+              </Link>
             </section>
           </div>
         </>
       ) : (
-        <div className="v6-panel p-8 text-sm">
-          Completá el recinto para analizar su acústica.{" "}
-          <Link className="text-accent" to="/design?step=room">
-            Ir a Design
+        <div className="workspace-empty">
+          <Ruler size={30} />
+          <h2>Primero, tu recinto</h2>
+          <p>
+            Completá las dimensiones y los materiales para analizar su acústica.
+          </p>
+          <Link
+            className="audit-button workspace-primary"
+            to="/design?step=room"
+          >
+            Definir recinto <ArrowUpRight size={15} />
           </Link>
         </div>
       )}

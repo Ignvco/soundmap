@@ -7,6 +7,8 @@ import {
   Save,
   Ruler,
   Cable,
+  Speaker,
+  Activity,
 } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { useAppStore, hasUnsavedRevision } from "@/store/app";
@@ -51,6 +53,15 @@ export function ProjectContext() {
       active: pathname === "/room-scan" || designStep === "room",
     },
     {
+      to: "/design?step=pa",
+      label: "Equipos",
+      Icon: Speaker,
+      active:
+        pathname === "/pa" ||
+        pathname === "/gear-builder" ||
+        designStep === "pa",
+    },
+    {
       to: "/stage-map",
       label: "Plano",
       Icon: Map,
@@ -67,6 +78,12 @@ export function ProjectContext() {
       label: "Patch",
       Icon: Cable,
       active: pathname === "/channels" || designStep === "patch",
+    },
+    {
+      to: "/spl-analysis",
+      label: "Análisis",
+      Icon: Activity,
+      active: pathname === "/spl-analysis" || pathname === "/acoustic-analysis",
     },
     {
       to: "/audit",

@@ -1,14 +1,12 @@
 import { VenuePreview } from "@/components/soundmap/venue-preview.tsx";
 import { catalogStatus } from "@/lib/audio/catalog";
 import { gearMatchScore } from "@/lib/audio/pa-engine";
+import { evaluateAudit } from "@/lib/audio/audit-evaluator";
 import type { LucideIcon } from "lucide-react";
 // SoundMap — Armador de Equipo (Gear Builder) — Dark premium configurator
-import { PageHeader } from "@/components/soundmap/nav.tsx";
-import {
-  GlassCard,
-  ScreenShell,
-  WarningBanner,
-} from "@/components/soundmap/ui.tsx";
+import { WorkspaceHeading } from "@/components/soundmap/workspace-heading";
+import { ProjectPlanPreview } from "@/components/soundmap/project-plan-preview";
+import { Link } from "react-router-dom";
 import {
   AMPS_DATABASE,
   DSP_DATABASE,
@@ -34,11 +32,11 @@ import {
   Search,
   SlidersHorizontal,
   Speaker,
-  Star,
+  ArrowUpRight,
+  Package,
   X,
   Zap,
 } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
 import { useMemo, useState } from "react";
 
 type GearTab = "tops" | "subs" | "monitors" | "dsp" | "amp" | "mixer" | "mic";
@@ -50,11 +48,7 @@ interface TabConfig {
   label: string;
   shortLabel: string;
   icon: LucideIcon;
-  color: string;
 }
-
-// SoundMap Vitals palette — single lime accent, everything else neutral grayscale
-const LIME = "var(--sm-accent)";
 
 const TABS: TabConfig[] = [
   {
@@ -62,49 +56,42 @@ const TABS: TabConfig[] = [
     label: "Line Arrays / Tops",
     shortLabel: "Tops",
     icon: Speaker,
-    color: LIME,
   },
   {
     id: "subs",
     label: "Subwoofers",
     shortLabel: "Subs",
     icon: Gauge,
-    color: LIME,
   },
   {
     id: "monitors",
     label: "Monitores de Escenario",
     shortLabel: "Mon",
     icon: Layers,
-    color: LIME,
   },
   {
     id: "dsp",
     label: "Procesadores DSP",
     shortLabel: "DSP",
     icon: Cpu,
-    color: LIME,
   },
   {
     id: "amp",
     label: "Amplificadores",
     shortLabel: "Amps",
     icon: Zap,
-    color: LIME,
   },
   {
     id: "mixer",
     label: "Consolas de Mezcla",
     shortLabel: "Consola",
     icon: SlidersHorizontal,
-    color: LIME,
   },
   {
     id: "mic",
     label: "Micrófonos",
     shortLabel: "Mics",
     icon: Mic2,
-    color: LIME,
   },
 ];
 
@@ -117,12 +104,6 @@ const DB_MAP: Record<GearTab, GearItem[]> = {
   mixer: MIXERS_DATABASE,
   mic: MICS_DATABASE,
 };
-
-function getScoreLabel(score: number): string {
-  if (score >= 88) return "Afinidad orientativa";
-  if (score >= 75) return "Revisar compatibilidad";
-  return "Revisar requisitos";
-}
 
 function SpecRow({ label, value }: { label: string; value: string }) {
   return (
@@ -150,7 +131,6 @@ function GearCard({
   onToggle: () => void;
   onQuantityChange: (qty: number) => void;
   quantity: number;
-  tabColor: string;
   tabIcon: LucideIcon;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -170,7 +150,7 @@ function GearCard({
           <p className="text-xs text-muted-foreground">{catalogStatus(item)}</p>
         </div>
         <button
-          className={`v6-button ${selected ? "text-accent" : ""}`}
+          className={`v6-button gear-add ${selected ? "text-accent" : ""}`}
           onClick={onToggle}
           aria-label={`${selected ? "Quitar" : "Agregar"} ${item.brand} ${item.model}`}
           aria-pressed={selected}
@@ -200,6 +180,7 @@ function GearCard({
             <output aria-label={`Cantidad de ${item.model}`}>{quantity}</output>
             <button
               aria-label={`Aumentar cantidad de ${item.model}`}
+              disabled={quantity >= 64}
               onClick={() => onQuantityChange(quantity + 1)}
             >
               <Plus size={14} />
@@ -265,6 +246,7 @@ function GearCard({
 export default function GearBuilder() {
   const {
     stageLayout,
+    audit,
     tops,
     subs,
     monitors,
@@ -283,6 +265,16 @@ export default function GearBuilder() {
   const [sortMode, setSortMode] = useState<SortMode>("match");
   const [filterActive, setFilterActive] = useState<FilterActive>("all");
   const [showFilters, setShowFilters] = useState(false);
+  const [showInventory, setShowInventory] = useState(false);
+  const previewGrid = useMemo(
+    () =>
+      room
+        ? (evaluateAudit({ room, tops, subs, stageLayout, dsp: audit.dsp })
+            .grid ?? undefined)
+        : undefined,
+    [room, tops, subs, stageLayout, audit.dsp],
+  );
+  const speakerCategory = ["tops", "subs", "monitors"].includes(activeTab);
 
   const selectedMap: Record<GearTab, GearItem[]> = {
     tops,
@@ -315,7 +307,7 @@ export default function GearBuilder() {
     }));
 
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
+      const q = searchQuery.trim().toLowerCase();
       items = items.filter(
         ({ item }) =>
           item.brand.toLowerCase().includes(q) ||
@@ -323,9 +315,9 @@ export default function GearBuilder() {
       );
     }
 
-    if (filterActive === "active")
+    if (speakerCategory && filterActive === "active")
       items = items.filter(({ item }) => item.active);
-    else if (filterActive === "passive")
+    else if (speakerCategory && filterActive === "passive")
       items = items.filter(({ item }) => !item.active);
 
     items.sort((a, b) => {
@@ -341,7 +333,15 @@ export default function GearBuilder() {
     });
 
     return items;
-  }, [database, searchQuery, filterActive, sortMode, capacity, rt60]);
+  }, [
+    database,
+    searchQuery,
+    filterActive,
+    sortMode,
+    capacity,
+    rt60,
+    speakerCategory,
+  ]);
 
   const selectedItems = selectedMap[activeTab];
   // Count units in this tab
@@ -351,361 +351,281 @@ export default function GearBuilder() {
   const getQuantity = (item: GearItem) =>
     selectedItems.find((g) => g.id === item.id)?.quantity ?? 1;
 
+  const chooseCategory = (category: GearTab) => {
+    setActiveTab(category);
+    setSearchQuery("");
+  };
+
   return (
-    <ScreenShell compact={inWizard} className="gear-builder-workspace">
-      {inWizard && (
-        <div className="step-intro">
-          <h2>Configurá el PA</h2>
-          <p>Elegí las cajas y la cantidad de cada equipo.</p>
-        </div>
-      )}
-      {!inWizard && (
-        <PageHeader
-          title="Armador de Equipo"
-          subtitle={
-            room
-              ? `${room.name} · ${room.capacity} personas`
-              : "Sin sala seleccionada"
-          }
-          right={
-            totalUnits > 0 ? (
-              <div className="flex items-center gap-1 rounded-xl bg-accent/12 border border-accent/30 px-3 py-1.5">
-                <Star size={11} className="text-accent" fill="var(--accent)" />
-                <span className="text-xs font-bold text-accent">
-                  {totalUnits}
-                </span>
-              </div>
-            ) : undefined
-          }
-        />
-      )}
-
+    <div className="glow-workspace glow-gear">
+      <WorkspaceHeading
+        eyebrow={inWizard ? "DISEÑO / 02 · EQUIPOS" : "INVENTARIO DEL PROYECTO"}
+        title="Armá tu sistema."
+        description="Elegí modelos y cantidades para tu plano y DSP."
+      />
       {!room && (
-        <div className="mb-4">
-          <WarningBanner
-            message="Hacé un Escaneo de Sala primero para obtener puntajes y recomendaciones optimizadas."
-            type="info"
-          />
-        </div>
+        <p className="workspace-note">
+          Podés explorar el catálogo.{" "}
+          <Link to="/design?step=room" className="text-accent">
+            Definí el recinto
+          </Link>{" "}
+          para contextualizar la selección.
+        </p>
       )}
 
-      <div className="mb-4">
-        <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-          {TABS.map((tab) => {
-            const Icon = tab.icon;
-            const tabItems = selectedMap[tab.id];
-            const units = tabItems.reduce(
-              (sum, g) => sum + (g.quantity ?? 1),
-              0,
-            );
-            const isActive = activeTab === tab.id;
-            return (
+      <div className="gear-layout">
+        <section className="gear-controls" aria-label="Explorar catálogo">
+          <div className="gear-category-mobile">
+            <label htmlFor="gear-category">Categoría de equipo</label>
+            <select
+              id="gear-category"
+              className="audit-input"
+              value={activeTab}
+              onChange={(e) => chooseCategory(e.target.value as GearTab)}
+            >
+              {TABS.map((tab) => (
+                <option key={tab.id} value={tab.id}>
+                  {tab.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <nav className="gear-categories" aria-label="Categorías de equipo">
+            {TABS.map(({ id, shortLabel, label, icon: Icon }) => (
               <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className="shrink-0 flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-all duration-200 cursor-pointer"
-                style={
-                  isActive
-                    ? {
-                        background: `${tab.color}1F`,
-                        border: `1px solid ${tab.color}55`,
-                        color: tab.color,
-                        boxShadow: `0 2px 12px ${tab.color}26`,
-                      }
-                    : {
-                        background: "var(--secondary)",
-                        border: "1px solid var(--border)",
-                        color: "var(--muted-foreground)",
-                      }
-                }
+                key={id}
+                type="button"
+                aria-label={label}
+                aria-pressed={activeTab === id}
+                onClick={() => chooseCategory(id)}
               >
-                <Icon size={13} />
-                <span>{tab.shortLabel}</span>
-                {units > 0 && (
-                  <span
-                    className="rounded-full px-1.5 text-[9px] font-bold"
-                    style={{ background: `${tab.color}33`, color: tab.color }}
-                  >
-                    {units}
-                  </span>
-                )}
+                <Icon size={17} />
+                <span>{shortLabel}</span>
               </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {room && (
-        <div className="mb-5">
-          <VenuePreview
-            layout={stageLayout}
-            room={room}
-            tops={tops}
-            subs={subs}
-            monitors={monitors}
-          />
-        </div>
-      )}
-      <div className="mb-3">
-        <GlassCard className="p-3">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <h2 className="text-sm font-bold text-foreground leading-none">
-                {activeTabConfig.label}
-              </h2>
-              <p className="text-[10px] text-muted-foreground mt-0.5">
-                {processedItems.length} elementos · {tabUnits} unidades
-                seleccionadas
-              </p>
+            ))}
+          </nav>
+          <div className="gear-search-row">
+            <div className="gear-search">
+              <Search size={17} aria-hidden="true" />
+              <input
+                aria-label="Buscar marca o modelo"
+                placeholder="Buscar marca o modelo…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  aria-label="Limpiar búsqueda"
+                  onClick={() => setSearchQuery("")}
+                >
+                  <X size={16} />
+                </button>
+              )}
             </div>
             <button
-              onClick={() => setShowFilters((f) => !f)}
-              className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-              style={
-                showFilters
-                  ? {
-                      background: `${activeTabConfig.color}18`,
-                      color: activeTabConfig.color,
-                      border: `1px solid ${activeTabConfig.color}40`,
-                    }
-                  : { border: "1px solid var(--border)" }
-              }
+              type="button"
+              className="audit-button"
+              aria-expanded={showFilters}
+              aria-controls="gear-filters"
+              onClick={() => setShowFilters(!showFilters)}
             >
-              <SlidersHorizontal size={12} />
-              Filtros
+              <SlidersHorizontal size={16} /> Filtros
+              {speakerCategory && filterActive !== "all" ? " · 1" : ""}
             </button>
           </div>
-
-          <div className="relative">
-            <Search
-              size={13}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-            />
-            <input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar marca o modelo…"
-              className="w-full bg-secondary/50 border border-border rounded-xl pl-8 pr-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-accent/50 transition-colors"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
-              >
-                <X size={12} />
-              </button>
-            )}
-          </div>
-
-          <AnimatePresence>
-            {showFilters && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.18 }}
-                className="overflow-hidden"
-              >
-                <div className="pt-3 space-y-3">
-                  <div>
-                    <p className="text-[9px] text-muted-foreground uppercase tracking-[0.28em] font-semibold mb-1.5">
-                      Ordenar Por
-                    </p>
-                    <div className="flex gap-1.5 flex-wrap">
-                      {(["match", "spl", "power", "name"] as SortMode[]).map(
-                        (mode) => (
-                          <button
-                            key={mode}
-                            onClick={() => setSortMode(mode)}
-                            className="rounded-lg px-2.5 py-1 text-[10px] font-semibold transition-all cursor-pointer"
-                            style={
-                              sortMode === mode
-                                ? {
-                                    background: `${activeTabConfig.color}1F`,
-                                    color: activeTabConfig.color,
-                                    border: `1px solid ${activeTabConfig.color}4D`,
-                                  }
-                                : {
-                                    background: "var(--secondary)",
-                                    border: "1px solid var(--border)",
-                                    color: "var(--muted-foreground)",
-                                  }
-                            }
-                          >
-                            {mode === "match"
-                              ? "Mejor Coincidencia"
-                              : mode === "spl"
-                                ? "SPL Máximo"
-                                : mode === "power"
-                                  ? "Potencia"
-                                  : "A-Z"}
-                          </button>
-                        ),
-                      )}
-                    </div>
-                  </div>
-
-                  {["tops", "subs", "monitors"].includes(activeTab) && (
-                    <div>
-                      <p className="text-[9px] text-muted-foreground uppercase tracking-[0.28em] font-semibold mb-1.5">
-                        Amplificación
-                      </p>
-                      <div className="flex gap-1.5">
-                        {(["all", "active", "passive"] as FilterActive[]).map(
-                          (f) => (
-                            <button
-                              key={f}
-                              onClick={() => setFilterActive(f)}
-                              className="rounded-lg px-2.5 py-1 text-[10px] font-semibold transition-all cursor-pointer"
-                              style={
-                                filterActive === f
-                                  ? {
-                                      background: `${activeTabConfig.color}1F`,
-                                      color: activeTabConfig.color,
-                                      border: `1px solid ${activeTabConfig.color}4D`,
-                                    }
-                                  : {
-                                      background: "var(--secondary)",
-                                      border: "1px solid var(--border)",
-                                      color: "var(--muted-foreground)",
-                                    }
-                              }
-                            >
-                              {f === "all"
-                                ? "Todos"
-                                : f === "active"
-                                  ? "Activo"
-                                  : "Pasivo"}
-                            </button>
-                          ),
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </GlassCard>
-      </div>
-
-      <AnimatePresence>
-        {selectedItems.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="px-4 mb-3 overflow-hidden"
-          >
-            <div className="rounded-xl border border-border bg-card p-3 shadow-[0_2px_8px_rgba(0,0,0,0.25)]">
-              <p className="text-[9px] text-muted-foreground uppercase tracking-[0.28em] font-semibold mb-2">
-                Seleccionados
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {selectedItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5"
-                    style={{
-                      background: `${activeTabConfig.color}18`,
-                      border: `1px solid ${activeTabConfig.color}3D`,
-                    }}
+          {showFilters && (
+            <div id="gear-filters" className="gear-filters">
+              <label>
+                Ordenar por
+                <select
+                  className="audit-input"
+                  aria-label="Ordenar catálogo"
+                  value={sortMode}
+                  onChange={(e) => setSortMode(e.target.value as SortMode)}
+                >
+                  <option value="match">Afinidad orientativa</option>
+                  <option value="name">Marca y modelo</option>
+                  <option value="spl">SPL declarado</option>
+                  <option value="power">Potencia declarada</option>
+                </select>
+              </label>
+              {speakerCategory && (
+                <label>
+                  Amplificación
+                  <select
+                    className="audit-input"
+                    aria-label="Filtrar amplificación"
+                    value={filterActive}
+                    onChange={(e) =>
+                      setFilterActive(e.target.value as FilterActive)
+                    }
                   >
-                    <span
-                      className="text-[11px] font-bold tabular-nums"
-                      style={{ color: activeTabConfig.color }}
-                    >
-                      {item.quantity ?? 1}×
-                    </span>
-                    <span
-                      className="text-[11px] font-semibold"
-                      style={{ color: activeTabConfig.color }}
-                    >
-                      {item.brand} {item.model}
-                    </span>
-                    <button
-                      onClick={() => toggleGearItem(activeTab, item)}
-                      className="transition-opacity hover:opacity-100 opacity-60 cursor-pointer"
-                      style={{ color: activeTabConfig.color }}
-                    >
-                      <X size={11} />
-                    </button>
-                  </div>
-                ))}
-              </div>
+                    <option value="all">Activos y pasivos</option>
+                    <option value="active">Activos</option>
+                    <option value="passive">Pasivos</option>
+                  </select>
+                </label>
+              )}
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </section>
 
-      {room && acoustics && (
-        <div className="mb-4">
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              {
-                label: "Capacidad",
-                value: room.capacity.toString(),
-                unit: "pax",
-              },
-              { label: "RT60", value: rt60.toFixed(2), unit: "s" },
-              {
-                label: "Volumen",
-                value: Math.round(acoustics.volume).toString(),
-                unit: "m³",
-              },
-            ].map((m) => (
-              <div
-                key={m.label}
-                className="rounded-xl bg-secondary/50 border border-border p-3 text-center"
-              >
-                <p className="text-[9px] text-muted-foreground uppercase tracking-[0.28em] font-semibold">
-                  {m.label}
-                </p>
-                <p className="text-base font-bold text-foreground mt-0.5">
-                  {m.value}
-                  {m.unit && (
-                    <span className="text-[10px] text-muted-foreground ml-0.5">
-                      {m.unit}
-                    </span>
-                  )}
-                </p>
-              </div>
-            ))}
+        <aside
+          className="workspace-card gear-inventory"
+          aria-label="Inventario seleccionado"
+        >
+          <div className="workspace-section-heading">
+            <div>
+              <p className="project-eyebrow">TU SELECCIÓN</p>
+              <h2>
+                {totalUnits} <span>unidades</span>
+              </h2>
+            </div>
+            <button
+              className="audit-button gear-inventory-toggle"
+              type="button"
+              aria-expanded={showInventory}
+              aria-controls="gear-inventory-body"
+              onClick={() => setShowInventory(!showInventory)}
+            >
+              {showInventory ? "Ocultar" : "Ver equipo"}
+              <ChevronDown size={15} />
+            </button>
+            <Package className="gear-inventory-icon" size={22} />
           </div>
-        </div>
-      )}
-
-      <div className="pb-4">
-        {processedItems.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center py-12 text-muted-foreground text-sm"
+          <div
+            id="gear-inventory-body"
+            className="gear-inventory-body"
+            data-expanded={showInventory}
           >
-            No se encontró equipo con estos filtros.
-          </motion.div>
-        ) : (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-6 items-start">
-            <AnimatePresence mode="popLayout">
+            <Link to="/pa" className="audit-button">
+              Resumen PA <ArrowUpRight size={15} />
+            </Link>
+            {totalUnits === 0 ? (
+              <p className="workspace-note">
+                Agregá tu primer modelo desde el catálogo. Después podés ajustar
+                sus unidades.
+              </p>
+            ) : (
+              <div className="gear-inventory-groups">
+                {TABS.filter((tab) => selectedMap[tab.id].length > 0).map(
+                  (tab) => (
+                    <section key={tab.id}>
+                      <h3>{tab.label}</h3>
+                      {selectedMap[tab.id].map((item) => (
+                        <div className="gear-inventory-item" key={item.id}>
+                          <span className="gear-inventory-qty">
+                            {item.quantity ?? 1}×
+                          </span>
+                          <button
+                            type="button"
+                            className="gear-inventory-model"
+                            aria-label={`Ver ${item.brand} ${item.model} en catálogo`}
+                            onClick={() => {
+                              setActiveTab(tab.id);
+                              setSearchQuery(item.model);
+                              setFilterActive("all");
+                            }}
+                          >
+                            <small>{item.brand}</small>
+                            {item.model}
+                          </button>
+                          <button
+                            type="button"
+                            className="app-icon-button"
+                            aria-label={`Quitar ${item.brand} ${item.model} del inventario`}
+                            onClick={() => toggleGearItem(tab.id, item)}
+                          >
+                            <X size={15} />
+                          </button>
+                        </div>
+                      ))}
+                    </section>
+                  ),
+                )}
+              </div>
+            )}
+            <Link to="/stage-map" className="audit-button">
+              Ubicar en el plano <ArrowUpRight size={15} />
+            </Link>
+            {room && (
+              <details className="gear-plan-disclosure">
+                <summary>Vista del recinto</summary>
+                <VenuePreview
+                  room={room}
+                  tops={tops}
+                  subs={subs}
+                  monitors={monitors}
+                  layout={stageLayout}
+                  grid={previewGrid}
+                  plan={
+                    <ProjectPlanPreview
+                      room={room}
+                      tops={tops}
+                      subs={subs}
+                      monitors={monitors}
+                      layout={stageLayout}
+                    />
+                  }
+                />
+              </details>
+            )}
+            <p className="workspace-note">
+              La ficha indica el estado de sus datos. La afinidad es orientativa
+              y no valida el sistema.
+            </p>
+          </div>
+        </aside>
+
+        <section className="gear-catalog" aria-label="Modelos disponibles">
+          <div className="workspace-section-heading">
+            <div>
+              <p className="project-eyebrow">CATÁLOGO</p>
+              <h2>{activeTabConfig.label}</h2>
+            </div>
+            <span className="workspace-tag">{tabUnits} en selección</span>
+          </div>
+          <p className="workspace-note" role="status">
+            {processedItems.length} modelos
+            {searchQuery ? ` para “${searchQuery}”` : " disponibles"}
+          </p>
+          {processedItems.length === 0 ? (
+            <div className="workspace-empty">
+              <Search size={26} />
+              <h2>Sin coincidencias</h2>
+              <p>Probá con otra marca, modelo o amplificación.</p>
+              <button
+                type="button"
+                className="audit-button"
+                onClick={() => {
+                  setSearchQuery("");
+                  setFilterActive("all");
+                }}
+              >
+                Restablecer búsqueda
+              </button>
+            </div>
+          ) : (
+            <div className="gear-catalog-list">
               {processedItems.map(({ item, score }) => (
                 <GearCard
                   key={item.id}
                   item={item}
                   selected={isSelected(item)}
-                  score={score}
+                  score={room ? score : null}
                   quantity={getQuantity(item)}
                   onToggle={() => toggleGearItem(activeTab, item)}
                   onQuantityChange={(qty) =>
                     setGearItemQuantity(activeTab, item.id, qty)
                   }
-                  tabColor={activeTabConfig.color}
                   tabIcon={activeTabConfig.icon}
                 />
               ))}
-            </AnimatePresence>
-          </div>
-        )}
+            </div>
+          )}
+        </section>
       </div>
-    </ScreenShell>
+    </div>
   );
 }
