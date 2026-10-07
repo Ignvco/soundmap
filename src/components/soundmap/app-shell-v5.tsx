@@ -3,6 +3,7 @@ import { BottomNav } from "@/components/soundmap/bottom-nav.tsx";
 import { CommandPalette } from "@/components/soundmap/command-palette.tsx";
 import { DesktopSidebar } from "@/components/soundmap/desktop-sidebar.tsx";
 import { ErrorBoundary } from "@/components/soundmap/error-boundary.tsx";
+import { ProjectContext } from "@/components/soundmap/project-context";
 import { feedback } from "@/lib/feedback.ts";
 import { hasUnsavedRevision, useAppStore } from "@/store/app";
 import { AudioLines, Search, Sparkles } from "lucide-react";
@@ -14,6 +15,13 @@ export function AppShellV5({ children }: { children: ReactNode }) {
   const location = useLocation();
   const room = useAppStore((s) => s.room);
   const dirty = useAppStore(hasUnsavedRevision);
+  const lastStep = useAppStore((s) => s.lastWizardStep);
+  const glowScreen =
+    location.pathname === "/" ||
+    location.pathname === "/stage-map" ||
+    location.pathname === "/dsp" ||
+    (location.pathname === "/design" &&
+      (new URLSearchParams(location.search).get("step") ?? lastStep) === "dsp");
   useEffect(() => {
     const open = () => setPaletteOpen(true);
     window.addEventListener("soundmap:openpalette", open);
@@ -24,7 +32,10 @@ export function AppShellV5({ children }: { children: ReactNode }) {
   }, [location.pathname]);
 
   return (
-    <div className="app-shell min-h-[100dvh] bg-background text-foreground flex">
+    <div
+      className="app-shell min-h-[100dvh] bg-background text-foreground flex"
+      data-glow-screen={glowScreen}
+    >
       <DesktopSidebar />
       <div className="flex-1 min-w-0 relative">
         <header className="app-topbar">
@@ -66,23 +77,27 @@ export function AppShellV5({ children }: { children: ReactNode }) {
           </div>
         </header>
         <main className="app-content">
-          {room && (
-            <div className="draft-bar">
-              <Link to="/audit">
-                Expediente ·{" "}
-                {dirty ? "Borrador con cambios" : "Revisión guardada"}
-              </Link>
-              <button
-                onClick={() => useAppStore.getState().saveRevision()}
-                disabled={!dirty}
-              >
-                Guardar revisión
-              </button>
-            </div>
+          {glowScreen ? (
+            <ProjectContext />
+          ) : (
+            room && (
+              <div className="draft-bar">
+                <Link to="/audit">
+                  Expediente ·{" "}
+                  {dirty ? "Borrador con cambios" : "Revisión guardada"}
+                </Link>
+                <button
+                  onClick={() => useAppStore.getState().saveRevision()}
+                  disabled={!dirty}
+                >
+                  Guardar revisión
+                </button>
+              </div>
+            )
           )}
           <ErrorBoundary>{children}</ErrorBoundary>
         </main>
-        {location.pathname !== "/ai-advisor" && (
+        {location.pathname !== "/ai-advisor" && !glowScreen && (
           <div className="hidden lg:block">
             <AdvisorWidget />
           </div>

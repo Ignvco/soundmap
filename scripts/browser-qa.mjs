@@ -62,8 +62,8 @@ try {
       .click();
     await page.getByRole("button", { name: "Plano", exact: true }).click();
     await page.locator('[aria-label^="Seleccionar "]').first().click();
-    await page.getByLabel("Altura rápida (m)").fill("2.2");
-    await page.getByLabel("Altura rápida (m)").press("Tab");
+    await page.getByLabel("Altura del centro (m)").fill("2.2");
+    await page.getByLabel("Altura del centro (m)").press("Tab");
     const before = await page.evaluate(async () =>
       JSON.stringify(
         (await import("/src/store/app.ts")).useAppStore.getState().stageLayout,

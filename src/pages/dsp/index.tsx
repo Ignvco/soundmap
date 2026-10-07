@@ -22,6 +22,7 @@ export default function DSPPage() {
     audit,
     updateAudit,
   } = useAppStore();
+  const [selectedOutput, setSelectedOutput] = useState<string | null>(null);
   const [showSuggestion, setShowSuggestion] = useState(false),
     [share, setShare] = useState(false);
   const suggestion = useMemo(
@@ -39,17 +40,7 @@ export default function DSPPage() {
             {},
           )
         : null,
-    [
-      room,
-      acoustics,
-      tops,
-      subs,
-      monitors,
-      dspUnits,
-      amps,
-      stageLayout,
-      audit.protection,
-    ],
+    [room, acoustics, tops, subs, monitors, dspUnits, amps, stageLayout],
   );
   if (!room || !suggestion)
     return <p className="p-6">Registra primero el recinto.</p>;
@@ -65,6 +56,8 @@ export default function DSPPage() {
       audit,
     }) ?? suggestion;
   const speakers = layoutSpeakers(room, tops, subs, monitors, stageLayout);
+  const activeOutput =
+    config.outputs.find((o) => o.id === selectedOutput) ?? config.outputs[0];
   const changeOutput = (id: string, changes: Partial<DSPOutput>) =>
     updateAudit({
       dsp: {
@@ -85,9 +78,10 @@ export default function DSPPage() {
     setShowSuggestion(false);
   };
   return (
-    <main className="audit-page space-y-5">
-      <header>
-        <h1 className="text-2xl font-semibold">Procesamiento DSP</h1>
+    <section className="audit-page space-y-5 glow-dsp">
+      <header className="glow-dsp-heading">
+        <span className="project-eyebrow">DISEÑO DE SEÑAL</span>
+        <h1 className="v6-heading">Cada salida, bajo control.</h1>
         <p className="text-sm text-muted-foreground">
           {audit.dspState === "verified-on-device"
             ? `Verificado por el técnico: ${audit.dspVerifiedAt}`
@@ -98,10 +92,10 @@ export default function DSPPage() {
         </p>
       </header>
       <p className="text-sm text-muted-foreground">
-        Edita filtros, EQ, polaridad y tiempos por salida. Estos cambios
-        documentan el plan; la aplicación no controla el procesador físico.
+        Ajusta el plan por salida. Aplica y verifica los cambios en tu
+        procesador físico.
       </p>
-      <div className="flex flex-wrap gap-2">
+      <div className="glow-dsp-actions flex flex-wrap gap-2">
         <button
           className="audit-button"
           onClick={() => setShowSuggestion(!showSuggestion)}
@@ -110,18 +104,6 @@ export default function DSPPage() {
         </button>
         <button className="audit-button" onClick={() => setShare(true)}>
           Compartir preset
-        </button>
-        <button
-          className="audit-button"
-          disabled={!audit.dsp || !audit.technician.trim()}
-          onClick={() =>
-            updateAudit({
-              dspState: "verified-on-device",
-              dspVerifiedAt: new Date().toISOString(),
-            })
-          }
-        >
-          Registrar verificación en el equipo
         </button>
       </div>
       {showSuggestion && (
@@ -150,20 +132,87 @@ export default function DSPPage() {
           Sin cajas: no se generan salidas ficticias. Añade inventario en PA.
         </p>
       )}
-      {config.outputs.map((output) => (
-        <div key={output.id}>
-          {!speakers.some((s) => s.id === output.speakerId) && (
-            <p role="alert" className="text-warning">
-              Esta salida no tiene una unidad actual. Compara y acepta una nueva
-              propuesta para reconciliar el inventario.
-            </p>
-          )}
-          <DSPOutputEditor
-            output={output}
-            onChange={(changes) => changeOutput(output.id, changes)}
-          />
+      {config.outputs.length > 0 && (
+        <div className="glow-signal-workspace">
+          <nav className="glow-output-list" aria-label="Salidas del procesador">
+            <p className="project-eyebrow">SALIDAS · {config.outputs.length}</p>
+            {config.outputs.map((output, index) => (
+              <button
+                key={output.id}
+                type="button"
+                aria-pressed={output.id === activeOutput?.id}
+                data-testid={`dsp-output-${index}`}
+                onClick={() => setSelectedOutput(output.id)}
+              >
+                <span className="glow-channel-number">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <span>
+                  <strong>{output.destination}</strong>
+                  <small>
+                    {output.gain} dB · {output.delayMs} ms
+                  </small>
+                </span>
+              </button>
+            ))}
+          </nav>
+          <label className="glow-output-select">
+            <span className="project-eyebrow">
+              SALIDA ACTIVA · {config.outputs.length} DISPONIBLES
+            </span>
+            <select
+              className="audit-input"
+              value={activeOutput?.id ?? ""}
+              onChange={(e) => setSelectedOutput(e.target.value)}
+              data-testid="dsp-output-select"
+              aria-label="Salida DSP"
+            >
+              {config.outputs.map((output, index) => (
+                <option key={output.id} value={output.id}>
+                  {String(index + 1).padStart(2, "0")} · {output.destination}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="glow-output-detail">
+            {activeOutput && (
+              <div key={activeOutput.id}>
+                {!speakers.some((s) => s.id === activeOutput.speakerId) && (
+                  <p role="alert" className="text-warning">
+                    Esta salida no tiene una unidad actual. Compara y acepta una
+                    nueva propuesta para reconciliar el inventario.
+                  </p>
+                )}
+                <DSPOutputEditor
+                  output={activeOutput}
+                  onChange={(changes) => changeOutput(activeOutput.id, changes)}
+                />
+              </div>
+            )}
+          </div>
         </div>
-      ))}
+      )}
+      <details className="glow-dsp-verification rounded-xl border border-border p-4">
+        <summary className="cursor-pointer min-h-11">
+          Verificación en el procesador físico
+        </summary>
+        <p className="text-sm text-muted-foreground mb-3">
+          Registra la comprobación después de aplicar los ajustes en tu equipo.
+          Completa el técnico responsable en el expediente para habilitarla.
+        </p>
+        <button
+          className="audit-button"
+          disabled={!audit.dsp || !audit.technician.trim()}
+          onClick={() =>
+            updateAudit({
+              dspState: "verified-on-device",
+              dspVerifiedAt: new Date().toISOString(),
+            })
+          }
+        >
+          Registrar verificación en el equipo
+        </button>
+      </details>
       <details className="rounded-xl border border-border p-4">
         <summary className="cursor-pointer min-h-11">
           Asignación y referencias de protección eléctrica
@@ -307,6 +356,6 @@ export default function DSPPage() {
         outputs={config.outputs}
         dspModel={config.dspModel}
       />
-    </main>
+    </section>
   );
 }

@@ -762,7 +762,9 @@ export function SpeakerDetail({
   evaluation,
   onClose,
   onChange,
+  compact = false,
 }: {
+  compact?: boolean;
   pin: SpeakerPin;
   room: RoomScanInput;
   evaluation: PinEvaluation | null;
@@ -784,7 +786,7 @@ export function SpeakerDetail({
       exit={{ opacity: 0, y: 10 }}
       transition={{ duration: 0.18 }}
     >
-      <GlassCard className="p-4 mx-4 mb-4">
+      <GlassCard className={compact ? "glow-speaker-detail" : "p-4 mx-4 mb-4"}>
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-2.5">
             <div
@@ -818,6 +820,8 @@ export function SpeakerDetail({
           </div>
           <button
             onClick={onClose}
+            aria-label="Cerrar detalle del equipo"
+            data-testid="stage-close-detail"
             className="h-7 w-7 rounded-lg flex items-center justify-center bg-secondary hover:bg-secondary/70 transition-colors cursor-pointer"
           >
             <X size={13} className="text-muted-foreground" />

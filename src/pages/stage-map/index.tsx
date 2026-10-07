@@ -1,5 +1,4 @@
 import { Stage3D } from "@/_r3f_isolated/stage-3d";
-import { DemoBanner } from "@/components/soundmap/demo-banner.tsx";
 import { EmptyRoomState } from "@/components/soundmap/empty-state.tsx";
 import { OptimizerModal } from "@/components/soundmap/optimizer-modal.tsx";
 import { Badge, GlassCard, ScreenShell } from "@/components/soundmap/ui.tsx";
@@ -8,7 +7,7 @@ import { V } from "@/components/soundmap/vitals/index.tsx";
 import { evaluateAudit } from "@/lib/audio/audit-evaluator";
 import { calculateStageConfig } from "@/lib/audio/stage-engine.ts";
 import { feedback } from "@/lib/feedback.ts";
-import { layoutSpeakers, maxSpeakerHeight } from "@/lib/speaker-layout.ts";
+import { layoutSpeakers } from "@/lib/speaker-layout.ts";
 import { SPL_STOPS } from "@/lib/venue-visual.ts";
 import { useAppStore } from "@/store/app.ts";
 import {
@@ -34,7 +33,6 @@ import {
 import {
   DEPLOY_LABEL,
   FloorPlan,
-  PositionField,
   RATING_META,
   SPK_COLORS,
   SpeakerDetail,
@@ -48,6 +46,7 @@ import {
 export default function StageMap() {
   const {
     room,
+    isDemoMode,
     acoustics,
     tops,
     subs,
@@ -55,7 +54,6 @@ export default function StageMap() {
     stageLayout,
     updateSpeakerPlacement,
     resetSpeakerLayout,
-    activeSceneId,
   } = useAppStore();
   const [selectedPin, setSelectedPin] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
@@ -160,12 +158,12 @@ export default function StageMap() {
   }
 
   return (
-    <ScreenShell className="stage-workspace">
+    <ScreenShell className="stage-workspace glow-stage">
       {/* Vitals-style header — eyebrow + big title + right actions */}
-      <div className="mb-6 flex items-end justify-between gap-4 flex-wrap">
+      <div className="glow-stage-heading mb-6 flex items-end justify-between gap-4 flex-wrap">
         <div className="min-w-0">
           <p className="text-[11px] uppercase tracking-[0.28em] font-medium text-muted-foreground mb-2">
-            Stage Map
+            DISEÑO ESPACIAL · 2D / 3D
           </p>
           <h1 className="v6-heading" data-testid="page-header-title">
             {room.name}
@@ -173,7 +171,8 @@ export default function StageMap() {
           <p className="text-[13px] text-muted-foreground mt-1">
             {DEPLOY_LABEL[stageConfig?.deploymentMode ?? "mono"]} ·{" "}
             {tops.reduce((n, g) => n + (g.quantity ?? 1), 0)} tops ·{" "}
-            {subs.reduce((n, g) => n + (g.quantity ?? 1), 0)} subs
+            {subs.reduce((n, g) => n + (g.quantity ?? 1), 0)} subs{" "}
+            {isDemoMode && "· Demo"}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -197,10 +196,8 @@ export default function StageMap() {
         </div>
       </div>
 
-      <DemoBanner />
-
       {/* 2D / 3D Toggle — Vitals pill style */}
-      <div className="mb-4">
+      <div className="glow-stage-toolbar mb-4">
         <div
           className="inline-flex items-center gap-1 rounded-full p-1"
           data-testid="stage-view-toggle"
@@ -222,6 +219,7 @@ export default function StageMap() {
                   feedback("select");
                   setViewMode(v.key);
                 }}
+                aria-pressed={active}
                 data-testid={`stage-view-${v.key}`}
                 className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12px] font-medium cursor-pointer"
                 style={
@@ -246,334 +244,308 @@ export default function StageMap() {
         </div>
       </div>
 
-      {/* 3D View */}
-      {viewMode === "3d" && stageConfig && (
-        <div className="mb-3">
-          {/* El canvas manda. Las métricas flotan encima en vez de ocupar una
+      <div className="glow-stage-layout">
+        <div className="glow-stage-view">
+          {/* 3D View */}
+          {viewMode === "3d" && stageConfig && (
+            <div className="mb-3">
+              {/* El canvas manda. Las métricas flotan encima en vez de ocupar una
               tarjeta debajo: el brief pide "evitar paneles innecesarios
               alrededor" y que la visualización sea protagonista. */}
-          <div className="relative">
-            <VenueBoundary>
-              <Stage3D
-                room={room}
-                config={stageConfig}
-                tops={tops}
-                subs={subs}
-                monitors={monitors}
-                splGrid={splGrid}
-                speakers={speakers}
-                selectedId={selectedPin}
-                onSelect={setSelectedPin}
-              />
-            </VenueBoundary>
-
-            {splGrid && (
-              <div
-                className="mt-3 px-4 py-3"
-                style={{
-                  borderRadius: "var(--radius-card)",
-                  background: "rgba(8, 9, 10, 0.72)",
-                  backdropFilter: "blur(16px)",
-                  boxShadow: "0 0 0 1px var(--border)",
-                }}
-                data-testid="stage-3d-overlay"
-              >
-                <div className="stage-metrics grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  {[
-                    {
-                      label: "Máx",
-                      value: Math.round(splGrid.max),
-                      unit: "dB",
-                      color: "var(--foreground)",
-                      testId: "spl-grid-max",
-                    },
-                    {
-                      label: "Media",
-                      value: Math.round(splGrid.mean),
-                      unit: "dB",
-                      color: "var(--foreground)",
-                    },
-                    {
-                      label: "Spread",
-                      value: splGrid.spread.toFixed(1),
-                      unit: "dB",
-                      color:
-                        splGrid.spread < 6
-                          ? V.accent
-                          : splGrid.spread < 12
-                            ? V.amber
-                            : V.warm,
-                    },
-                    {
-                      label: "Uniform",
-                      value: splGrid.uniformityPct,
-                      unit: "%",
-                      color:
-                        splGrid.uniformityPct > 70
-                          ? V.accent
-                          : splGrid.uniformityPct > 40
-                            ? V.amber
-                            : V.warm,
-                      testId: "spl-grid-uniformity",
-                    },
-                  ].map((m) => (
-                    <div key={m.label}>
-                      <p
-                        className="font-mono tabular-nums text-[17px] leading-none"
-                        style={{ color: m.color }}
-                        data-testid={m.testId}
-                      >
-                        {m.value}
-                        <span
-                          className="text-[10px] ml-0.5 font-sans"
-                          style={{ color: "var(--muted-foreground)" }}
-                        >
-                          {m.unit}
-                        </span>
-                      </p>
-                      <p
-                        className="text-[9px] uppercase tracking-[0.16em] mt-1.5"
-                        style={{ color: "var(--muted-foreground)" }}
-                      >
-                        {m.label}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Metodología: es información importante pero no es lo que mirás
-              mientras posicionás cajas. Va abajo, discreta. */}
-          {splGrid && (
-            <details className="mt-3 group" data-testid="stage-3d-method">
-              <summary
-                className="flex items-center gap-2 cursor-pointer list-none py-2 text-[11px]"
-                style={{ color: "var(--muted-foreground)" }}
-              >
-                <Wand2 size={11} strokeWidth={1.75} />
-                Estimación de campo directo — ver supuestos
-              </summary>
-              <p
-                className="text-[11px] leading-relaxed pt-1 pb-2"
-                style={{ color: "var(--muted-foreground)" }}
-              >
-                Divergencia geométrica, polar genérica y absorción atmosférica.
-                Incluye el DSP aceptado. Modo{" "}
-                {room.simulationMode === "coherent"
-                  ? "coherente ideal"
-                  : "energético"}
-                ; sin reflexiones ni acoplamiento de arrays. Plano de muestreo:{" "}
-                {splGrid.yPlane.toFixed(2)} m. No es una medición ni una
-                predicción certificada del fabricante.
-              </p>
-            </details>
-          )}
-        </div>
-      )}
-
-      {viewMode === "2d" && (
-        <div className="mb-4 border border-border rounded-xl overflow-hidden bg-card">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
-            <div>
-              <p className="text-sm font-medium">Plano de equipos</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Seleccioná una caja para editar su posición y altura.
-              </p>
-            </div>
-            <div className="plan-controls flex gap-2 items-center">
-              <select
-                aria-label="Capa del plano"
-                value={layer}
-                onChange={(e) => setLayer(e.target.value as typeof layer)}
-                className="rounded-md border border-border bg-secondary p-2 text-xs"
-              >
-                <option value="direction">Dirección de cobertura</option>
-                <option value="spl">Predicción SPL · 1 kHz</option>
-                <option value="none">Solo equipos</option>
-              </select>
-              <button
-                aria-label="Alejar plano"
-                className="p-2"
-                onClick={() => setZoom((z) => Math.max(0.6, z - 0.15))}
-              >
-                <ZoomOut size={16} />
-              </button>
-              <button
-                aria-label="Acercar plano"
-                className="p-2"
-                onClick={() => setZoom((z) => Math.min(1.5, z + 0.15))}
-              >
-                <ZoomIn size={16} />
-              </button>
-            </div>
-          </div>
-          <div className="grid lg:grid-cols-[minmax(0,1fr)_300px]">
-            <div className="overflow-auto bg-[#050706] p-4">
-              <div
-                className="mx-auto"
-                style={{
-                  width: 400 * zoom,
-                  maxWidth: zoom <= 1 ? "100%" : undefined,
-                }}
-              >
-                {stageConfig && (
-                  <FloorPlan
+              <div className="relative">
+                <VenueBoundary>
+                  <Stage3D
                     room={room}
                     config={stageConfig}
-                    geo={geo}
-                    pins={pins}
-                    pinEvals={pinEvalMap}
-                    selected={selectedPin}
+                    tops={tops}
+                    subs={subs}
+                    monitors={monitors}
+                    splGrid={splGrid}
+                    speakers={speakers}
+                    selectedId={selectedPin}
                     onSelect={setSelectedPin}
-                    onDragMove={handleDragMove}
-                    onDragEnd={() => {}}
-                    zoom={1}
-                    grid={splGrid}
-                    layer={layer}
                   />
+                </VenueBoundary>
+
+                {splGrid && (
+                  <div
+                    className="mt-3 px-4 py-3"
+                    style={{
+                      borderRadius: "var(--radius-card)",
+                      background: "rgba(8, 9, 10, 0.72)",
+                      backdropFilter: "blur(16px)",
+                      boxShadow: "0 0 0 1px var(--border)",
+                    }}
+                    data-testid="stage-3d-overlay"
+                  >
+                    <div className="stage-metrics grid grid-cols-2 sm:grid-cols-4 gap-4">
+                      {[
+                        {
+                          label: "Máx",
+                          value: Math.round(splGrid.max),
+                          unit: "dB",
+                          color: "var(--foreground)",
+                          testId: "spl-grid-max",
+                        },
+                        {
+                          label: "Media",
+                          value: Math.round(splGrid.mean),
+                          unit: "dB",
+                          color: "var(--foreground)",
+                        },
+                        {
+                          label: "Spread",
+                          value: splGrid.spread.toFixed(1),
+                          unit: "dB",
+                          color:
+                            splGrid.spread < 6
+                              ? V.accent
+                              : splGrid.spread < 12
+                                ? V.amber
+                                : V.warm,
+                        },
+                        {
+                          label: "Uniform",
+                          value: splGrid.uniformityPct,
+                          unit: "%",
+                          color:
+                            splGrid.uniformityPct > 70
+                              ? V.accent
+                              : splGrid.uniformityPct > 40
+                                ? V.amber
+                                : V.warm,
+                          testId: "spl-grid-uniformity",
+                        },
+                      ].map((m) => (
+                        <div key={m.label}>
+                          <p
+                            className="font-mono tabular-nums text-[17px] leading-none"
+                            style={{ color: m.color }}
+                            data-testid={m.testId}
+                          >
+                            {m.value}
+                            <span
+                              className="text-[10px] ml-0.5 font-sans"
+                              style={{ color: "var(--muted-foreground)" }}
+                            >
+                              {m.unit}
+                            </span>
+                          </p>
+                          <p
+                            className="text-[9px] uppercase tracking-[0.16em] mt-1.5"
+                            style={{ color: "var(--muted-foreground)" }}
+                          >
+                            {m.label}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
-            </div>
-            <aside className="border-l border-border p-4 space-y-4">
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                Equipos · {pins.length} unidades
-              </p>
-              <div className="flex flex-wrap gap-x-3 gap-y-2 text-[11px]">
-                {(
-                  [
-                    ["tops", "Tops / array"],
-                    ["subs", "Subs"],
-                    ["monitors", "Monitores"],
-                  ] as const
-                ).map(([kind, label]) => (
-                  <span key={kind} className="flex gap-1.5 items-center">
-                    <span
-                      className="w-2 h-2 rounded-sm"
-                      style={{ background: SPK_COLORS[kind] }}
-                    />
-                    {label}
-                  </span>
-                ))}
-              </div>
-              {selectedPinData && (
-                <div className="space-y-3 p-3 bg-secondary/40 border border-border rounded-lg">
-                  <p
-                    className="text-xs font-medium"
-                    style={{ color: selectedPinData.color }}
-                  >
-                    {selectedPinData.label} · {selectedPinData.model}
-                  </p>
-                  <PositionField
-                    label="Altura rápida (m)"
-                    value={selectedPinData.heightM}
-                    min={0.1}
-                    max={maxSpeakerHeight(room)}
-                    onChange={(v) =>
-                      updateSpeakerPlacement(selectedPinData.id, { heightM: v })
-                    }
-                  />
-                  <button
-                    className="text-[11px] text-accent"
-                    onClick={() =>
-                      updateSpeakerPlacement(selectedPinData.id, {
-                        heightM: selectedPinData.suggestedHeightM,
-                      })
-                    }
-                  >
-                    Usar sugerida ·{" "}
-                    {selectedPinData.suggestedHeightM.toFixed(2)} m
-                  </button>
-                  <p className="text-[10px] text-muted-foreground">
-                    Centro del parlante sobre el piso.
-                  </p>
-                </div>
-              )}
-              <div className="space-y-1 max-h-[240px] overflow-auto">
-                {pins.map((pin) => (
-                  <button
-                    key={pin.id}
-                    onClick={() => setSelectedPin(pin.id)}
-                    aria-pressed={selectedPin === pin.id}
-                    className={`w-full text-left p-2.5 rounded-md border ${selectedPin === pin.id ? "border-accent bg-accent/5" : "border-transparent hover:bg-secondary"}`}
-                  >
-                    <span className="flex justify-between items-center text-xs">
-                      <span style={{ color: pin.color }}>{pin.label}</span>
-                      <span className="font-mono">
-                        {pin.heightM.toFixed(2)} m ↑
-                      </span>
-                    </span>
-                    <span className="block mt-1 text-[10px] text-muted-foreground">
-                      {pin.brand} {pin.model}
-                    </span>
-                  </button>
-                ))}
-              </div>
-              {layer === "spl" ? (
-                <div>
-                  <p className="text-[11px] mb-2">Nivel estimado · dB SPL</p>
-                  <div
-                    className="h-2 rounded"
-                    style={{
-                      background: `linear-gradient(to right, ${SPL_STOPS.map((s) => s.color).join(",")})`,
-                    }}
-                  />
-                  <div className="flex justify-between text-[9px] font-mono mt-1">
-                    {SPL_STOPS.map((s) => (
-                      <span key={s.db}>{s.db}</span>
-                    ))}
-                  </div>
-                  <p className="text-[10px] text-muted-foreground mt-2">
-                    Escala fija compartida con 3D. Plano de escucha a 1,60 m.
-                  </p>
-                </div>
-              ) : (
-                <p className="text-[11px] leading-relaxed text-muted-foreground">
-                  Los colores identifican el tipo de equipo. El abanico muestra
-                  su dirección horizontal; seleccioná uno para aislarlo. La
-                  valoración de posición aparece en su ficha.
-                </p>
-              )}
-              <button
-                onClick={() => {
-                  resetSpeakerLayout();
-                  setSelectedPin(null);
-                }}
-                disabled={!hasCustomPositions}
-                className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-40 flex items-center gap-2"
-              >
-                <Wand2 size={12} />
-                Restablecer distribución
-              </button>
-            </aside>
-          </div>
-          <div className="border-t border-border px-4 py-3 flex flex-wrap justify-between gap-2 text-[11px] text-muted-foreground">
-            <span className="flex gap-2 items-center">
-              <Move size={12} />
-              Arrastrá tops, subs y monitores. También podés usar la ficha.
-            </span>
-            <span data-testid="stage-save-status">
-              Guardado automático en este dispositivo
-              {activeSceneId ? " y en la escena activa" : ""} · 2D ↔ 3D
-            </span>
-          </div>
-        </div>
-      )}
 
-      {/* Speaker detail panel */}
-      <AnimatePresence>
-        {selectedPinData && (
-          <SpeakerDetail
-            key={selectedPinData.id}
-            pin={selectedPinData}
-            room={room}
-            onChange={(p) => updateSpeakerPlacement(selectedPinData.id, p)}
-            evaluation={pinEvalMap[selectedPinData.id] ?? null}
-            onClose={() => setSelectedPin(null)}
-          />
-        )}
-      </AnimatePresence>
+              {/* Metodología: es información importante pero no es lo que mirás
+              mientras posicionás cajas. Va abajo, discreta. */}
+              {splGrid && (
+                <details className="mt-3 group" data-testid="stage-3d-method">
+                  <summary
+                    className="flex items-center gap-2 cursor-pointer list-none py-2 text-[11px]"
+                    style={{ color: "var(--muted-foreground)" }}
+                  >
+                    <Wand2 size={11} strokeWidth={1.75} />
+                    Estimación de campo directo — ver supuestos
+                  </summary>
+                  <p
+                    className="text-[11px] leading-relaxed pt-1 pb-2"
+                    style={{ color: "var(--muted-foreground)" }}
+                  >
+                    Divergencia geométrica, polar genérica y absorción
+                    atmosférica. Incluye el DSP aceptado. Modo{" "}
+                    {room.simulationMode === "coherent"
+                      ? "coherente ideal"
+                      : "energético"}
+                    ; sin reflexiones ni acoplamiento de arrays. Plano de
+                    muestreo: {splGrid.yPlane.toFixed(2)} m. No es una medición
+                    ni una predicción certificada del fabricante.
+                  </p>
+                </details>
+              )}
+            </div>
+          )}
+
+          {viewMode === "2d" && (
+            <div className="mb-4 border border-border rounded-xl overflow-hidden bg-card">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
+                <div>
+                  <p className="text-sm font-medium">Plano de equipos</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Seleccioná una caja para editar su posición y altura.
+                  </p>
+                </div>
+                <div className="plan-controls flex gap-2 items-center">
+                  <select
+                    aria-label="Capa del plano"
+                    value={layer}
+                    onChange={(e) => setLayer(e.target.value as typeof layer)}
+                    className="rounded-md border border-border bg-secondary p-2 text-xs"
+                  >
+                    <option value="direction">Dirección de cobertura</option>
+                    <option value="spl">Predicción SPL · 1 kHz</option>
+                    <option value="none">Solo equipos</option>
+                  </select>
+                  <button
+                    aria-label="Alejar plano"
+                    className="p-2"
+                    onClick={() => setZoom((z) => Math.max(0.6, z - 0.15))}
+                  >
+                    <ZoomOut size={16} />
+                  </button>
+                  <button
+                    aria-label="Acercar plano"
+                    className="p-2"
+                    onClick={() => setZoom((z) => Math.min(1.5, z + 0.15))}
+                  >
+                    <ZoomIn size={16} />
+                  </button>
+                </div>
+              </div>
+              <div>
+                <div className="overflow-auto bg-[#050706] p-4">
+                  <div
+                    className="mx-auto"
+                    style={{
+                      width: 400 * zoom,
+                      maxWidth: zoom <= 1 ? "100%" : undefined,
+                    }}
+                  >
+                    {stageConfig && (
+                      <FloorPlan
+                        room={room}
+                        config={stageConfig}
+                        geo={geo}
+                        pins={pins}
+                        pinEvals={pinEvalMap}
+                        selected={selectedPin}
+                        onSelect={setSelectedPin}
+                        onDragMove={handleDragMove}
+                        onDragEnd={() => {}}
+                        zoom={1}
+                        grid={splGrid}
+                        layer={layer}
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="border-t border-border px-4 py-3 flex flex-wrap justify-between gap-2 text-[11px] text-muted-foreground">
+                <span className="flex gap-2 items-center">
+                  <Move size={12} />
+                  Arrastrá tops, subs y monitores. También podés usar la ficha.
+                </span>
+                <span data-testid="stage-save-status">
+                  Borrador guardado en este dispositivo · 2D ↔ 3D
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+        <aside
+          className="glow-stage-inspector"
+          aria-label="Inspector de equipos"
+        >
+          <div className="glow-inspector-heading">
+            <span className="project-eyebrow">
+              EQUIPOS · {pins.length} UNIDADES
+            </span>
+            <Speaker size={16} className="text-accent" />
+          </div>
+          <label className="glow-equipment-selector">
+            <span className="sr-only">Equipo seleccionado</span>
+            <select
+              className="audit-input"
+              value={selectedPinData?.id ?? ""}
+              onChange={(e) => setSelectedPin(e.target.value || null)}
+              data-testid="stage-equipment-select"
+            >
+              <option value="">Seleccionar equipo…</option>
+              {pins.map((pin) => (
+                <option key={pin.id} value={pin.id}>
+                  {pin.label} · {pin.model}
+                </option>
+              ))}
+            </select>
+          </label>
+          {selectedPinData ? (
+            <SpeakerDetail
+              key={selectedPinData.id}
+              compact
+              pin={selectedPinData}
+              room={room}
+              onChange={(p) => updateSpeakerPlacement(selectedPinData.id, p)}
+              evaluation={pinEvalMap[selectedPinData.id] ?? null}
+              onClose={() => setSelectedPin(null)}
+            />
+          ) : (
+            <div className="glow-inspector-empty">
+              <Move size={26} strokeWidth={1.3} />
+              <h2>Tu sistema, en su lugar.</h2>
+              <p>
+                Selecciona un equipo en el visor o en la lista para ajustar su
+                posición y altura.
+              </p>
+              <span>Una misma distribución en 2D y 3D.</span>
+            </div>
+          )}
+          <details className="glow-stage-legend">
+            <summary>Leyenda y distribución</summary>
+            <div className="flex flex-wrap gap-3 text-xs py-3">
+              {(
+                [
+                  ["tops", "Tops / array"],
+                  ["subs", "Subs"],
+                  ["monitors", "Monitores"],
+                ] as const
+              ).map(([kind, label]) => (
+                <span key={kind} className="flex gap-1.5 items-center">
+                  <span
+                    className="w-2 h-2 rounded-sm"
+                    style={{ background: SPK_COLORS[kind] }}
+                  />
+                  {label}
+                </span>
+              ))}
+            </div>
+            {layer === "spl" && viewMode === "2d" && (
+              <div className="space-y-2 pb-3 text-xs">
+                <p>Nivel estimado · dB SPL</p>
+                <div
+                  className="h-2 rounded"
+                  style={{
+                    background: `linear-gradient(to right, ${SPL_STOPS.map((s) => s.color).join(",")})`,
+                  }}
+                />
+                <div className="flex justify-between font-mono">
+                  {SPL_STOPS.map((s) => (
+                    <span key={s.db}>{s.db}</span>
+                  ))}
+                </div>
+                <p>Plano de escucha a {splGrid?.yPlane.toFixed(2) ?? "—"} m.</p>
+              </div>
+            )}
+            <button
+              className="audit-button w-full"
+              disabled={!hasCustomPositions}
+              data-testid="stage-reset-layout"
+              onClick={() => {
+                resetSpeakerLayout();
+                setSelectedPin(null);
+              }}
+            >
+              Restablecer distribución
+            </button>
+          </details>
+        </aside>
+      </div>
 
       {/* System evaluation */}
       {systemEval && (

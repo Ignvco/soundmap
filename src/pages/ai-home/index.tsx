@@ -1,3 +1,4 @@
+import { ProjectPlanPreview } from "@/components/soundmap/project-plan-preview";
 import { evaluateAudit } from "@/lib/audio/audit-evaluator";
 // Home v8 — command center.
 //
@@ -103,9 +104,10 @@ export default function AIHome() {
   return (
     <>
       <div className="v6-workspace home-workspace">
-        <div className="max-w-[1440px] mx-auto">
+        <div className="max-w-[1440px] mx-auto glow-home-grid">
           {/* ── 1. Encabezado editorial ─────────────────────────────────── */}
           <motion.div
+            className="glow-home-heading"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
@@ -114,18 +116,18 @@ export default function AIHome() {
               className="text-[13px]"
               style={{ color: "var(--muted-foreground)" }}
             >
-              {greeting}, LevelPro
+              {greeting} · Tu proyecto, en perspectiva
             </p>
             <button
               onClick={() => {
                 feedback("tap");
-                navigate(hasSystem ? "/scenes" : "/design?step=room");
+                navigate(room ? "/scenes" : "/design?step=room");
               }}
               data-testid="home-venue"
               className="group mt-1.5 flex items-center gap-2.5 cursor-pointer text-left"
             >
               <h1 className="v6-heading text-foreground truncate">
-                {hasSystem && roomInfo ? roomInfo.name : "Sin sistema cargado"}
+                {room?.name || "Diseña cómo se escucha."}
               </h1>
               <ChevronDown
                 size={20}
@@ -150,8 +152,10 @@ export default function AIHome() {
                 style={{ color: "var(--muted-foreground)" }}
               >
                 {hasSystem
-                  ? `Sistema configurado · ${tops.reduce((n, t) => n + (t.quantity ?? 1), 0)} tops · ${subs.reduce((n, x) => n + (x.quantity ?? 1), 0)} subs`
-                  : "Cargá un recinto para ver los vitales del sistema"}
+                  ? `Inventario cargado · ${tops.reduce((n, t) => n + (t.quantity ?? 1), 0)} tops · ${subs.reduce((n, x) => n + (x.quantity ?? 1), 0)} subs`
+                  : room
+                    ? "Recinto listo para añadir equipos"
+                    : "Tu recinto, tu sistema, tu próxima revisión."}
               </p>
             </div>
           </motion.div>
@@ -171,13 +175,13 @@ export default function AIHome() {
               <Metric
                 value={pa ? `${Math.round(pa.arraySpl)}` : "—"}
                 unit="dB"
-                label="Max SPL"
+                label="SPL estimado a 1 m"
                 testId="metric-spl"
               />
               <Metric
                 value={coverage ? `${Math.round(coverage.uniformityPct)}` : "—"}
                 unit="%"
-                label="Cobertura"
+                label="Uniformidad ±3 dB"
                 testId="metric-coverage"
               />
               <Metric
@@ -209,7 +213,7 @@ export default function AIHome() {
               delay: 0.16,
               ease: [0.22, 1, 0.36, 1],
             }}
-            className="mt-5"
+            className="mt-5 glow-home-visual"
           >
             {room ? (
               <div data-testid="home-heatmap">
@@ -220,14 +224,25 @@ export default function AIHome() {
                   subs={subs}
                   monitors={monitors}
                   grid={grid ?? undefined}
+                  className="glow-home-preview"
+                  plan={
+                    <ProjectPlanPreview
+                      room={room}
+                      tops={tops}
+                      subs={subs}
+                      monitors={monitors}
+                      layout={stageLayout}
+                    />
+                  }
                 />
                 <div className="home-map-caption flex justify-between items-center mt-3 text-xs text-muted-foreground">
-                  <span>Recinto · Cobertura SPL</span>
+                  <span>Diseño estimado · No medido</span>
                   <button
                     className="v6-button"
+                    data-testid="home-open-plan"
                     onClick={() => navigate("/stage-map")}
                   >
-                    Stage Map <ArrowRight size={13} />
+                    Abrir plano <ArrowRight size={13} />
                   </button>
                 </div>
               </div>
@@ -270,24 +285,6 @@ export default function AIHome() {
             )}
           </motion.div>
 
-          <div className="home-secondary-metrics sm:hidden">
-            <Metric
-              size="md"
-              value={roomInfo ? roomInfo.rt60Audience.toFixed(2) : "—"}
-              unit="s"
-              label="RT60 estimado"
-            />
-            <Metric
-              size="md"
-              value={
-                pa ? `${pa.headroomDb > 0 ? "+" : ""}${pa.headroomDb}` : "—"
-              }
-              unit="dB"
-              label="Headroom"
-              tone={pa && pa.headroomDb >= 3 ? "accent" : "default"}
-            />
-          </div>
-
           {/* ── 4. Una acción primaria, dos secundarias ─────────────────── */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -327,7 +324,7 @@ export default function AIHome() {
 
             {[
               {
-                label: "Perform",
+                label: "Medición",
                 icon: Radio,
                 to: "/perform",
                 testId: "home-goto-perform",
@@ -373,7 +370,7 @@ export default function AIHome() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.32 }}
-            className="mt-7"
+            className="mt-7 glow-home-recent"
           >
             <SectionLabel
               action={
@@ -390,7 +387,7 @@ export default function AIHome() {
                 </button>
               }
             >
-              Escenas recientes
+              Revisiones recientes
             </SectionLabel>
 
             <Divider />

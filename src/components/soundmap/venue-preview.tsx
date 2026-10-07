@@ -49,6 +49,7 @@ export function VenuePreview({
   geometryOnly = false,
   compact = true,
   interactive = true,
+  plan,
 }: {
   room: RoomScanInput;
   tops?: GearItem[];
@@ -60,6 +61,7 @@ export function VenuePreview({
   geometryOnly?: boolean;
   compact?: boolean;
   interactive?: boolean;
+  plan?: ReactNode;
 }) {
   const [opened, setOpened] = useState(false);
   const coverage = useMemo(() => {
@@ -74,31 +76,33 @@ export function VenuePreview({
       <div
         className={`venue-view ${compact ? "venue-view-compact" : ""} ${className ?? ""} flex flex-col items-center justify-center p-6 gap-3`}
       >
-        <svg
-          viewBox={`0 0 ${room.width} ${room.length}`}
-          role="img"
-          aria-label="Plano simplificado del recinto"
-          style={{ height: 160, maxWidth: "100%" }}
-        >
-          <rect
-            x="0"
-            y="0"
-            width={room.width}
-            height={room.length}
-            fill="#111917"
-            stroke="#678b55"
-            strokeWidth=".2"
-          />
-          {venueSpeakers(room, tops, subs, monitors, layout).map((s) => (
-            <circle
-              key={s.id}
-              cx={s.x + room.width / 2}
-              cy={s.z + room.length / 2}
-              r={Math.max(0.2, room.width / 70)}
-              fill={s.kind === "subs" ? "#f5b62e" : "#c9f03e"}
+        {plan ?? (
+          <svg
+            viewBox={`0 0 ${room.width} ${room.length}`}
+            role="img"
+            aria-label="Plano simplificado del recinto"
+            style={{ height: 160, maxWidth: "100%" }}
+          >
+            <rect
+              x="0"
+              y="0"
+              width={room.width}
+              height={room.length}
+              fill="#111917"
+              stroke="#678b55"
+              strokeWidth=".2"
             />
-          ))}
-        </svg>
+            {venueSpeakers(room, tops, subs, monitors, layout).map((s) => (
+              <circle
+                key={s.id}
+                cx={s.x + room.width / 2}
+                cy={s.z + room.length / 2}
+                r={Math.max(0.2, room.width / 70)}
+                fill={s.kind === "subs" ? "#f5b62e" : "#c9f03e"}
+              />
+            ))}
+          </svg>
+        )}
         <p className="text-xs text-muted-foreground">
           {room.width} × {room.length} m · Plano del inventario actual
         </p>

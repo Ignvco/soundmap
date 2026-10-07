@@ -7,7 +7,7 @@ import { WizardContext } from "@/lib/wizard-context.ts";
 import { hasUnsavedRevision, useAppStore } from "@/store/app.ts";
 import { Check, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { motion } from "motion/react";
-import { lazy, Suspense, useEffect, useMemo } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   firstIncompleteStep,
@@ -97,6 +97,7 @@ export default function DesignWizard() {
     <div
       className="design-workspace bg-background text-foreground"
       data-room-step={currentStep === "room"}
+      data-dsp-step={currentStep === "dsp"}
     >
       {/* Progress bar */}
       <div
