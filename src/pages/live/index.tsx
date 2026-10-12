@@ -1,165 +1,35 @@
-import type { LucideIcon } from "lucide-react";
-// SoundMap — Live Screen (v4 Neon Console / Real-time Ops)
-import { PageHeader } from "@/components/soundmap/nav.tsx";
-import { SPLMeter } from "@/components/soundmap/spl-meter.tsx";
-import { TestSignalsPlayer } from "@/components/soundmap/test-signals-player.tsx";
-import {
-  GlassCard,
-  ScreenShell,
-  StatusPill,
-} from "@/components/soundmap/ui.tsx";
-import type { LiveStep } from "@/lib/audio/live-engine.ts";
+import { WorkspaceHeading } from "@/components/soundmap/workspace-heading";
+import { SPLMeter } from "@/components/soundmap/spl-meter";
+import { TestSignalsPlayer } from "@/components/soundmap/test-signals-player";
 import {
   generateLineCheckProcedure,
   generateStartupProcedure,
-} from "@/lib/audio/live-engine.ts";
-import { calculatePARecommendation } from "@/lib/audio/pa-engine.ts";
-import { feedback } from "@/lib/feedback.ts";
-import { useAppStore } from "@/store/app.ts";
+} from "@/lib/audio/live-engine";
+import { feedback } from "@/lib/feedback";
+import { useAppStore } from "@/store/app";
 import {
   Activity,
   AlertTriangle,
+  ArrowUpRight,
   Check,
+  ClipboardCheck,
   Maximize2,
   Radio,
-  RefreshCw,
+  RotateCcw,
   ShieldAlert,
-  Volume2,
-  Wifi,
   Zap,
 } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
-import { useCallback, useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 type LiveTab = "startup" | "linecheck" | "backup" | "emergency";
+const TABS = [
+  { id: "startup", label: "Arranque", Icon: Zap },
+  { id: "linecheck", label: "Prueba de línea", Icon: Activity },
+  { id: "backup", label: "Respaldo", Icon: Radio },
+  { id: "emergency", label: "Emergencia", Icon: ShieldAlert },
+] as const;
 
-const TAB_CONFIG: {
-  id: LiveTab;
-  label: string;
-  icon: LucideIcon;
-  color: string;
-}[] = [
-  { id: "startup", label: "Arranque", icon: Zap, color: "var(--accent)" },
-  { id: "linecheck", label: "Línea", icon: Activity, color: "var(--info)" },
-  { id: "backup", label: "Respaldo", icon: Radio, color: "var(--warning)" },
-  {
-    id: "emergency",
-    label: "Emergencia",
-    icon: ShieldAlert,
-    color: "var(--destructive)",
-  },
-];
-
-const STEP_CATEGORY_ICON: Record<LiveStep["category"], LucideIcon> = {
-  power: Zap,
-  check: Activity,
-  tune: Volume2,
-  verify: Wifi,
-  emergency: AlertTriangle,
-};
-
-const STEP_CATEGORY_COLOR: Record<LiveStep["category"], string> = {
-  power: "#00D95A",
-  check: "#F4F4F4",
-  tune: "#9A9A9A",
-  verify: "var(--info)",
-  emergency: "var(--destructive)",
-};
-
-// ── Checklist step card ───────────────────────────────────────────────────────
-function StepCard({
-  step,
-  done,
-  onToggle,
-  tabColor,
-  index,
-}: {
-  step: LiveStep;
-  done: boolean;
-  onToggle: () => void;
-  tabColor: string;
-  index: number;
-}) {
-  const CatIcon = STEP_CATEGORY_ICON[step.category];
-  const catColor = STEP_CATEGORY_COLOR[step.category];
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, x: -12 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: index * 0.04, duration: 0.2 }}
-      layout
-    >
-      <div
-        onClick={onToggle}
-        className={`relative flex items-start gap-3 rounded-2xl border p-4 cursor-pointer transition-all duration-200 ${
-          done
-            ? "bg-secondary/50 border-border opacity-60"
-            : "bg-card border-border hover:border-foreground/15 shadow-[0_2px_8px_rgba(15,15,15,0.04)]"
-        }`}
-        style={!done && step.critical ? { borderColor: `${tabColor}40` } : {}}
-      >
-        {/* Step number / check */}
-        <div
-          className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0 transition-all"
-          style={
-            done
-              ? {
-                  background: "rgba(94,234,212,0.15)",
-                  border: "1px solid rgba(94,234,212,0.30)",
-                }
-              : {
-                  background: `${catColor}15`,
-                  border: `1px solid ${catColor}30`,
-                }
-          }
-        >
-          {done ? (
-            <Check size={16} className="text-chart-2" />
-          ) : (
-            <CatIcon size={15} style={{ color: catColor }} />
-          )}
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap mb-0.5">
-            <p
-              className={`text-xs font-bold leading-snug ${done ? "line-through text-muted-foreground" : "text-foreground"}`}
-            >
-              {step.title}
-            </p>
-            {step.critical && !done && (
-              <span
-                className="text-[8px] font-bold uppercase tracking-[0.2em] px-1.5 py-0.5 rounded-md"
-                style={{
-                  background: `${tabColor}18`,
-                  color: tabColor,
-                  border: `1px solid ${tabColor}25`,
-                }}
-              >
-                Crítico
-              </span>
-            )}
-          </div>
-          <p className="text-[11px] text-muted-foreground leading-relaxed">
-            {step.description}
-          </p>
-        </div>
-
-        {/* Tap to complete hint */}
-        {!done && (
-          <div className="shrink-0 h-5 w-5 rounded-full border border-input flex items-center justify-center mt-0.5">
-            <div className="h-2 w-2 rounded-full bg-muted-foreground/40" />
-          </div>
-        )}
-      </div>
-    </motion.div>
-  );
-}
-
-// ── Emergency protocol card ───────────────────────────────────────────────────
 function EmergencyProtocol() {
   const steps = [
     { order: 1, text: "MUTEAR el fader maestro inmediatamente", urgent: true },
@@ -187,7 +57,7 @@ function EmergencyProtocol() {
   ];
 
   return (
-    <GlassCard className="p-4">
+    <div className="workspace-card live-protocol">
       <div className="flex items-center gap-2.5 mb-4">
         <div className="h-9 w-9 rounded-xl bg-destructive/12 border border-destructive/25 flex items-center justify-center">
           <AlertTriangle size={16} className="text-destructive" />
@@ -221,7 +91,7 @@ function EmergencyProtocol() {
           </div>
         ))}
       </div>
-    </GlassCard>
+    </div>
   );
 }
 
@@ -251,7 +121,7 @@ function BackupProtocol() {
   ];
 
   return (
-    <GlassCard className="p-4">
+    <div className="workspace-card live-protocol">
       <div className="flex items-center gap-2.5 mb-4">
         <div
           className="h-9 w-9 rounded-xl bg-chart-3/12 border border-chart-3/25 flex items-center justify-center"
@@ -287,41 +157,22 @@ function BackupProtocol() {
           </div>
         ))}
       </div>
-    </GlassCard>
+    </div>
   );
 }
 
-// ── Main screen ───────────────────────────────────────────────────────────────
 export default function Live() {
-  const acceptedDsp = useAppStore((s) => s.audit.dsp);
-  const stageLayout = useAppStore((s) => s.stageLayout);
-  const { room, acoustics, tops, subs, monitors, dspUnits, amps } =
-    useAppStore();
+  const { room, acoustics, tops, subs, dspUnits, amps } = useAppStore();
   const [activeTab, setActiveTab] = useState<LiveTab>("startup");
   const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set());
-
-  const startup =
-    room && acoustics
-      ? generateStartupProcedure(tops, subs, dspUnits, amps, acoustics)
-      : null;
-  const linecheck = generateLineCheckProcedure();
-
-  // Derive the PA target SPL from the current system (for the SPL Meter target marker)
-  const paRec =
-    room && acoustics
-      ? calculatePARecommendation(
-          room,
-          acoustics,
-          tops,
-          subs,
-          monitors,
-          amps,
-          stageLayout,
-          acceptedDsp,
-        )
-      : null;
-  const splTarget = paRec?.splTarget ?? undefined;
-
+  const startup = useMemo(
+    () =>
+      room && acoustics
+        ? generateStartupProcedure(tops, subs, dspUnits, amps, acoustics)
+        : null,
+    [room, acoustics, tops, subs, dspUnits, amps],
+  );
+  const linecheck = useMemo(() => generateLineCheckProcedure(), []);
   const procedure =
     activeTab === "startup"
       ? startup
@@ -329,229 +180,166 @@ export default function Live() {
         ? linecheck
         : null;
   const steps = procedure?.steps ?? [];
-
-  const completedCount = steps.filter((s) => completedSteps.has(s.id)).length;
-  const isComplete = steps.length > 0 && completedCount === steps.length;
-  const progressPct =
-    steps.length > 0 ? (completedCount / steps.length) * 100 : 0;
-
-  const toggleStep = useCallback((id: string) => {
+  const completedCount = steps.filter((step) =>
+    completedSteps.has(step.id),
+  ).length;
+  const complete = steps.length > 0 && completedCount === steps.length;
+  const toggleStep = (id: string) => {
     feedback("select", { sound: false });
-    setCompletedSteps((prev) => {
-      const next = new Set(prev);
+    setCompletedSteps((old) => {
+      const next = new Set(old);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
-  }, []);
-
-  const resetProcedure = useCallback(() => {
-    setCompletedSteps(new Set());
-  }, []);
-
-  const hasGear = tops.length > 0;
-  const tabConfig = TAB_CONFIG.find((t) => t.id === activeTab)!;
-
-  // Signal success when startup checklist completes
-  useEffect(() => {
-    if (isComplete && activeTab === "startup") feedback("success");
-  }, [isComplete, activeTab]);
-
+  };
+  const resetCurrent = () =>
+    setCompletedSteps((old) => {
+      const next = new Set(old);
+      steps.forEach((step) => next.delete(step.id));
+      return next;
+    });
   return (
-    <ScreenShell>
-      <PageHeader
-        title="Live"
-        subtitle={room?.name ?? "Sin recinto cargado"}
-        right={
-          <div className="flex items-center gap-2">
-            <Link
-              to="/kiosk"
-              onClick={() => feedback("select")}
-              data-testid="open-kiosk-btn"
-              className="h-8 flex items-center gap-1.5 rounded-xl px-2.5 bg-accent/12 border border-accent/25 text-[10px] font-medium text-accent hover:bg-accent/20 active:scale-90 cursor-pointer uppercase tracking-[0.2em]"
-            >
-              <Maximize2 size={11} />
-              Kiosk
-            </Link>
-            <StatusPill
-              status={isComplete ? "live" : hasGear ? "standby" : "offline"}
-              label={isComplete ? "EN VIVO" : hasGear ? "En Espera" : "Apagado"}
-            />
-          </div>
-        }
-      />
-
-      {/* SPL Meter (real, using the device microphone) */}
-      <div className="px-4 mb-4">
-        <SPLMeter target={splTarget} />
-      </div>
-
-      {/* Test Signal Player */}
-      <div className="px-4 mb-4">
-        <TestSignalsPlayer />
-      </div>
-
-      {/* Tabs */}
-      <div className="px-4 mb-4">
-        <div className="grid grid-cols-4 gap-1.5">
-          {TAB_CONFIG.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
+    <div className="glow-workspace glow-live">
+      <WorkspaceHeading
+        eyebrow="OPERACIÓN / EN TERRENO"
+        title="Prepará cada paso."
+        description="Listas operativas y señales de prueba, con el medidor siempre a mano."
+      >
+        <Link className="audit-button" to="/kiosk" data-testid="open-kiosk-btn">
+          <Maximize2 size={15} /> Modo FOH
+        </Link>
+      </WorkspaceHeading>
+      <div className="glow-live-layout">
+        <section className="live-procedures">
+          <nav className="live-tabs" aria-label="Procedimientos operativos">
+            {TABS.map(({ id, label, Icon }) => (
               <button
-                key={tab.id}
-                onClick={() => {
-                  setActiveTab(tab.id);
-                  resetProcedure();
-                }}
-                className="rounded-xl py-2.5 text-[10px] font-bold transition-all cursor-pointer flex flex-col items-center gap-1 border"
-                style={
-                  isActive
-                    ? {
-                        background: `${tab.color}18`,
-                        borderColor: `${tab.color}40`,
-                        color: tab.color,
-                        boxShadow: `0 2px 10px ${tab.color}20`,
-                      }
-                    : {
-                        background: "var(--secondary)",
-                        borderColor: "var(--border)",
-                        color: "var(--muted-foreground)",
-                      }
-                }
+                key={id}
+                type="button"
+                aria-pressed={activeTab === id}
+                onClick={() => setActiveTab(id)}
               >
-                <Icon size={14} />
-                {tab.label}
+                <Icon size={16} />
+                <span>{label}</span>
               </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Progress bar (for checklist tabs) */}
-      {steps.length > 0 && (
-        <div className="px-4 mb-4">
-          <GlassCard className="p-3">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <p className="text-[10px] font-bold text-foreground">
-                  {procedure?.title}
-                </p>
-                {isComplete && (
-                  <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
-                    <StatusPill status="ready" label="Completo" />
-                  </motion.div>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold text-muted-foreground">
-                  {completedCount}/{steps.length}
-                </span>
+            ))}
+          </nav>
+          {procedure && steps.length > 0 && (
+            <section
+              className="workspace-card live-progress"
+              aria-label="Progreso del procedimiento"
+            >
+              <div className="workspace-section-heading">
+                <div>
+                  <p className="project-eyebrow">
+                    {complete ? "LISTA COMPLETADA" : "REVISIÓN MANUAL"}
+                  </p>
+                  <h2>{procedure.title}</h2>
+                </div>
                 <button
-                  onClick={resetProcedure}
-                  className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                  className="app-icon-button"
+                  aria-label="Reiniciar lista actual"
+                  onClick={resetCurrent}
+                  disabled={!completedCount}
                 >
-                  <RefreshCw size={12} />
+                  <RotateCcw size={17} />
                 </button>
               </div>
-            </div>
-            <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
-              <motion.div
-                className="h-full rounded-full"
-                style={{
-                  background: `linear-gradient(90deg, ${tabConfig.color}, ${tabConfig.color}bb)`,
-                }}
-                animate={{ width: `${progressPct}%` }}
-                transition={{ duration: 0.4, ease: "easeOut" }}
+              <div className="live-progress-caption">
+                <span data-testid="live-progress-count">
+                  {completedCount} de {steps.length} pasos
+                </span>
+                <span>
+                  {Math.round((completedCount / steps.length) * 100)}%
+                </span>
+              </div>
+              <progress
+                max={steps.length}
+                value={completedCount}
+                aria-label="Pasos completados"
               />
-            </div>
-            <div className="flex justify-between text-[9px] text-muted-foreground mt-1.5">
-              <span>0%</span>
-              <span>{Math.round(progressPct)}% completado</span>
-              <span>100%</span>
-            </div>
-          </GlassCard>
-        </div>
-      )}
-
-      {/* Step list / protocol content */}
-      <div className="px-4 space-y-2 pb-6">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.15 }}
-            className="space-y-2"
-          >
-            {activeTab === "emergency" ? (
-              <EmergencyProtocol />
-            ) : activeTab === "backup" ? (
-              <BackupProtocol />
-            ) : (
-              <>
-                {steps.map((step: LiveStep, i: number) => (
-                  <StepCard
-                    key={step.id}
-                    step={step}
-                    done={completedSteps.has(step.id)}
-                    onToggle={() => toggleStep(step.id)}
-                    tabColor={tabConfig.color}
-                    index={i}
-                  />
-                ))}
-
-                {steps.length === 0 && (
-                  <GlassCard className="p-8 text-center">
-                    <p className="text-sm font-bold text-foreground mb-1">
-                      Sin Procedimiento Generado
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Completá un Escaneo de Sala y agregá equipo para generar
-                      el procedimiento de arranque
-                    </p>
-                  </GlassCard>
-                )}
-
-                {/* Completion message */}
-                <AnimatePresence>
-                  {isComplete && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
+            </section>
+          )}
+          {activeTab === "emergency" ? (
+            <EmergencyProtocol />
+          ) : activeTab === "backup" ? (
+            <BackupProtocol />
+          ) : (
+            <>
+              {steps.length ? (
+                <div className="live-step-list">
+                  {steps.map((step, index) => (
+                    <label
+                      key={step.id}
+                      className="live-step"
+                      data-done={completedSteps.has(step.id)}
                     >
-                      <div
-                        className="rounded-2xl p-5 text-center"
-                        style={{
-                          background: `linear-gradient(135deg, ${tabConfig.color}14, transparent)`,
-                          border: `1px solid ${tabConfig.color}30`,
-                        }}
-                      >
-                        <div
-                          className="h-12 w-12 rounded-2xl flex items-center justify-center mx-auto mb-3"
-                          style={{ background: `${tabConfig.color}20` }}
-                        >
-                          <Check size={22} style={{ color: tabConfig.color }} />
-                        </div>
-                        <p className="text-sm font-medium text-foreground mb-1">
-                          {procedure?.title} Completo
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {activeTab === "startup"
-                            ? "El sistema está listo. Procedé a la prueba de línea."
-                            : "Prueba de línea completa. Listo para el show."}
-                        </p>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </>
-            )}
-          </motion.div>
-        </AnimatePresence>
+                      <input
+                        type="checkbox"
+                        checked={completedSteps.has(step.id)}
+                        onChange={() => toggleStep(step.id)}
+                        aria-label={step.title}
+                      />
+                      <span className="live-step-number" aria-hidden="true">
+                        {completedSteps.has(step.id) ? (
+                          <Check size={14} />
+                        ) : (
+                          String(index + 1).padStart(2, "0")
+                        )}
+                      </span>
+                      <span className="live-step-copy">
+                        <span className="live-step-title">
+                          {step.title}
+                          {step.critical && <small>Crítico</small>}
+                        </span>
+                        <span>{step.description}</span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <div className="workspace-empty">
+                  <ClipboardCheck size={28} />
+                  <h2>Prepará el proyecto</h2>
+                  <p>
+                    Definí un recinto y agregá el equipo para generar la lista
+                    de arranque.
+                  </p>
+                  <Link className="audit-button" to="/design?step=room">
+                    Ir a diseño <ArrowUpRight size={15} />
+                  </Link>
+                </div>
+              )}
+              {complete && (
+                <p className="live-complete" role="status">
+                  <Check size={18} />
+                  Lista marcada como completada. Confirmá el resultado en el
+                  sistema físico.
+                </p>
+              )}
+            </>
+          )}
+          <p className="workspace-note">
+            Las marcas se conservan al cambiar de lista durante esta visita. Son
+            un apoyo operativo y no modifican las revisiones del expediente.
+          </p>
+        </section>
+        <aside className="live-instruments">
+          <details className="workspace-disclosure live-meter-disclosure">
+            <summary>
+              Medidor de nivel <span>Captura de micrófono</span>
+            </summary>
+            <div>
+              <SPLMeter target={room?.targetSpl} variant="instrument" />
+            </div>
+          </details>
+          <TestSignalsPlayer />
+          <Link className="audit-button" to="/perform">
+            Abrir medición y sesiones <ArrowUpRight size={15} />
+          </Link>
+        </aside>
       </div>
-    </ScreenShell>
+    </div>
   );
 }

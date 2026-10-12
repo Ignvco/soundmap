@@ -9,6 +9,7 @@ import {
   Cable,
   Speaker,
   Activity,
+  Mic,
 } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { useAppStore, hasUnsavedRevision } from "@/store/app";
@@ -78,6 +79,15 @@ export function ProjectContext() {
       label: "Patch",
       Icon: Cable,
       active: pathname === "/channels" || designStep === "patch",
+    },
+    {
+      to: "/perform",
+      label: "Medición",
+      Icon: Mic,
+      active:
+        pathname === "/perform" ||
+        pathname === "/live" ||
+        designStep === "measurement",
     },
     {
       to: "/spl-analysis",

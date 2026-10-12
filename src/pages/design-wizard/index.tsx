@@ -98,7 +98,13 @@ export default function DesignWizard() {
       className="design-workspace bg-background text-foreground"
       data-room-step={currentStep === "room"}
       data-dsp-step={currentStep === "dsp"}
-      data-glow-step={["pa", "patch", "findings", "save"].includes(currentStep)}
+      data-glow-step={[
+        "pa",
+        "patch",
+        "measurement",
+        "findings",
+        "save",
+      ].includes(currentStep)}
     >
       {/* Progress bar */}
       <div
