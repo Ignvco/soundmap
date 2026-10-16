@@ -27,6 +27,8 @@ export function AppShellV5({ children }: { children: ReactNode }) {
     location.pathname === "/pa" ||
     location.pathname === "/perform" ||
     location.pathname === "/live" ||
+    location.pathname === "/scenes" ||
+    location.pathname === "/templates" ||
     location.pathname === "/spl-analysis" ||
     location.pathname === "/acoustic-analysis" ||
     (location.pathname === "/design" &&

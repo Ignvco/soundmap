@@ -96,6 +96,12 @@ export function ProjectContext() {
       active: pathname === "/spl-analysis" || pathname === "/acoustic-analysis",
     },
     {
+      to: "/scenes",
+      label: "Biblioteca",
+      Icon: FolderOpen,
+      active: pathname === "/scenes" || pathname === "/templates",
+    },
+    {
       to: "/audit",
       label: "Expediente",
       Icon: ArrowUpRight,
