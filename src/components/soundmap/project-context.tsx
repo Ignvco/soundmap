@@ -93,13 +93,28 @@ export function ProjectContext() {
       to: "/spl-analysis",
       label: "Análisis",
       Icon: Activity,
-      active: pathname === "/spl-analysis" || pathname === "/acoustic-analysis",
+      active:
+        pathname === "/spl-analysis" ||
+        pathname === "/acoustic-analysis" ||
+        pathname === "/compare",
     },
     {
       to: "/scenes",
       label: "Biblioteca",
       Icon: FolderOpen,
       active: pathname === "/scenes" || pathname === "/templates",
+    },
+    {
+      to: "/toolkit",
+      label: "Herramientas",
+      Icon: SlidersHorizontal,
+      active: pathname === "/toolkit" || pathname === "/community",
+    },
+    {
+      to: "/settings",
+      label: "Gestión",
+      Icon: FolderOpen,
+      active: ["/settings", "/collaboration", "/ai-advisor"].includes(pathname),
     },
     {
       to: "/audit",

@@ -1,3 +1,11 @@
+import { ManagementNav } from "@/components/soundmap/management-nav";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { version } from "../../../package.json";
 import { undoLastImport } from "@/lib/persistence";
 // Settings v5 — Notion-style quiet preferences with progressive disclosure.
 // Sections collapse by default (except the first). Each row is a text-first
@@ -25,7 +33,6 @@ import { cn } from "@/lib/utils.ts";
 import { useAppStore } from "@/store/app.ts";
 import { useSettingsStore, type VenuePreset } from "@/store/settings.ts";
 import {
-  AlertTriangle,
   ArrowRight,
   Check,
   ChevronDown,
@@ -104,7 +111,7 @@ export default function Settings() {
   const capabilities = useHardwareCapabilities();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
-  const [openSection, setOpenSection] = useState<string>("measurement");
+  const [openSection, setOpenSection] = useState<string>("backup");
   const [showReset, setShowReset] = useState(false);
 
   const toggle = (id: string) => {
@@ -116,7 +123,7 @@ export default function Settings() {
     resetSystem();
     setShowReset(false);
     feedback("warning");
-    toast.success("Datos del sistema borrados");
+    toast.success("Proyecto activo reiniciado; escenas guardadas conservadas");
   };
 
   const handleReplayTour = () => {
@@ -136,7 +143,7 @@ export default function Settings() {
         >
           <p className="hidden">Ajustes</p>
           <h1 className="v6-heading mb-3" data-testid="settings-title">
-            Preferencias
+            Ajustes y respaldos
           </h1>
           <p className="text-sm text-muted-foreground max-w-lg leading-relaxed mb-5">
             Ajustá cómo suena, se siente y se mide SoundMap. Los cambios se
@@ -144,8 +151,125 @@ export default function Settings() {
           </p>
         </motion.div>
 
+        <ManagementNav />
+        <div className="settings-shortcuts" aria-label="Accesos de ajustes">
+          {[
+            { id: "backup", label: "Respaldos", hint: "Exportar y recuperar" },
+            { id: "hardware", label: "Permisos", hint: "Micrófono y sensores" },
+            {
+              id: "measurement",
+              label: "Preferencias",
+              hint: "Unidades de trabajo",
+            },
+          ].map((item) => (
+            <button
+              key={item.id}
+              className="workspace-card"
+              aria-pressed={openSection === item.id}
+              onClick={() => {
+                setOpenSection(item.id);
+                requestAnimationFrame(() =>
+                  document
+                    .getElementById(`settings-section-${item.id}`)
+                    ?.scrollIntoView({ block: "start", behavior: "smooth" }),
+                );
+              }}
+            >
+              <strong>{item.label}</strong>
+              <span>{item.hint}</span>
+            </button>
+          ))}
+        </div>
         {/* Sections — progressive disclosure */}
         <div className="space-y-1" data-testid="settings-sections">
+          <Section
+            id="backup"
+            title="Respaldos"
+            summary="Exportar · Importar"
+            isOpen={openSection === "backup"}
+            onToggle={() => toggle("backup")}
+          >
+            <Row
+              label="Exportar todo"
+              hint="Descargá un archivo JSON con escenas, preferencias y comunidad local"
+            >
+              <button
+                onClick={() => {
+                  feedback("success");
+                  exportBackupWithToast();
+                }}
+                data-testid="backup-export-btn"
+                className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[12px] font-medium cursor-pointer"
+                style={{
+                  background: "rgba(201,240,62,0.10)",
+                  boxShadow: "0 0 0 1px rgba(201,240,62,0.45)",
+                  color: "var(--sm-accent)",
+                  transition: "background-color 0.3s ease",
+                }}
+              >
+                <Download size={12} strokeWidth={1.75} />
+                Exportar
+              </button>
+            </Row>
+            <Row
+              label="Importar backup"
+              hint="Restaurá desde un JSON exportado. Reemplaza tu data actual."
+            >
+              <label
+                htmlFor="backup-import-input"
+                data-testid="backup-import-label"
+                className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[12px] font-medium cursor-pointer"
+                style={{
+                  background: "rgba(74,107,255,0.10)",
+                  boxShadow: "0 0 0 1px rgba(74,107,255,0.45)",
+                  color: "var(--sm-blue)",
+                  transition: "background-color 0.3s ease",
+                }}
+              >
+                <Upload size={12} strokeWidth={1.75} />
+                Importar
+                <input
+                  id="backup-import-input"
+                  data-testid="backup-import-input"
+                  type="file"
+                  accept="application/json,.json"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      feedback("select");
+                      importBackupWithToast(file);
+                    }
+                    e.currentTarget.value = "";
+                  }}
+                />
+              </label>
+            </Row>
+            <Row
+              label="Deshacer importación"
+              hint="Recupera la copia anterior a la última importación completa."
+            >
+              <button
+                className="audit-button"
+                onClick={() =>
+                  undoLastImport()
+                    .then(() => location.reload())
+                    .catch((e) => window.alert(e.message))
+                }
+              >
+                Restaurar anterior
+              </button>
+            </Row>
+            <Row
+              label="Guía"
+              hint="El JSON funciona offline entre 2 dispositivos. Guardalo en Drive o Dropbox como respaldo remoto."
+            >
+              <span className="text-[11px] text-muted-foreground font-mono">
+                v{BACKUP_VERSION}
+              </span>
+            </Row>
+          </Section>
+
           <Section
             id="measurement"
             title="Medición"
@@ -462,97 +586,9 @@ export default function Settings() {
           </Section>
 
           <Section
-            id="backup"
-            title="Backup"
-            summary="Exportar · Importar"
-            isOpen={openSection === "backup"}
-            onToggle={() => toggle("backup")}
-          >
-            <Row
-              label="Exportar todo"
-              hint="Descargá un archivo JSON con escenas, preferencias y comunidad local"
-            >
-              <button
-                onClick={() => {
-                  feedback("success");
-                  exportBackupWithToast();
-                }}
-                data-testid="backup-export-btn"
-                className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[12px] font-medium cursor-pointer"
-                style={{
-                  background: "rgba(201,240,62,0.10)",
-                  boxShadow: "0 0 0 1px rgba(201,240,62,0.45)",
-                  color: "var(--sm-accent)",
-                  transition: "background-color 0.3s ease",
-                }}
-              >
-                <Download size={12} strokeWidth={1.75} />
-                Exportar
-              </button>
-            </Row>
-            <Row
-              label="Importar backup"
-              hint="Restaurá desde un JSON exportado. Reemplaza tu data actual."
-            >
-              <label
-                htmlFor="backup-import-input"
-                data-testid="backup-import-label"
-                className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[12px] font-medium cursor-pointer"
-                style={{
-                  background: "rgba(74,107,255,0.10)",
-                  boxShadow: "0 0 0 1px rgba(74,107,255,0.45)",
-                  color: "var(--sm-blue)",
-                  transition: "background-color 0.3s ease",
-                }}
-              >
-                <Upload size={12} strokeWidth={1.75} />
-                Importar
-                <input
-                  id="backup-import-input"
-                  data-testid="backup-import-input"
-                  type="file"
-                  accept="application/json,.json"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      feedback("select");
-                      importBackupWithToast(file);
-                    }
-                    e.currentTarget.value = "";
-                  }}
-                />
-              </label>
-            </Row>
-            <Row
-              label="Deshacer importación"
-              hint="Recupera la copia anterior a la última importación completa."
-            >
-              <button
-                className="audit-button"
-                onClick={() =>
-                  undoLastImport()
-                    .then(() => location.reload())
-                    .catch((e) => window.alert(e.message))
-                }
-              >
-                Restaurar anterior
-              </button>
-            </Row>
-            <Row
-              label="Guía"
-              hint="El JSON funciona offline entre 2 dispositivos. Guardalo en Drive o Dropbox como respaldo remoto."
-            >
-              <span className="text-[11px] text-muted-foreground font-mono">
-                v{BACKUP_VERSION}
-              </span>
-            </Row>
-          </Section>
-
-          <Section
             id="about"
             title="Acerca de"
-            summary="SoundMap · v5"
+            summary={`SoundMap · ${version}`}
             isOpen={openSection === "about"}
             onToggle={() => toggle("about")}
           >
@@ -561,9 +597,9 @@ export default function Settings() {
                 SoundMap
               </span>
             </Row>
-            <Row label="Versión" hint="Design System v5 · Console Silenciosa">
+            <Row label="Versión" hint="Versión instalada de la aplicación">
               <span className="text-[13px] font-mono text-muted-foreground tabular-nums">
-                v5.0.0
+                {version}
               </span>
             </Row>
             <Row label="Motor" hint="Físico acústico + DSP + Session Recorder">
@@ -576,14 +612,14 @@ export default function Settings() {
           <Section
             id="danger"
             title="Datos"
-            summary="Resetear sistema"
+            summary="Reiniciar proyecto activo"
             isOpen={openSection === "danger"}
             onToggle={() => toggle("danger")}
             danger
           >
             <Row
-              label="Resetear sistema"
-              hint="Borra el recinto, los equipos y las escenas guardadas. Las preferencias se conservan."
+              label="Reiniciar proyecto activo"
+              hint="Limpia el recinto, los equipos y el expediente activos. Las escenas guardadas y preferencias se conservan."
               danger
             >
               <button
@@ -598,7 +634,7 @@ export default function Settings() {
                 }}
               >
                 <RotateCcw size={12} strokeWidth={1.75} />
-                Resetear
+                Reiniciar
               </button>
             </Row>
           </Section>
@@ -638,6 +674,7 @@ function Section({
   return (
     <motion.div
       layout
+      id={`settings-section-${id}`}
       data-testid={`settings-section-${id}`}
       className="overflow-hidden"
       style={{
@@ -651,6 +688,8 @@ function Section({
     >
       <button
         onClick={onToggle}
+        aria-expanded={isOpen}
+        aria-controls={`settings-body-${id}`}
         data-testid={`settings-section-${id}-toggle`}
         className="w-full flex items-center justify-between gap-4 px-4 md:px-5 py-4 text-left cursor-pointer"
       >
@@ -681,6 +720,7 @@ function Section({
         {isOpen && (
           <motion.div
             key="body"
+            id={`settings-body-${id}`}
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
@@ -828,81 +868,38 @@ function ResetConfirmDialog({
   onCancel: () => void;
 }) {
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.25 }}
-      className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-4 bg-black/70 backdrop-blur-md"
-      onClick={onCancel}
-      data-testid="reset-overlay"
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onCancel();
+      }}
     >
-      <motion.div
-        initial={{ opacity: 0, y: 40 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 40 }}
-        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        className="w-full max-w-md rounded-2xl p-7"
-        style={{
-          background: "#121214",
-          boxShadow:
-            "0 30px 80px -10px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.05)",
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-start gap-4 mb-5">
-          <div
-            className="h-10 w-10 rounded-full flex items-center justify-center shrink-0"
-            style={{
-              background: `${HUE_DANGER}18`,
-              boxShadow: `0 0 0 1px ${HUE_DANGER}44`,
-            }}
-          >
-            <AlertTriangle
-              size={16}
-              strokeWidth={1.75}
-              style={{ color: HUE_DANGER }}
-            />
-          </div>
-          <div className="min-w-0">
-            <h3 className="text-[16px] font-medium text-foreground leading-tight">
-              ¿Borrar todos los datos?
-            </h3>
-            <p className="text-[12px] text-muted-foreground mt-1.5 leading-relaxed">
-              Se eliminarán recinto, equipos y escenas guardadas. Las
-              preferencias se conservan. Esta acción no se puede deshacer.
-            </p>
-          </div>
-        </div>
-        <div className="flex gap-2.5">
+      <DialogContent className="library-dialog" data-testid="reset-overlay">
+        <DialogTitle>¿Reiniciar el proyecto activo?</DialogTitle>
+        <DialogDescription>
+          Se limpiarán el recinto, los equipos, el plano y el expediente
+          abiertos. Las escenas guardadas y las preferencias se conservan.
+          Guarda una revisión o exporta un respaldo si necesitas recuperar los
+          cambios del borrador.
+        </DialogDescription>
+        <div className="library-dialog-actions">
           <button
-            onClick={onCancel}
+            className="audit-button"
             data-testid="reset-cancel-btn"
-            className="flex-1 rounded-full py-2.5 text-[13px] font-medium cursor-pointer"
-            style={{
-              background: "rgba(255,255,255,0.03)",
-              boxShadow: "0 0 0 1px rgba(255,255,255,0.06)",
-              color: "var(--foreground)",
-              transition: "background-color 0.3s ease",
-            }}
+            onClick={onCancel}
           >
             Cancelar
           </button>
           <button
-            onClick={onConfirm}
+            className="audit-button library-danger"
             data-testid="reset-confirm-btn"
-            className="flex-1 rounded-full py-2.5 text-[13px] font-medium cursor-pointer"
-            style={{
-              background: HUE_DANGER,
-              color: "var(--background)",
-              transition: "background-color 0.3s ease",
-            }}
+            onClick={onConfirm}
           >
-            Sí, borrar
+            Reiniciar proyecto
           </button>
         </div>
-      </motion.div>
-    </motion.div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

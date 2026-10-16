@@ -85,18 +85,18 @@ export function AdvisorPanel({
               "radial-gradient(120% 100% at 0% 0%, var(--accent-dim) 0%, transparent 55%)",
           }}
         />
-        <div className="relative flex items-center gap-3">
+        <div className="relative flex items-center gap-3 min-w-0">
           <div
             className="flex h-9 w-9 items-center justify-center r-control"
             style={{ background: "var(--accent-dim)", color: "var(--accent)" }}
           >
             <AudioWaveform size={17} strokeWidth={2} />
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="text-[14px] font-semibold leading-none text-white tracking-[-0.01em]">
-              SoundMap Intelligence
+              Asesor SoundMap
             </p>
-            <p className="mt-1 text-[11px] leading-none text-zinc-400">
+            <p className="mt-1 text-[11px] leading-snug text-zinc-400 break-words">
               {room ? room.name : "Sin recinto cargado"}
             </p>
           </div>
@@ -137,8 +137,8 @@ export function AdvisorPanel({
               ¿En qué te ayudo con tu sistema?
             </p>
             <p className="mt-1.5 text-[12px] leading-relaxed text-zinc-400 max-w-[280px]">
-              Conozco tu recinto, su acústica y tu equipo. Preguntame lo que
-              quieras sobre tu sistema de audio.
+              Consulta el recinto y los equipos cargados. Cada respuesta indica
+              si proviene del servicio remoto o de reglas locales.
             </p>
             <div className="mt-5 grid w-full gap-2">
               {SUGGESTIONS.map((s) => (
@@ -163,11 +163,11 @@ export function AdvisorPanel({
             )}
           >
             {m.role === "user" ? (
-              <div className="max-w-[85%] rounded-2xl rounded-br-md bg-accent px-3.5 py-2.5 text-[13px] font-medium leading-relaxed text-accent-foreground">
+              <div className="max-w-[85%] min-w-0 break-words rounded-2xl rounded-br-md bg-accent px-3.5 py-2.5 text-[13px] font-medium leading-relaxed text-accent-foreground">
                 {m.content}
               </div>
             ) : (
-              <div className="max-w-[90%] rounded-2xl rounded-bl-md border border-[#222423] bg-white/[0.04] px-3.5 py-3">
+              <div className="max-w-[90%] min-w-0 break-words rounded-2xl rounded-bl-md border border-[#222423] bg-white/[0.04] px-3.5 py-3">
                 {m.content ? (
                   <AdvisorMarkdown content={m.content} />
                 ) : (
@@ -179,7 +179,10 @@ export function AdvisorPanel({
         ))}
 
         {error && (
-          <div className="flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-3.5 py-3 text-[12px] text-red-300">
+          <div
+            role="status"
+            className="flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-3.5 py-3 text-[12px] text-red-300"
+          >
             <AlertTriangle size={14} className="mt-0.5 shrink-0" />
             <span>{error}</span>
           </div>
@@ -189,12 +192,14 @@ export function AdvisorPanel({
       {/* Input */}
       <div className="border-t border-[#222423] bg-[#050706] p-3">
         <form onSubmit={handleSubmit} className="flex items-end gap-2">
-          <div className="flex flex-1 items-center rounded-2xl border border-[#222423] bg-white/[0.04] px-3.5 py-2.5 focus-within:border-accent/50 transition-colors">
+          <div className="flex flex-1 min-w-0 items-center rounded-2xl border border-[#222423] bg-white/[0.04] px-3.5 py-2.5 focus-within:border-accent/50 transition-colors">
             <input
+              aria-label="Consulta al asesor"
+              maxLength={4000}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Preguntale a SoundMap..."
-              className="w-full bg-transparent text-[13px] text-white placeholder:text-zinc-500 focus:outline-none"
+              className="w-full min-w-0 bg-transparent text-[13px] text-white placeholder:text-zinc-500 focus:outline-none"
             />
           </div>
           {isStreaming ? (
@@ -245,7 +250,7 @@ export function AdvisorWidget() {
               background: "var(--surface-1)",
               boxShadow: "var(--elev-2)",
             }}
-            aria-label="Abrir SoundMap Intelligence"
+            aria-label="Abrir Asesor SoundMap"
           >
             <span
               className="relative flex h-7 w-7 items-center justify-center rounded-full"

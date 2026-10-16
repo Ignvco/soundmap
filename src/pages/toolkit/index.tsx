@@ -1,3 +1,5 @@
+import { PremiumShell } from "@/components/soundmap/premium";
+import { ToolsNav } from "@/components/soundmap/tools-nav";
 // SoundMap — PA Toolkit page
 // Three interactive calculators: Cardioid Subs, Line Array Angles, Impedance.
 import { useState, useMemo } from "react";
@@ -11,7 +13,7 @@ import {
   Check,
   AlertTriangle,
 } from "lucide-react";
-import { GlassCard, ScreenShell } from "@/components/soundmap/ui.tsx";
+import { GlassCard } from "@/components/soundmap/ui.tsx";
 import { feedback } from "@/lib/feedback.ts";
 import {
   calculateCardioid,
@@ -42,25 +44,15 @@ export default function PAToolkit() {
   const [active, setActive] = useState<Tool>("cardioid");
 
   return (
-    <ScreenShell>
-      {/* Vitals header */}
-      <div className="mb-6">
-        <p className="text-[11px] uppercase tracking-[0.28em] font-medium text-muted-foreground mb-2">
-          Toolkit
-        </p>
-        <h1
-          className="text-[1.6rem] md:text-[2.1rem] leading-[1.05] tracking-[-0.03em] font-medium text-foreground"
-          data-testid="page-header-title"
-        >
-          Calculadoras PA
-        </h1>
-        <p className="text-[13px] text-muted-foreground mt-1">
-          Cardioid · Line Array · Impedancia
-        </p>
-      </div>
-
+    <PremiumShell
+      title="Calculadoras PA"
+      eyebrow="HERRAMIENTAS"
+      subtitle="Explora una configuración y contrasta los resultados antes de llevarlos al montaje."
+      data-testid="glow-toolkit"
+    >
+      <ToolsNav />
       {/* Tool tabs — Vitals pill container */}
-      <div className="mb-5">
+      <div className="toolkit-selector mb-5">
         <div
           className="flex flex-wrap items-center gap-1 rounded-2xl p-1"
           style={{
@@ -78,6 +70,7 @@ export default function PAToolkit() {
                   feedback("select");
                   setActive(t.key);
                 }}
+                aria-pressed={on}
                 data-testid={`toolkit-tab-${t.key}`}
                 className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12px] font-medium cursor-pointer shrink-0"
                 style={
@@ -102,12 +95,22 @@ export default function PAToolkit() {
         </div>
       </div>
 
-      <div className="px-4 space-y-4 pb-6">
-        {active === "cardioid" && <CardioidPanel />}
-        {active === "line-array" && <LineArrayPanel />}
-        {active === "impedance" && <ImpedancePanel />}
+      <p className="workspace-note mb-4">
+        Cálculos orientativos. Cambiar estos controles no modifica el DSP ni la
+        disposición guardada.
+      </p>
+      <div className="toolkit-panels pb-6">
+        <section hidden={active !== "cardioid"} aria-label="Subs cardioides">
+          <CardioidPanel />
+        </section>
+        <section hidden={active !== "line-array"} aria-label="Line Array">
+          <LineArrayPanel />
+        </section>
+        <section hidden={active !== "impedance"} aria-label="Impedancia">
+          <ImpedancePanel />
+        </section>
       </div>
-    </ScreenShell>
+    </PremiumShell>
   );
 }
 
@@ -982,6 +985,7 @@ function SliderRow({
       </div>
       <input
         type="range"
+        aria-label={label}
         min={min}
         max={max}
         step={step}

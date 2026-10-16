@@ -1,10 +1,10 @@
 import { NavLink } from "react-router-dom";
 
 export const ANALYSIS_LINKS = [
-  { to: "/compare", label: "Compare A/B", short: "Compare" },
-  { to: "/spl-analysis", label: "SPL Analysis", short: "SPL" },
-  { to: "/acoustic-analysis", label: "Acoustic Analysis", short: "Acústica" },
-  { to: "/stage-map", label: "Stage Map · 3D", short: "Stage Map" },
+  { to: "/compare", label: "Comparar A/B", short: "Comparar" },
+  { to: "/spl-analysis", label: "Cobertura SPL", short: "SPL" },
+  { to: "/acoustic-analysis", label: "Acústica", short: "Acústica" },
+  { to: "/stage-map", label: "Plano 2D / 3D", short: "Plano" },
 ] as const;
 
 export function AnalysisNav() {

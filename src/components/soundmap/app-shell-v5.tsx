@@ -29,6 +29,12 @@ export function AppShellV5({ children }: { children: ReactNode }) {
     location.pathname === "/live" ||
     location.pathname === "/scenes" ||
     location.pathname === "/templates" ||
+    location.pathname === "/toolkit" ||
+    location.pathname === "/compare" ||
+    location.pathname === "/community" ||
+    location.pathname === "/settings" ||
+    location.pathname === "/collaboration" ||
+    location.pathname === "/ai-advisor" ||
     location.pathname === "/spl-analysis" ||
     location.pathname === "/acoustic-analysis" ||
     (location.pathname === "/design" &&
@@ -57,6 +63,9 @@ export function AppShellV5({ children }: { children: ReactNode }) {
       className="app-shell min-h-[100dvh] bg-background text-foreground flex"
       data-glow-screen={glowScreen}
     >
+      <a className="skip-to-content" href="#main-content">
+        Saltar al contenido
+      </a>
       <DesktopSidebar />
       <div className="flex-1 min-w-0 relative">
         <header className="app-topbar">
@@ -76,7 +85,7 @@ export function AppShellV5({ children }: { children: ReactNode }) {
               <Link
                 to="/ai-advisor"
                 className="app-icon-button lg:hidden"
-                aria-label="Abrir AI Advisor"
+                aria-label="Abrir asesor de sonido"
               >
                 <Sparkles size={18} />
               </Link>
@@ -97,7 +106,7 @@ export function AppShellV5({ children }: { children: ReactNode }) {
             </div>
           </div>
         </header>
-        <main className="app-content">
+        <main id="main-content" tabIndex={-1} className="app-content">
           {glowScreen ? (
             <ProjectContext />
           ) : (

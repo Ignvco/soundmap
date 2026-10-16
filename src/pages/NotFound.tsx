@@ -14,17 +14,18 @@ export default function NotFound() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center space-y-6">
+      <div className="text-center space-y-6 p-6">
         <div className="space-y-2">
           <h1 className="text-6xl font-bold text-muted-foreground">404</h1>
-          <h2 className="text-2xl font-semibold">Page Not Found</h2>
+          <h2 className="text-2xl font-semibold">Página no encontrada</h2>
         </div>
         <p className="text-lg text-muted-foreground max-w-md mx-auto">
-          This page does not exist.
+          La dirección no existe. Vuelve al inicio para continuar con tu
+          proyecto.
         </p>
         <div className="pt-4">
           <Button asChild>
-            <Link to="/">Return to Home</Link>
+            <Link to="/">Volver al inicio</Link>
           </Button>
         </div>
       </div>

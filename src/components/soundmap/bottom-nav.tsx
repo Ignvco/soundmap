@@ -49,8 +49,7 @@ const TABS = [
       p.startsWith("/dsp") ||
       p.startsWith("/channels") ||
       p.startsWith("/pa") ||
-      p.startsWith("/toolkit") ||
-      p.startsWith("/templates"),
+      p.startsWith("/toolkit"),
   },
   {
     id: "perform",
@@ -123,21 +122,33 @@ const QUICK_ACTIONS = [
 ];
 
 const ANALYSIS_ACTIONS = [
-  { id: "stage", label: "Stage Map", icon: Box, path: "/stage-map" },
-  { id: "spl", label: "SPL Analysis", icon: Activity, path: "/spl-analysis" },
+  { id: "stage", label: "Plano 2D / 3D", icon: Box, path: "/stage-map" },
+  { id: "spl", label: "Cobertura SPL", icon: Activity, path: "/spl-analysis" },
   {
     id: "acoustic",
     label: "Acústica",
     icon: Waves,
     path: "/acoustic-analysis",
   },
-  { id: "advisor", label: "AI Advisor", icon: Sparkles, path: "/ai-advisor" },
+  {
+    id: "advisor",
+    label: "Asesor de sonido",
+    icon: Sparkles,
+    path: "/ai-advisor",
+  },
   {
     id: "templates",
-    label: "Templates",
+    label: "Plantillas",
     icon: LayoutTemplate,
     path: "/templates",
   },
+  {
+    id: "collaboration",
+    label: "Colaboración",
+    icon: Users,
+    path: "/collaboration",
+  },
+  { id: "audit", label: "Expediente", icon: FileText, path: "/audit" },
   { id: "live", label: "Operación en vivo", icon: Radio, path: "/live" },
 ];
 
@@ -204,6 +215,7 @@ export function BottomNav() {
               key={id}
               data-testid={`fab-action-${id}`}
               className="mobile-menu-action"
+              aria-current={location.pathname === path ? "page" : undefined}
               onClick={() => {
                 feedback("tap");
                 setOpen(false);

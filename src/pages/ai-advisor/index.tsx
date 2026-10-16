@@ -1,3 +1,5 @@
+import { PremiumShell } from "@/components/soundmap/premium";
+import { ManagementNav } from "@/components/soundmap/management-nav";
 import { AdvisorPanel } from "@/components/soundmap/advisor/advisor-widget.tsx";
 import { VenuePreview } from "@/components/soundmap/venue-preview.tsx";
 import { useAppStore } from "@/store/app.ts";
@@ -5,13 +7,17 @@ import { useAppStore } from "@/store/app.ts";
 export default function AIAdvisor() {
   const { stageLayout, room, tops, subs, monitors } = useAppStore();
   return (
-    <div className="v6-workspace advisor-workspace">
-      <header className="mb-4">
-        <h1 className="v6-heading">AI Advisor</h1>
-        <p className="text-xs text-muted-foreground mt-2">
-          Recinto, acústica y sistema de sonido
-        </p>
-      </header>
+    <PremiumShell
+      title="Asesor de sonido"
+      eyebrow="GESTIÓN"
+      subtitle="Consulta el proyecto activo y revisa el origen de cada respuesta."
+      data-testid="glow-advisor"
+    >
+      <ManagementNav />
+      <p className="workspace-note mb-4">
+        Sin servicio remoto autenticado, SoundMap responde con reglas locales.
+        Las recomendaciones requieren tu revisión antes de aplicarse.
+      </p>
       <div
         className={
           room
@@ -32,6 +38,6 @@ export default function AIAdvisor() {
           </div>
         )}
       </div>
-    </div>
+    </PremiumShell>
   );
 }

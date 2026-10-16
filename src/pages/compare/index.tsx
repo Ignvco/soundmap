@@ -1,3 +1,11 @@
+import { ToolsNav } from "@/components/soundmap/tools-nav";
+import { ReplaceDraftActions } from "@/components/soundmap/library-controls";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { AnalysisNav } from "@/components/soundmap/analysis-nav.tsx";
 import { SplHeatmap2D } from "@/components/soundmap/spl-heatmap-2d.tsx";
 import { evaluateAudit } from "@/lib/audio/audit-evaluator";
@@ -31,8 +39,13 @@ import {
 export default function SceneCompare() {
   const { scenes, loadScene } = useAppStore();
   const navigate = useNavigate();
-  const [aId, setAId] = useState<string | null>(scenes[0]?.id ?? null);
-  const [bId, setBId] = useState<string | null>(scenes[1]?.id ?? null);
+  const [aId, setAId] = useState<string | null>(
+    scenes[0]?.clientId ?? scenes[0]?.id ?? null,
+  );
+  const [bId, setBId] = useState<string | null>(
+    scenes[1]?.clientId ?? scenes[1]?.id ?? null,
+  );
+  const [loadTarget, setLoadTarget] = useState<Scene | null>(null);
   const [showDetails, setShowDetails] = useState(false);
 
   const a = useMemo(
@@ -103,6 +116,7 @@ export default function SceneCompare() {
     return (
       <div className="v6-workspace compare-workspace">
         <div className="max-w-[1400px] mx-auto">
+          <ToolsNav />
           <AnalysisNav />
           <motion.div
             initial={{ opacity: 0, y: 8 }}
@@ -141,6 +155,7 @@ export default function SceneCompare() {
   return (
     <div className="v6-workspace compare-workspace">
       <div className="max-w-[1400px] mx-auto">
+        <ToolsNav />
         <AnalysisNav />
         {/* Whisper header + title */}
         <motion.div
@@ -149,10 +164,11 @@ export default function SceneCompare() {
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
         >
           <h1 className="v6-heading mb-3" data-testid="compare-hub-title">
-            Compare A/B
+            Comparar escenas
           </h1>
           <p className="text-sm text-muted-foreground max-w-xl leading-relaxed mb-6">
-            Compará la cobertura y el rendimiento de tus escenas.
+            Compara las estimaciones de dos revisiones guardadas. Los mapas no
+            representan mediciones reales.
           </p>
         </motion.div>
 
@@ -384,6 +400,8 @@ export default function SceneCompare() {
                   feedback("tap");
                   setShowDetails((v) => !v);
                 }}
+                aria-expanded={showDetails}
+                aria-controls="compare-details"
                 data-testid="compare-toggle-details"
                 className="inline-flex items-center gap-2 text-[13px] text-muted-foreground hover:text-foreground cursor-pointer"
                 style={{ transition: "color 0.3s ease" }}
@@ -408,6 +426,7 @@ export default function SceneCompare() {
                     exit={{ opacity: 0, height: 0 }}
                     transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
                     className="overflow-hidden"
+                    id="compare-details"
                     data-testid="compare-details-panel"
                   >
                     <div className="pt-8 space-y-10">
@@ -432,7 +451,7 @@ export default function SceneCompare() {
               className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3"
             >
               <button
-                onClick={() => handleLoad(a)}
+                onClick={() => setLoadTarget(a)}
                 data-testid="compare-load-a"
                 className="inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-[14px] font-medium cursor-pointer"
                 style={{
@@ -445,7 +464,7 @@ export default function SceneCompare() {
                 Cargar A · {a.name}
               </button>
               <button
-                onClick={() => handleLoad(b)}
+                onClick={() => setLoadTarget(b)}
                 data-testid="compare-load-b"
                 className="inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-[14px] font-medium cursor-pointer"
                 style={{
@@ -460,6 +479,27 @@ export default function SceneCompare() {
             </motion.div>
           </>
         )}
+        <Dialog
+          open={!!loadTarget}
+          onOpenChange={(open) => {
+            if (!open) setLoadTarget(null);
+          }}
+        >
+          <DialogContent className="library-dialog">
+            <DialogTitle>Abrir revisión comparada</DialogTitle>
+            <DialogDescription>
+              {loadTarget?.name}. Reemplaza el proyecto activo con esta revisión
+              guardada.
+            </DialogDescription>
+            <ReplaceDraftActions
+              actionLabel="Abrir revisión"
+              onCancel={() => setLoadTarget(null)}
+              onConfirm={() => {
+                if (loadTarget) handleLoad(loadTarget);
+              }}
+            />
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

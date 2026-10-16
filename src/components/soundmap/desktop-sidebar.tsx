@@ -46,13 +46,13 @@ const PRIMARY: Item[] = [
     to: "/design",
     label: "Auditoría",
     icon: Compass,
-    match: ["/room-scan", "/gear-builder", "/dsp", "/channels"],
+    match: ["/room-scan", "/gear-builder", "/dsp", "/channels", "/pa"],
   },
   {
     to: "/perform",
     label: "Medición",
     icon: Radio,
-    match: ["/live", "/kiosk", "/pa"],
+    match: ["/live", "/kiosk"],
   },
   {
     to: "/compare",
@@ -65,8 +65,8 @@ const PRIMARY: Item[] = [
 const WORKSPACE: Item[] = [
   { to: "/collaboration", label: "Colaboración", icon: Users },
   { to: "/audit", label: "Expediente", icon: Layers },
-  { to: "/ai-advisor", label: "AI Advisor", icon: Sparkles },
-  { to: "/scenes", label: "Revisiones", icon: Layers },
+  { to: "/ai-advisor", label: "Asesor de sonido", icon: Sparkles },
+  { to: "/scenes", label: "Escenas", icon: Layers },
   { to: "/templates", label: "Plantillas", icon: LayoutTemplate },
   { to: "/toolkit", label: "Herramientas", icon: Calculator },
   { to: "/community", label: "Catálogo local", icon: Users },
@@ -94,6 +94,7 @@ function Row({
       onClick={() => feedback("tap")}
       aria-current={active ? "page" : undefined}
       title={collapsed ? item.label : undefined}
+      aria-label={item.label}
       data-testid={`sidebar-${item.label.toLowerCase()}`}
       className="group flex items-center gap-3 h-9 px-2.5 cursor-pointer"
       style={{
@@ -220,7 +221,7 @@ export function DesktopSidebar() {
               className="text-[10px] font-medium uppercase tracking-[0.18em]"
               style={{ color: "var(--muted-foreground)" }}
             >
-              Workspace
+              BIBLIOTECA Y GESTIÓN
             </p>
           )}
         </div>
@@ -243,10 +244,10 @@ export function DesktopSidebar() {
           style={{ background: "var(--border-subtle)" }}
         />
         <Row
-          item={{ to: "/settings", label: "Settings", icon: SettingsIcon }}
+          item={{ to: "/settings", label: "Ajustes", icon: SettingsIcon }}
           active={isActive(pathname, {
             to: "/settings",
-            label: "Settings",
+            label: "Ajustes",
             icon: SettingsIcon,
           })}
           collapsed={collapsed}

@@ -1,3 +1,4 @@
+import { ToolsNav } from "@/components/soundmap/tools-nav";
 // Community Hub v5 — Apple/Linear/Arc redesign.
 // Typography-first minimal list with the top-upvoted item as a hero.
 // Filters live as quiet ghost chips, submit modal is quiet + spacious.
@@ -58,8 +59,9 @@ export default function CommunityGearPage() {
     "all",
   );
   const [statusFilter, setStatusFilter] = useState<"approved" | "pending">(
-    "approved",
+    "pending",
   );
+  const [query, setQuery] = useState("");
   const [submitOpen, setSubmitOpen] = useState(false);
   const { isAuthenticated } = useSyncContext();
 
@@ -70,8 +72,15 @@ export default function CommunityGearPage() {
 
   // Sorted rows: highest upvotes first. Hero = rows[0] when list has content.
   const sorted = useMemo(
-    () => (rows ? [...rows].sort((a, b) => b.upvotes - a.upvotes) : undefined),
-    [rows],
+    () =>
+      rows
+        ?.filter((r) =>
+          `${r.brand} ${r.model}`
+            .toLocaleLowerCase("es")
+            .includes(query.trim().toLocaleLowerCase("es")),
+        )
+        .sort((a, b) => b.createdAt - a.createdAt),
+    [rows, query],
   );
   const hero = sorted && sorted.length > 0 ? sorted[0] : null;
   const rest = sorted && sorted.length > 1 ? sorted.slice(1) : [];
@@ -89,7 +98,7 @@ export default function CommunityGearPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground px-6 md:px-12 pt-10 md:pt-16 pb-24">
+    <div className="v6-workspace glow-community">
       <div className="max-w-4xl mx-auto">
         {/* Whisper header + title */}
         <motion.div
@@ -98,7 +107,7 @@ export default function CommunityGearPage() {
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
         >
           <p className="text-[11px] uppercase tracking-[0.28em] font-medium text-muted-foreground mb-4">
-            Comunidad
+            CATÁLOGO LOCAL
           </p>
           <div className="flex items-end justify-between gap-6 mb-3 flex-wrap">
             <h1
@@ -114,22 +123,30 @@ export default function CommunityGearPage() {
               style={{ transition: "background-color 0.3s ease" }}
             >
               <Plus size={13} strokeWidth={2} />
-              Proponer gear
+              Crear ficha
             </button>
           </div>
-          <p className="text-[15px] text-muted-foreground max-w-xl leading-relaxed mb-10 md:mb-14">
-            Borradores guardados en este dispositivo. Para enviar propuestas con
-            autoría y moderación, abre Colaboración.
+          <p className="text-[15px] text-muted-foreground max-w-xl leading-relaxed mb-5">
+            Crea fichas para tu inventario. Se guardan en este dispositivo.
           </p>
         </motion.div>
 
+        <ToolsNav />
+        <label className="library-search mb-4">
+          <input
+            aria-label="Buscar fichas locales"
+            placeholder="Buscar marca o modelo…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </label>
         {/* Auth hint — quiet strip */}
         {!isAuthenticated && !isDemoMode && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.15, duration: 0.5 }}
-            className="mb-10 rounded-xl px-5 py-3.5 flex items-center gap-3"
+            className="mb-4 rounded-xl px-4 py-3 flex items-center gap-3"
             style={{
               background: "rgba(107,165,199,0.05)",
               boxShadow: "0 0 0 1px rgba(107,165,199,0.15)",
@@ -156,7 +173,7 @@ export default function CommunityGearPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.15, duration: 0.5 }}
-            className="mb-10 rounded-xl px-5 py-3.5 flex items-center gap-3"
+            className="mb-4 rounded-xl px-4 py-3 flex items-center gap-3"
             style={{
               background: "rgba(155,126,189,0.05)",
               boxShadow: "0 0 0 1px rgba(155,126,189,0.18)",
@@ -172,8 +189,8 @@ export default function CommunityGearPage() {
               <span className="text-foreground font-medium">
                 Catálogo local
               </span>{" "}
-              — propuestas de este dispositivo, sin revisión pública. Marcar un
-              equipo no verifica sus especificaciones.
+              · fichas sin revisión pública. Marcar un equipo no verifica sus
+              especificaciones.
             </p>
           </motion.div>
         )}
@@ -203,6 +220,7 @@ export default function CommunityGearPage() {
                     feedback("tap");
                     setCategory(cat);
                   }}
+                  aria-pressed={on}
                   data-testid={`community-filter-${cat}`}
                   className={cn(
                     "rounded-full px-3.5 py-1.5 text-[12px] font-medium cursor-pointer",
@@ -230,7 +248,7 @@ export default function CommunityGearPage() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="mb-10 md:mb-12"
+          className="mb-5"
         >
           <div
             className="inline-flex items-center gap-1 rounded-full p-1"
@@ -246,6 +264,7 @@ export default function CommunityGearPage() {
                   feedback("select");
                   setStatusFilter(s);
                 }}
+                aria-pressed={statusFilter === s}
                 data-testid={`community-status-${s}`}
                 className={cn(
                   "rounded-full px-4 py-1.5 text-[12px] font-medium cursor-pointer",
@@ -257,7 +276,7 @@ export default function CommunityGearPage() {
                   transition: "background-color 0.3s ease, color 0.3s ease",
                 }}
               >
-                {s === "approved" ? "Aprobado" : "Pendiente"}
+                {s === "approved" ? "Archivo heredado" : "Borradores locales"}
               </button>
             ))}
           </div>
@@ -284,16 +303,16 @@ export default function CommunityGearPage() {
             <EmptyState
               testId="community-empty"
               icon={<Users size={18} strokeWidth={1.75} />}
-              title="Sin gear todavía"
+              title="Sin fichas con estos filtros"
               description={
                 statusFilter === "pending"
-                  ? "No hay propuestas en revisión ahora."
-                  : "Sé el primero en proponer un modelo para la comunidad."
+                  ? "Crea una ficha local o prueba otra categoría y búsqueda."
+                  : "Aquí solo aparecen registros antiguos con ese estado. No implica verificación de especificaciones."
               }
               action={
                 statusFilter === "pending" ? (
                   <SecondaryButton onClick={() => setStatusFilter("approved")}>
-                    Ver los aprobados
+                    Ver archivo heredado
                   </SecondaryButton>
                 ) : undefined
               }
@@ -312,11 +331,11 @@ export default function CommunityGearPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4, duration: 0.6 }}
-            className="mt-14 md:mt-16"
+            className="mt-6"
             data-testid="community-list"
           >
             <p className="text-[11px] uppercase tracking-[0.28em] font-medium text-muted-foreground mb-6">
-              Más propuestas
+              Más fichas locales
             </p>
             <div className="divide-y divide-white/[0.04]">
               {rest.map((row, i) => (
@@ -336,7 +355,12 @@ export default function CommunityGearPage() {
       <SubmitGearModal
         open={submitOpen}
         onClose={() => setSubmitOpen(false)}
-        onSubmit={submit}
+        onSubmit={async (input) => {
+          await submit(input);
+          setStatusFilter("pending");
+          setCategory("all");
+          setQuery("");
+        }}
       />
     </div>
   );
@@ -773,9 +797,7 @@ function SubmitGearModal({
         dspIntegrated: form.dspIntegrated,
       });
       feedback("success");
-      toast.success(
-        "¡Propuesta enviada! Aparecerá en 'Pendiente' hasta la revisión.",
-      );
+      toast.success("Ficha guardada en los borradores de este dispositivo.");
       onClose();
     } catch (err) {
       const msg = err instanceof Error ? err.message : "No se pudo enviar.";
@@ -818,7 +840,7 @@ function SubmitGearModal({
                   Nuevo modelo
                 </p>
                 <h3 className="text-[1.4rem] leading-tight tracking-[-0.02em] font-medium text-foreground">
-                  Proponer gear a la comunidad
+                  Crear ficha a la comunidad
                 </h3>
               </div>
               <button

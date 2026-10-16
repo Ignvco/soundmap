@@ -1,3 +1,7 @@
+import { PremiumShell } from "@/components/soundmap/premium";
+import { ManagementNav } from "@/components/soundmap/management-nav";
+import { Link } from "react-router-dom";
+import { FolderLock, HardDrive } from "lucide-react";
 import { Field } from "@/components/soundmap/audit-fields";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -13,18 +17,51 @@ import { CatalogPanel } from "./catalog-panel";
 export default function Collaboration() {
   const auth = useAuth();
   return (
-    <main className="audit-page space-y-5">
-      <h1 className="text-2xl font-semibold">Colaboración privada</h1>
-      <p>
-        Publica revisiones guardadas en un espacio con permisos. La edición
-        local conserva su copia y los conflictos no sobrescriben revisiones.
-      </p>
+    <PremiumShell
+      title="Colaboración privada"
+      eyebrow="GESTIÓN"
+      subtitle="Comparte revisiones guardadas con los miembros de tu espacio."
+      data-testid="glow-collaboration"
+      wrapperClassName="max-w-5xl"
+    >
+      <ManagementNav />
+      <section className="workspace-card collaboration-status">
+        <span className="library-icon">
+          <FolderLock size={22} />
+        </span>
+        <div>
+          <h2>
+            {cloudConfigured
+              ? "Espacios con acceso privado"
+              : "Tu trabajo está en este dispositivo"}
+          </h2>
+          <p className="workspace-note">
+            Las revisiones publicadas conservan su identidad. El borrador local
+            sigue siendo independiente.
+          </p>
+        </div>
+      </section>
       {!cloudConfigured ? (
-        <p>
-          Esta instalación funciona localmente. La conexión de cuentas y el
-          servicio privado requieren configurar el proveedor de identidad y el
-          backend antes de su despliegue.
-        </p>
+        <section
+          className="workspace-card collaboration-local"
+          data-testid="collaboration-local"
+        >
+          <HardDrive size={24} />
+          <h2>Modo local disponible</h2>
+          <p>
+            La colaboración en línea no está habilitada en esta instalación.
+            Puedes seguir diseñando, guardar escenas y descargar un respaldo
+            para trasladar tu trabajo.
+          </p>
+          <div className="library-dialog-actions">
+            <Link className="audit-button workspace-primary" to="/settings">
+              Abrir respaldos
+            </Link>
+            <Link className="audit-button" to="/scenes">
+              Ver escenas
+            </Link>
+          </div>
+        </section>
       ) : !auth.isAuthenticated ? (
         <>
           <button
@@ -44,7 +81,7 @@ export default function Collaboration() {
           <Connected />
         </>
       )}
-    </main>
+    </PremiumShell>
   );
 }
 function Connected() {
@@ -78,7 +115,9 @@ function Workspace() {
     ),
     state = useAppStore(),
     workspace = workspaces?.find((w) => w._id === selected),
-    scene = state.scenes.find((s) => s.id === state.activeSceneId);
+    scene = state.scenes.find(
+      (s) => s.id === state.activeSceneId || s.clientId === state.activeSceneId,
+    );
   const run = async (fn: () => Promise<unknown>) => {
     try {
       await fn();
@@ -92,7 +131,7 @@ function Workspace() {
       <p className="text-xs break-all">
         Tu identificador para recibir acceso: {me}
       </p>
-      <div className="flex gap-2">
+      <div className="collaboration-create flex flex-wrap gap-2">
         <input
           className="audit-input"
           aria-label="Nombre del espacio"
